@@ -24,6 +24,7 @@
 #include <sys/stddef.h>
 #include <sys/stdbool.h>
 #include <sys/errno.h>
+#include <sys/varargs.h>
 #include <sys/debug.h>
 #include <sys/cmn_err.h>
 #include <sys/sysmacros.h>

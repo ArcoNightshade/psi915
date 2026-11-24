@@ -22,6 +22,11 @@
 #include <linux/math.h>
 #include <linux/bitops.h>
 #include <linux/log2.h>
+#include <linux/printk.h>
+#include <linux/bug.h>
+#include <linux/panic.h>
+#include <linux/err.h>
+#include <linux/errno.h>
 
 /*
  * illumos <sys/sysmacros.h> defines ARRAY_SIZE without the array check

@@ -35,6 +35,12 @@
 #include <linux/math64.h>
 #include <linux/minmax.h>
 #include <linux/limits.h>
+#include <linux/printk.h>
+#include <linux/bug.h>
+#include <linux/dev_printk.h>
+#include <linux/err.h>
+#include <linux/errno.h>
+#include <linux/jiffies.h>
 
 #ifndef LINUXKPI_ILLUMOS_KERNEL
 #error "expected the illumos kernel configuration"
@@ -93,6 +99,11 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 		    (int)mul_u64_u64_div_u64(ul, ul, ul + 1) + (int)do_div(q, 3);
 	}
 	wmb();
+	if (WARN_ON(sum < 0))
+		pr_err("negative %d\n", sum);
+	WARN_ON_ONCE(IS_ERR(ERR_PTR(-ENOMEM)) == 0);
+	dev_info((struct device *)NULL, "j %lu\n", jiffies + msecs_to_jiffies(10));
+	BUG_ON(sum == -12345);
 	lkpi_assert(sum >= 0);
 	return (sum + (int)ARRAY_SIZE(arr) + (int)ALIGN(3, 4));
 }

@@ -8,6 +8,14 @@
  * kernel API (linux/limits.h). C limits come from the compiler's
  * predefined macros, so no environment <limits.h> is needed.
  */
+/*
+ * On a Linux userland host this file shadows the kernel UAPI header of the
+ * same name, and glibc <limits.h> includes <linux/limits.h> for PATH_MAX etc.; chain to the host header first.
+ */
+#if !defined(_KERNEL) && defined(__linux__)
+#include_next <linux/limits.h>
+#endif
+
 #ifndef _LINUXKPI_LINUX_LIMITS_H_
 #define	_LINUXKPI_LINUX_LIMITS_H_
 
