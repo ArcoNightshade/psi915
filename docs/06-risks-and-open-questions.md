@@ -8,7 +8,7 @@
 
 ## Still open
 1. Are Mesa/Xorg/libdrm on OpenIndiana 2026.10 and Tribblix recent enough (iris, DRI3)? Tribblix is 0m41.1.
-2. Bare-metal access: laptop boots Tribblix from external media (owner says yes). Two spare PCs available as log/build hosts; still need serial/netconsole path.
+2. Bare-metal access: laptop boots Tribblix from external media (owner says yes). Resolved: laptop has a serial port; netconsole also available; spare PCs are an i7-11700K (Gen12 second target) and a Pentium II (terminal only).
 3. Serial/second-machine debug access (Rugged 5420 may have a serial port option; netconsole/kmdb alternatives).
 4. Exact 6.x tag to pin (suggest the LTS drm-kmod tracks).
 

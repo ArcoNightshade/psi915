@@ -19,8 +19,13 @@ the owner's machines; sandbox use is limited to editing, static checks, referenc
 - Userland (Mesa, libdrm, Xorg): check what Tribblix and OpenIndiana ship; may need to build our own Mesa/libdrm for either.
 
 ## Extra machines
-Owner has 2 other PCs. Use one as a log/debug host (ssh, `dumpadm` crash dumps copied off, serial/netconsole if the laptop exposes a port) and
-one as a build/second test box (also useful for a plain-Intel iGPU of a different generation for regression testing; record their GPU IDs).
+- Core i7-11700K (Rocket Lake, UHD 750, Gen12 Xe-LP): second i915 target and build box. Gen12 is the stretch-goal generation,
+  so keep Gen12 code paths compiling and test them here after Gen9.5 works. (UHD 750 PCI ID expected 8086:4C8A/4C8B; confirm.)
+  Note: a 11700K with a discrete GPU installed can run the iGPU headless, giving a safe debug box.
+- Pentium II-class PC: too old for 64-bit illumos and has no usable GPU for this project. Useful at most as a serial terminal
+  (if it has a serial port) or a plain network host; not a test target.
+- Laptop debug: serial port available (use `-B console=ttya` plus kmdb) and netconsole. Prefer serial for early boot/panic output,
+  netconsole/crash dumps for later. Need a USB-serial or null-modem cable and a host that can run a terminal (any of the PCs).
 
 ## Proposed setup
 - Build host: OpenIndiana (VM or the target laptop) with `build-essential` equivalents (gcc, `onbld` not required;
