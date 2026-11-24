@@ -8,7 +8,7 @@ the owner's machines; sandbox use is limited to editing, static checks, referenc
 - In a VM (works now): KPI core, DRM core, vkms-style virtual KMS device, toy PCI drivers (emulated devices), userland harness tests, build/CI.
 - Needs the laptop: everything touching i915 (MMIO, DMA/IOMMU, interrupts, display, GuC/HuC, WC/PAT). Boot OpenIndiana from an external
   SSD/USB as a separate boot environment so the laptop's installed OS is untouched. Keep a second machine for ssh/log capture.
-- Do not rely on iGPU passthrough to a VM for Tiger Lake.
+- Do not rely on iGPU passthrough to a VM.
 
 ## Proposed setup
 - Build host: OpenIndiana (VM or the target laptop) with `build-essential` equivalents (gcc, `onbld` not required;

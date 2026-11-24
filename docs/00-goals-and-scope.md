@@ -20,12 +20,11 @@ numbered patch series, never as in-place divergence.
 - Upstreaming to illumos-gate before the project is proven (kept out-of-gate, licence-clean).
 
 ## Target hardware
-- Dell Latitude 5420 Rugged (confirmed by owner). Launched 2021 (not 2018): Tiger Lake, 11th-gen Core, Intel Iris Xe / UHD (Gen12, Xe-LP).
-  Expected PCI IDs 8086:9A49 / 9A40 / 9A78 (to be confirmed with lspci). Gen9 (KBL-R) is dropped as primary target.
-- Consequences: Gen12 needs DMC firmware (tgl_dmc_ver2_xx.bin), GuC and HuC firmware (tgl_guc_*.bin, tgl_huc_*.bin);
-  GuC submission is likely the default path on Gen12 in Linux 6.x (verify in pinned source). Full 48-bit ppGTT, display with
-  DDI/TC ports (Type-C DP alt-mode, Thunderbolt-adjacent code), possible PCIe/IOMMU interactions.
-- Gen9 can stay as a secondary/regression target only if hardware is available.
+- Dell Latitude 5420 Rugged with Core i7-8650U (owner-confirmed): Kaby Lake-R, 8th gen, Intel UHD 620, Gen9.5.
+  Expected PCI ID 8086:5917 (Mobile GT2); confirm with lspci. (Model naming vs. the 2021 Tiger Lake "5420" is moot: this unit is Gen9.5.)
+- Gen9.5 consequences: DMC firmware needed (kbl_dmc_ver1_04.bin; verify name in pinned linux-firmware);
+  GuC/HuC optional (execlists submission is the default, GuC not required; HuC only for media). Full 48-bit ppGTT. eDP + HDMI/DP, no Type-C PHY complexity.
+- Gen12 (Tiger Lake) is a later stretch goal only.
 
 ## Success criteria
 - S1: Linux-derived module loads, probes, binds to the iGPU, no panics under load/unload.

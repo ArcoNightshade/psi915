@@ -1,7 +1,7 @@
 # Risks and open questions
 
 ## Decisions (resolved)
-- Model: Dell Latitude 5420 Rugged (Tiger Lake, Gen12). Confirm GPU ID via lspci.
+- Model: Dell Latitude 5420 Rugged, i7-8650U (Kaby Lake-R, Gen9.5, UHD 620). Confirm GPU ID via lspci (expect 8086:5917).
 - i915 base: drm-kmod, Linux 6.x. Minimum uAPI 5.4.
 - Licence: BSD-2-Clause for project code.
 - Dev setup: VM (see doc 05 for the limits).
@@ -22,8 +22,7 @@
 - R7 Single maintainer bandwidth; Linux churn.
 - R8 Licence taint: must not copy GPL-only Linux source into the KPI.
 - R9 illumos suspend/resume maturity is limited.
-- R11 Gen12 pulls in GuC submission, HuC, Type-C/TBT display code: larger surface than Gen9.
-- R12 VM cannot exercise the iGPU (no passthrough of the primary iGPU, GVT-g not on TGL); i915 needs bare metal.
+- R12 VM cannot exercise the iGPU (primary iGPU passthrough is impractical); i915 needs bare metal.
 - R10 No cloud-side hardware testing; slow feedback loop.
 
 ## Unverified assumptions (check before relying)
