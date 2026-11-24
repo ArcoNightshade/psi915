@@ -33,6 +33,13 @@
  *   lkpi_plat_thread_*  service threads: thread_create / pthread_create
  *                       (out of line, in src/plat_illumos.c and
  *                       src/plat_userland.c)
+ *   lkpi_plat_nsec      monotonic ns clock: gethrtime / CLOCK_MONOTONIC
+ *   lkpi_plat_cv_timedwait_ns  absolute ns deadline waits
+ *   lkpi_plat_sleep_ns, lkpi_plat_udelay  sleeps and busy-waits
+ *   lkpi_plat_tsd_*     thread-specific data with exit destructor:
+ *                       tsd_create / pthread_key_create
+ *   lkpi_plat_signal_pending, lkpi_plat_getpid, lkpi_plat_getcomm
+ *   lkpi_plat_copyin/copyout/copyinstr  ddi_copyin / memcpy
  *
  * illumos headers must be included before any linux/ header: several
  * illumos names (min, max, ARRAY_SIZE, ffs, mutex_init, mutex_destroy,
@@ -91,6 +98,9 @@ struct lkpi_plat_thread;
 struct lkpi_plat_thread *lkpi_plat_thread_create(void (*fn)(void *),
     void *arg, const char *name);
 void lkpi_plat_thread_join(struct lkpi_plat_thread *t);
+/* A thread nobody joins; its resources go away when fn returns. 0 or errno. */
+int lkpi_plat_thread_create_detached(void (*fn)(void *), void *arg,
+    const char *name);
 
 static inline void
 lkpi_cpu_relax(void)
