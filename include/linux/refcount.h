@@ -7,10 +7,7 @@
  * Clean-room implementation from the documented behaviour of the Linux
  * kernel refcount_t API.
  *
- * P0 slice: refcount_t is implemented directly on GCC/Clang __atomic
- * builtins (which compile to inline lock-prefixed instructions on amd64 in
- * both the illumos kernel and userland). It moves onto <linux/atomic.h>
- * (atomic_t) once P1 provides that.
+ * refcount_t wraps an atomic_t (<linux/atomic.h>), as in Linux.
  *
  * Semantics follow Linux: a counter that would increment from zero or
  * overflow, or decrement below zero, is pinned at REFCOUNT_SATURATED and a
@@ -22,38 +19,39 @@
 #include <linuxkpi/platform.h>
 #include <linux/compiler.h>
 #include <linux/types.h>
+#include <linux/atomic.h>
 
 typedef struct refcount_struct {
-	int refs;
+	atomic_t refs;
 } refcount_t;
 
-#define	REFCOUNT_INIT(n)	{ .refs = (n) }
+#define	REFCOUNT_INIT(n)	{ .refs = ATOMIC_INIT(n) }
 #define	REFCOUNT_MAX		0x7fffffff
 #define	REFCOUNT_SATURATED	((int)(0xc0000000U))	/* INT_MIN / 2 */
 
 static inline void
 __refcount_saturate(refcount_t *r, const char *why)
 {
-	__atomic_store_n(&r->refs, REFCOUNT_SATURATED, __ATOMIC_RELAXED);
+	atomic_set(&r->refs, REFCOUNT_SATURATED);
 	lkpi_warn(why);
 }
 
 static inline void
 refcount_set(refcount_t *r, int n)
 {
-	__atomic_store_n(&r->refs, n, __ATOMIC_RELAXED);
+	atomic_set(&r->refs, n);
 }
 
 static inline unsigned int
 refcount_read(const refcount_t *r)
 {
-	return ((unsigned int)__atomic_load_n(&r->refs, __ATOMIC_RELAXED));
+	return ((unsigned int)atomic_read(&r->refs));
 }
 
 static inline void
 refcount_add(int i, refcount_t *r)
 {
-	int old = __atomic_fetch_add(&r->refs, i, __ATOMIC_RELAXED);
+	int old = atomic_fetch_add_relaxed(i, &r->refs);
 
 	if (unlikely(old == 0))
 		__refcount_saturate(r, "refcount_t: addition on 0; use-after-free");
@@ -71,14 +69,13 @@ refcount_inc(refcount_t *r)
 static inline bool __must_check
 refcount_add_not_zero(int i, refcount_t *r)
 {
-	int old = __atomic_load_n(&r->refs, __ATOMIC_RELAXED);
+	int old = atomic_read(&r->refs);
 
 	do {
 		if (old == 0)
 			return (false);
-	} while (!__atomic_compare_exchange_n(&r->refs, &old,
-	    (int)((unsigned int)old + i),
-	    true, __ATOMIC_RELAXED, __ATOMIC_RELAXED));
+	} while (!atomic_try_cmpxchg_relaxed(&r->refs, &old,
+	    (int)((unsigned int)old + i)));
 
 	if (unlikely(old < 0 || (int)((unsigned int)old + i) < 0))
 		__refcount_saturate(r, "refcount_t: saturated; leaking memory");
@@ -99,10 +96,10 @@ refcount_inc_not_zero(refcount_t *r)
 static inline bool __must_check
 refcount_sub_and_test(int i, refcount_t *r)
 {
-	int old = __atomic_fetch_sub(&r->refs, i, __ATOMIC_RELEASE);
+	int old = atomic_fetch_sub_release(i, &r->refs);
 
 	if (old == i) {
-		__atomic_thread_fence(__ATOMIC_ACQUIRE);
+		smp_acquire__after_ctrl_dep();
 		return (true);
 	}
 	if (unlikely(old < 0 || (int)((unsigned int)old - i) < 0))
@@ -127,7 +124,7 @@ refcount_dec(refcount_t *r)
 static inline bool __must_check
 refcount_dec_not_one(refcount_t *r)
 {
-	int old = __atomic_load_n(&r->refs, __ATOMIC_RELAXED);
+	int old = atomic_read(&r->refs);
 
 	do {
 		if (unlikely(old == REFCOUNT_SATURATED))
@@ -138,8 +135,7 @@ refcount_dec_not_one(refcount_t *r)
 			lkpi_warn("refcount_t: underflow; use-after-free");
 			return (false);
 		}
-	} while (!__atomic_compare_exchange_n(&r->refs, &old, old - 1,
-	    true, __ATOMIC_RELEASE, __ATOMIC_RELAXED));
+	} while (!atomic_try_cmpxchg_release(&r->refs, &old, old - 1));
 	return (true);
 }
 

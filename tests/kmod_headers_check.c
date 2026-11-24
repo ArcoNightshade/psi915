@@ -22,6 +22,8 @@
 #include <linux/container_of.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
+#include <linux/atomic.h>
+#include <asm/barrier.h>
 #include <linux/refcount.h>
 #include <linux/kref.h>
 
@@ -54,6 +56,8 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 	struct kcheck *pos, *tmp;
 	int arr[4];
 	int sum = 0;
+	atomic64_t a64 = ATOMIC64_INIT(0);
+	unsigned long ul = 0;
 
 	BUILD_BUG_ON(sizeof(u64) != 8);
 	kref_init(&kc->ref);
@@ -65,6 +69,10 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 	if (kref_get_unless_zero(&kc->ref))
 		(void)kref_put(&kc->ref, kcheck_release);
 	(void)kref_put(&kc->ref, kcheck_release);
+	sum += (int)atomic64_add_return(2, &a64);
+	sum += (int)cmpxchg(&ul, 0UL, 1UL) + (int)xchg(&ul, 2UL);
+	smp_mb();
+	wmb();
 	lkpi_assert(sum >= 0);
 	return (sum + (int)ARRAY_SIZE(arr) + (int)ALIGN(3, 4));
 }
