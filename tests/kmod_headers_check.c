@@ -26,6 +26,15 @@
 #include <asm/barrier.h>
 #include <linux/refcount.h>
 #include <linux/kref.h>
+#include <linux/bits.h>
+#include <linux/bitops.h>
+#include <linux/bitmap.h>
+#include <linux/bitfield.h>
+#include <linux/log2.h>
+#include <linux/math.h>
+#include <linux/math64.h>
+#include <linux/minmax.h>
+#include <linux/limits.h>
 
 #ifndef LINUXKPI_ILLUMOS_KERNEL
 #error "expected the illumos kernel configuration"
@@ -72,6 +81,17 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 	sum += (int)atomic64_add_return(2, &a64);
 	sum += (int)cmpxchg(&ul, 0UL, 1UL) + (int)xchg(&ul, 2UL);
 	smp_mb();
+	{
+		DECLARE_BITMAP(bm, 100);
+		u64 q = ul;
+
+		bitmap_zero(bm, 100);
+		set_bit(ffs(sum) + fls(sum), bm);
+		sum += (int)hweight64(ul) + (int)bitmap_weight(bm, 100) +
+		    (int)find_next_bit(bm, 100, 3) + ilog2(ul + 1) +
+		    (int)FIELD_GET(GENMASK(7, 4), ul) + (int)int_sqrt(ul) +
+		    (int)mul_u64_u64_div_u64(ul, ul, ul + 1) + (int)do_div(q, 3);
+	}
 	wmb();
 	lkpi_assert(sum >= 0);
 	return (sum + (int)ARRAY_SIZE(arr) + (int)ALIGN(3, 4));

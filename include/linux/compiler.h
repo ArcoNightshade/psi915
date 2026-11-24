@@ -72,6 +72,14 @@
 
 #define	barrier()		__asm__ __volatile__("" : : : "memory")
 
+/*
+ * Integer constant expression test that yields an integer constant
+ * expression itself: a null pointer constant only arises when x is an ICE,
+ * which changes the type of the conditional (well-known C idiom).
+ */
+#define	__is_constexpr(x)						\
+	(sizeof(int) == sizeof(*(8 ? ((void *)((long)(x) * 0l)) : (int *)8)))
+
 #define	__same_type(a, b)	__builtin_types_compatible_p(typeof(a), typeof(b))
 
 /*

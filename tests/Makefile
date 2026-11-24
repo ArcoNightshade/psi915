@@ -35,7 +35,7 @@ HDRS		= harness.h $(wildcard $(INCLUDE)/linux/*.h $(INCLUDE)/linuxkpi/*.h \
 # KPI sources linked into every test program (userland configuration).
 LIB_SRCS	= $(wildcard $(SRC)/linux_*.c) $(SRC)/plat_userland.c
 
-TESTS		= test_list test_kref test_kernel test_atomic
+TESTS		= test_list test_kref test_kernel test_atomic test_bitops
 
 # Kernel-mode compile check: kernel flags from build/Makefile.master minus
 # -msave-args (illumos-patched gcc only).
@@ -102,9 +102,9 @@ check-kmod: $(KMOD_OBJS) | $(OUT)
 		exit 1; \
 	fi; \
 	echo "linuxkpi_mod.o exports: $$got"
-	@nm -g --defined-only $(KMOD_OBJS) 2>/dev/null | awk 'NF==3 {print $$3}' | \
+	@nm -g --defined-only $(KMOD_OBJS) $(OUT)/kmod_headers_check.o 2>/dev/null | awk 'NF==3 {print $$3}' | \
 		sort -u > $(OUT)/kmod_defined.txt; \
-	nm -u $(KMOD_OBJS) 2>/dev/null | awk 'NF==2 {print $$2}' | sort -u | \
+	nm -u $(KMOD_OBJS) $(OUT)/kmod_headers_check.o 2>/dev/null | awk 'NF==2 {print $$2}' | sort -u | \
 		comm -23 - $(OUT)/kmod_defined.txt > $(OUT)/kmod_undefined.txt; \
 	grep -v '^#' $(KMOD_ALLOWED) | sed '/^$$/d' | sort -u > $(OUT)/kmod_allowed.txt; \
 	bad=$$(comm -23 $(OUT)/kmod_undefined.txt $(OUT)/kmod_allowed.txt); \
