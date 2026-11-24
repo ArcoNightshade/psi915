@@ -21,7 +21,7 @@ numbered patch series, never as in-place divergence.
 
 ## Target hardware
 - Dell Latitude 5420 Rugged with Core i7-8650U (owner-confirmed): Kaby Lake-R, 8th gen, Intel UHD 620, Gen9.5.
-  Expected PCI ID 8086:5917 (Mobile GT2); confirm with lspci. (Model naming vs. the 2021 Tiger Lake "5420" is moot: this unit is Gen9.5.)
+  PCI ID 8086:5917 (Mobile GT2), confirmed by owner. (Model naming vs. the 2021 Tiger Lake "5420" is moot: this unit is Gen9.5.)
 - Gen9.5 consequences: DMC firmware needed (kbl_dmc_ver1_04.bin; verify name in pinned linux-firmware);
   GuC/HuC optional (execlists submission is the default, GuC not required; HuC only for media). Full 48-bit ppGTT. eDP + HDMI/DP, no Type-C PHY complexity.
 - Gen12 (Tiger Lake) is a later stretch goal only.

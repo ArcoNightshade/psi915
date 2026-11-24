@@ -1,7 +1,7 @@
 # Risks and open questions
 
 ## Decisions (resolved)
-- Model: Dell Latitude 5420 Rugged, i7-8650U (Kaby Lake-R, Gen9.5, UHD 620). Confirm GPU ID via lspci (expect 8086:5917).
+- Model: Dell Latitude 5420 Rugged, i7-8650U (Kaby Lake-R, Gen9.5, UHD 620)..
 - i915 base: drm-kmod, Linux 6.x. Minimum uAPI 5.4.
 - Licence: BSD-2-Clause for project code.
 - Dev setup: OpenIndiana 2026.10 VM; bare-metal tests on Tribblix via external drive (see doc 05).
