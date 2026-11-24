@@ -6,8 +6,7 @@
  *
  * Clean-room implementation from the documented behaviour of the Linux
  * kernel bitmap API (basic operations); cross-checked against FreeBSD's
- * LinuxKPI bitmap.h (BSD-2-Clause). bitmap_alloc/bitmap_zalloc/bitmap_free
- * are in <linux/slab.h>. Bits beyond nbits in the last word are ignored by
+ * LinuxKPI bitmap.h (BSD-2-Clause). Bits beyond nbits in the last word are ignored by
  * the predicates and may be clobbered by the bulk operations, as in Linux.
  */
 #ifndef _LINUXKPI_LINUX_BITMAP_H_
@@ -16,6 +15,7 @@
 #include <linuxkpi/platform.h>
 #include <linux/types.h>
 #include <linux/bitops.h>
+#include <linux/slab.h>
 
 static inline void
 bitmap_zero(unsigned long *dst, unsigned int nbits)
@@ -206,6 +206,25 @@ bitmap_to_arr32(uint32_t *buf, const unsigned long *bitmap,
 	for (i = 0; i < nbits; i++)
 		if (test_bit(i, bitmap))
 			buf[i / 32] |= 1U << (i % 32);
+}
+
+static inline unsigned long *
+bitmap_alloc(unsigned int nbits, gfp_t gfp)
+{
+	return (kmalloc_array(BITS_TO_LONGS(nbits), sizeof (unsigned long),
+	    gfp));
+}
+
+static inline unsigned long *
+bitmap_zalloc(unsigned int nbits, gfp_t gfp)
+{
+	return (bitmap_alloc(nbits, gfp | __GFP_ZERO));
+}
+
+static inline void
+bitmap_free(const unsigned long *bitmap)
+{
+	kfree(bitmap);
 }
 
 #endif /* _LINUXKPI_LINUX_BITMAP_H_ */

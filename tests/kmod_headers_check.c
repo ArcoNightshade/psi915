@@ -41,6 +41,11 @@
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <linux/jiffies.h>
+#include <linux/gfp.h>
+#include <linux/slab.h>
+#include <linux/vmalloc.h>
+#include <linux/string.h>
+#include <linux/overflow.h>
 
 #ifndef LINUXKPI_ILLUMOS_KERNEL
 #error "expected the illumos kernel configuration"
@@ -104,6 +109,17 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 	WARN_ON_ONCE(IS_ERR(ERR_PTR(-ENOMEM)) == 0);
 	dev_info((struct device *)NULL, "j %lu\n", jiffies + msecs_to_jiffies(10));
 	BUG_ON(sum == -12345);
+	{
+		char *s = kstrdup("x", GFP_KERNEL);
+		struct kmem_cache *c = KMEM_CACHE(kcheck, SLAB_HWCACHE_ALIGN);
+		struct kcheck *o = kmem_cache_zalloc(c, GFP_ATOMIC);
+
+		kmem_cache_free(c, o);
+		kmem_cache_destroy(c);
+		kfree(s);
+		vfree(kvcalloc(4, 8, GFP_KERNEL));
+		kfree(kmalloc_array(4, sizeof (int), GFP_NOWAIT | __GFP_ZERO));
+	}
 	lkpi_assert(sum >= 0);
 	return (sum + (int)ARRAY_SIZE(arr) + (int)ALIGN(3, 4));
 }

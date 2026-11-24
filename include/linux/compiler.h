@@ -41,6 +41,9 @@
 #ifndef __printf
 #define	__printf(a, b)		__attribute__((__format__(__printf__, a, b)))
 #endif
+#ifndef __malloc
+#define	__malloc		__attribute__((__malloc__))
+#endif
 #ifndef __pure
 #define	__pure			__attribute__((__pure__))
 #endif
