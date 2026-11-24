@@ -2,3 +2,4 @@ ref/
 tests/out/
 build/*/obj64/
 build/*/debug64/
+.claude/
