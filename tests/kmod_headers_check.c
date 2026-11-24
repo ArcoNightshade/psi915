@@ -52,6 +52,9 @@
 #include <linux/seqlock.h>
 #include <linux/completion.h>
 #include <linux/lockdep.h>
+#include <linux/list_sort.h>
+#include <linux/rbtree.h>
+#include <linux/rbtree_augmented.h>
 
 #ifndef LINUXKPI_ILLUMOS_KERNEL
 #error "expected the illumos kernel configuration"
@@ -62,7 +65,22 @@ struct kcheck {
 	struct list_head node;
 	struct hlist_node hnode;
 	struct kref	ref;
+	struct rb_node	rb;
 };
+
+static int
+kcheck_cmp(void *priv, const struct list_head *a, const struct list_head *b)
+{
+	return (list_entry(a, struct kcheck, node)->v -
+	    list_entry(b, struct kcheck, node)->v);
+}
+
+static bool
+kcheck_less(struct rb_node *a, const struct rb_node *b)
+{
+	return (rb_entry(a, struct kcheck, rb)->v <
+	    rb_entry(b, struct kcheck, rb)->v);
+}
 
 static LIST_HEAD(kcheck_list);
 static DEFINE_MUTEX(kcheck_mutex);
@@ -141,6 +159,11 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 		do {
 			seq = read_seqbegin(&kcheck_seq);
 		} while (read_seqretry(&kcheck_seq, seq));
+		struct rb_root_cached root = RB_ROOT_CACHED;
+
+		list_sort(NULL, &kcheck_list, kcheck_cmp);
+		(void) rb_add_cached(&kc->rb, &root, kcheck_less);
+		(void) rb_erase_cached(&kc->rb, &root);
 		complete(&kcheck_done);
 		sum += (int)wait_for_completion_timeout(&kcheck_done, HZ);
 		if (kref_put_mutex(&kc->ref, kcheck_release_locked,

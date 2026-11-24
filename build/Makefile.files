@@ -14,4 +14,5 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_printk.o \
 		   linux_slab.o \
 		   linux_lock.o \
-		   linux_list_sort.o
+		   linux_list_sort.o \
+		   linux_rbtree.o
