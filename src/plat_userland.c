@@ -14,6 +14,8 @@
 
 #ifdef LINUXKPI_USERLAND
 
+__thread char lkpi_plat_self;
+
 struct lkpi_plat_thread {
 	pthread_t	tid;
 	void		(*fn)(void *);

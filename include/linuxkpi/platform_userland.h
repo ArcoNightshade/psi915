@@ -234,12 +234,17 @@ lkpi_plat_rwlock_downgrade(lkpi_plat_rwlock_t *rw)
 	(void) pthread_mutex_unlock(&rw->m);
 }
 
-/* The address of a thread-local variable identifies the thread. */
+/*
+ * The address of a thread-local variable identifies the thread. It must
+ * be one variable for the whole program (defined in src/plat_userland.c),
+ * not a static in this header, or each translation unit would see a
+ * different identity for the same thread.
+ */
+extern __thread char lkpi_plat_self;
+
 static inline void *
 lkpi_plat_curthread(void)
 {
-	static __thread char lkpi_plat_self;
-
 	return (&lkpi_plat_self);
 }
 
