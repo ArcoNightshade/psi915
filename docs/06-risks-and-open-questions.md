@@ -4,11 +4,11 @@
 - Model: Dell Latitude 5420 Rugged, i7-8650U (Kaby Lake-R, Gen9.5, UHD 620). Confirm GPU ID via lspci (expect 8086:5917).
 - i915 base: drm-kmod, Linux 6.x. Minimum uAPI 5.4.
 - Licence: BSD-2-Clause for project code.
-- Dev setup: VM (see doc 05 for the limits).
+- Dev setup: OpenIndiana 2026.10 VM; bare-metal tests on Tribblix via external drive (see doc 05).
 
 ## Still open
-1. Which OpenIndiana release; is oi-userland Mesa/Xorg recent enough (iris, DRI3)?
-2. Bare-metal access: can the laptop boot OpenIndiana from external SSD/USB (separate boot env) for GPU testing?
+1. Are Mesa/Xorg/libdrm on OpenIndiana 2026.10 and Tribblix recent enough (iris, DRI3)? Which Tribblix release exactly?
+2. Bare-metal access: laptop boots Tribblix from external media (owner says yes). Is there a serial/second-machine log path?
 3. Serial/second-machine debug access (Rugged 5420 may have a serial port option; netconsole/kmdb alternatives).
 4. Exact 6.x tag to pin (suggest the LTS drm-kmod tracks).
 
@@ -23,6 +23,7 @@
 - R8 Licence taint: must not copy GPL-only Linux source into the KPI.
 - R9 illumos suspend/resume maturity is limited.
 - R12 VM cannot exercise the iGPU (primary iGPU passthrough is impractical); i915 needs bare metal.
+- R13 Two target distros (OI + Tribblix) double the kernel/userland/packaging matrix.
 - R10 No cloud-side hardware testing; slow feedback loop.
 
 ## Unverified assumptions (check before relying)
