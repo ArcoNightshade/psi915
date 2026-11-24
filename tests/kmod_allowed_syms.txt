@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Undefined symbols the linuxkpi kernel objects may reference: illumos
+# kernel interfaces that exist in illumos-gate (f71cb08e8c53). Anything else
+# (libc, libgcc helpers such as __popcountdi2 or __udivti3) fails
+# `make check-kmod`. Add a name here only after checking it is exported by
+# the illumos kernel (unix/genunix).
+#
+# module linkage
+mod_install
+mod_remove
+mod_info
+mod_miscops
+# memory
+kmem_alloc
+kmem_zalloc
+kmem_free
+kmem_cache_create
+kmem_cache_alloc
+kmem_cache_free
+kmem_cache_destroy
+kmem_cache_reap_soon
+# locks and condition variables
+mutex_init
+mutex_destroy
+mutex_enter
+mutex_exit
+mutex_tryenter
+mutex_owned
+rw_init
+rw_destroy
+rw_enter
+rw_exit
+rw_tryenter
+rw_downgrade
+cv_init
+cv_destroy
+cv_wait
+cv_wait_sig
+cv_reltimedwait
+cv_reltimedwait_sig
+cv_signal
+cv_broadcast
+# threads, time, dispatcher
+threadp
+thread_create
+thread_exit
+p0
+minclsyspri
+servicing_interrupt
+ddi_get_lbolt
+ddi_get_lbolt64
+hz
+delay
+drv_usectohz
+drv_usecwait
+# output, panic, debug
+cmn_err
+vcmn_err
+vsnprintf
+snprintf
+panic
+assfail
+# string/memory routines provided by the kernel (genunix)
+memcpy
+memset
+memmove
+memcmp
+strlen
+strnlen
+strcmp
+strncmp
+strlcpy
+bzero
+# retpoline thunks provided by unix
+__x86_indirect_thunk_rax
+__x86_indirect_thunk_rbx
+__x86_indirect_thunk_rcx
+__x86_indirect_thunk_rdx
+__x86_indirect_thunk_rsi
+__x86_indirect_thunk_rdi
+__x86_indirect_thunk_rbp
+__x86_indirect_thunk_r8
+__x86_indirect_thunk_r9
+__x86_indirect_thunk_r10
+__x86_indirect_thunk_r11
+__x86_indirect_thunk_r12
+__x86_indirect_thunk_r13
+__x86_indirect_thunk_r14
+__x86_indirect_thunk_r15

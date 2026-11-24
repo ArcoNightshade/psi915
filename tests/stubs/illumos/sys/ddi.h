@@ -4,4 +4,9 @@
 #define	_STUB_SYS_DDI_H
 #define	min(a, b)	((a) < (b) ? (a) : (b))
 #define	max(a, b)	((a) < (b) ? (b) : (a))
+#include <sys/types.h>
+extern void delay(clock_t);
+extern clock_t drv_usectohz(clock_t);
+extern clock_t drv_hztousec(clock_t);
+extern void drv_usecwait(clock_t);
 #endif

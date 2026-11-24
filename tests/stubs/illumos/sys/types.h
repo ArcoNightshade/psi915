@@ -27,6 +27,12 @@ typedef unsigned short		ushort;
 typedef unsigned int		uint;
 typedef unsigned long		ulong;
 typedef enum { B_FALSE = 0, B_TRUE = 1 } boolean_t;
+typedef long			clock_t;
+typedef char			*caddr_t;
+typedef short			pri_t;
+typedef unsigned long		uintmax_t;
+typedef long			intmax_t;
+typedef long long		hrtime_t;
 
 #ifndef NULL
 #define	NULL	((void *)0)

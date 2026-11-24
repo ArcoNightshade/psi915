@@ -9,4 +9,5 @@
 #
 #	linuxkpi: LinuxKPI core misc module
 #
-LINUXKPI_OBJS	+= linuxkpi_mod.o
+LINUXKPI_OBJS	+= linuxkpi_mod.o \
+		   plat_illumos.o
