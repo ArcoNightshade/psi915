@@ -10,6 +10,26 @@ Each phase has an exit test that runs on real hardware.
 - Decide: i915 base, Linux version pin, repo layout, licensing review.
 - Exit: empty `linuxkpi` kmod modload/modunload on OpenIndiana test box via `kmdb`/serial.
 
+### P0 status (2026-11-24)
+Done in the Linux dev container. "Untested on illumos" means written and reviewed, but not yet built or run there.
+
+- [x] Repo skeleton per doc 02: `include/`, `src/`, `build/`, `tests/`, `scripts/`, `third_party/` (placeholder), `LICENSE` (BSD-2-Clause), top-level `Makefile`.
+- [x] Out-of-gate kmod build harness modelled on gfx-drm / illumos-gate (`build/Makefile.master`, `Makefile.files`, `Makefile.rules`, `Makefile.targ`, `build/linuxkpi/Makefile`); amd64 kernel flags from illumos-gate f71cb08e8c53. Untested on illumos.
+- [x] Neutral installer `scripts/install.sh` driven by `build/install.manifest`, with `-f ips` and `-f svr4` output for package wrappers. Exercised on Linux with a staging root only.
+- [x] Skeleton `linuxkpi` misc module (`src/linuxkpi_mod.c`): modlmisc, `_init/_info/_fini`, cmn_err banner, exports only `linuxkpi_version` (= `LINUXKPI_VERSION`, 61400). No `.conf` (misc module). Untested on illumos.
+- [x] First pure-logic KPI slice: `linux/{types,compiler,stddef,build_bug,container_of,kernel,list,refcount,kref}.h`, environment selection in `linuxkpi/platform.h`. `list.h` derived from FreeBSD LinuxKPI (notice kept); the rest clean-room.
+- [x] Userland test harness (`tests/`, `make test`): list, hlist, kref/refcount (including saturation and an 8-thread race), kernel helpers. Passing with gcc 13, clang, and gcc ASan/UBSan.
+- [x] Host-side compile check (`make check-kmod`): kernel sources and the kernel configuration of the headers compile with kernel flags against stub illumos headers; export list checked with `nm`. This is not a real build.
+- [ ] `gmake kmod` on OpenIndiana 2026.10 and on Tribblix 0m41.1, each against its own `/usr/include` (owner).
+- [ ] CTF present (`ctfdump`), `elfdump -d` shows module type, `modload`/`modinfo`/`modunload` loop with banner on serial console, under `kmem_flags=0xf` (owner). This is the P0 exit test.
+- [ ] Record the illumos-gate commit and gcc version each build matched (doc 05).
+- [ ] CI: run `make check` on every push (needs a CI host; not set up).
+- [ ] Decisions still open: exact Linux tag pin (sets `LINUXKPI_VERSION`), formal licensing review of imported code.
+
+Known gaps carried into P1: `kref_put_lock`/`kref_put_mutex` (need locks), `list_sort`, RCU list variants, list poisoning,
+`refcount_t` on a real `atomic_t`, WARN/printk. Also a hazard: illumos `<sys/ddi.h>` (`min`/`max`) and `<sys/sysmacros.h>`
+(`ARRAY_SIZE`) are redefined by `linux/kernel.h`, so KPI sources must include illumos headers before `linux/` ones.
+
 ## P1 KPI core (6-8 wk)
 - Headers + sources for types, list/rbtree/kref, atomics, memory, locks, waitqueues, workqueues, timers, completions, RCU, idr/xarray, logging, uaccess.
 - KPI unit tests (ktest or userland harness for pure-logic parts).

@@ -37,6 +37,13 @@ the owner's machines; sandbox use is limited to editing, static checks, referenc
 - Debug flags: `set kmem_flags=0xf`, DEBUG kernel if available, DTrace SDT probes for KPI tracing.
 - Static checks: sparse/`-Wall -Wextra`, `cppcheck`, `smatch` over KPI.
 
+## Commands (P0)
+- Any host: `make test` (userland unit tests), `make check-kmod` (compile kernel sources against stub illumos
+  headers in `tests/stubs/illumos`; a type check, not a kernel build), `make check` (both).
+- illumos: `gmake kmod [DEBUG=1]`, `gmake install [DESTDIR=...]`; details and knobs in README.md.
+- As of P0 nothing has been built or loaded on illumos: the build harness, install script and module are
+  untested there. The first owner-side run should record gcc version, illumos-gate commit and any harness fixes.
+
 ## Tests
 1. KPI unit tests (userland harness + kernel `ktest`).
 2. Toy device drivers (P2) and `vkms` (P3).

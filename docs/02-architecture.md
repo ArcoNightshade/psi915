@@ -41,17 +41,21 @@ Modules: `linuxkpi` (core API) -> `linuxkpi_drm` (drm + helpers) -> `i915`. Each
 13. **No debugfs/sysfs**: stub into no-ops initially; later expose useful nodes via kstat/`/dev/dri/*` ioctl or sysfs-like pseudo-fs for intel_gpu_top.
 14. **Panic/crash safety**: all Linux `BUG()/WARN()` map to `cmn_err` + optional `panic` (tunable).
 
-## Repository layout (planned)
+## Repository layout
+Present since P0 unless marked (planned).
 ```
 docs/          this
-include/       linuxkpi headers (clean-room/BSD-derived)
+include/       linuxkpi headers (clean-room/BSD-derived): linux/*, linuxkpi/* (internal)
 src/           linuxkpi C sources
-drm/           DRM core import + patches/
-i915/          i915 import + patches/
-build/         illumos Makefiles (Makefile.uts style), IPS manifests
-tests/         KPI unit tests (kernel ktest / userland harness)
-scripts/       fetch-refs, import tooling, sync-with-linux
+drm/           DRM core import + patches/ (planned, P3)
+i915/          i915 import + patches/ (planned, P4)
+third_party/   pinned upstream imports (placeholder)
+build/         illumos Makefiles (gfx-drm/Makefile.uts style), install.manifest; IPS/SVR4 wrappers (planned)
+tests/         KPI unit tests (userland harness; kernel ktest planned), stub illumos headers
+scripts/       fetch-refs, install.sh; import tooling, sync-with-linux (planned)
 ```
+Header environments: `include/linuxkpi/platform.h` selects illumos kernel (`_KERNEL` + `__sun`) or hosted userland,
+and is the only place pure-logic headers get environment headers from.
 ## Import strategy
 Scripted import (`scripts/import-linux.sh`) from drm-kmod at a pinned tag, apply `patches/` series with quilt-like tooling,
 record upstream commit. Goal: rebase to new Linux LTS yearly.
