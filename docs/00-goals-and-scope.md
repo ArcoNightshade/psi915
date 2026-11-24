@@ -19,11 +19,13 @@ numbered patch series, never as in-place divergence.
 - Binary compatibility with Linux modules.
 - Upstreaming to illumos-gate before the project is proven (kept out-of-gate, licence-clean).
 
-## Target hardware (needs owner confirmation, see doc 06)
-- Dell Latitude Rugged, "2018, 5420". Dell's 2018 rugged was the Latitude 5424 Rugged (Kaby Lake-R,
-  Core i5-8350U/i7-8650U, Intel UHD 620, Gen9.5, PCI 8086:5917). The model named "5420 Rugged" (2021)
-  is Tiger Lake (Gen12, Xe-LP). Plan assumes Gen9.5 (KBL-R) as primary target; Gen12 is a later stretch.
-- Needs: eDP internal panel, HDMI/DP out, backlight, DMC firmware (kbl_dmc_ver1_04.bin).
+## Target hardware
+- Dell Latitude 5420 Rugged (confirmed by owner). Launched 2021 (not 2018): Tiger Lake, 11th-gen Core, Intel Iris Xe / UHD (Gen12, Xe-LP).
+  Expected PCI IDs 8086:9A49 / 9A40 / 9A78 (to be confirmed with lspci). Gen9 (KBL-R) is dropped as primary target.
+- Consequences: Gen12 needs DMC firmware (tgl_dmc_ver2_xx.bin), GuC and HuC firmware (tgl_guc_*.bin, tgl_huc_*.bin);
+  GuC submission is likely the default path on Gen12 in Linux 6.x (verify in pinned source). Full 48-bit ppGTT, display with
+  DDI/TC ports (Type-C DP alt-mode, Thunderbolt-adjacent code), possible PCIe/IOMMU interactions.
+- Gen9 can stay as a secondary/regression target only if hardware is available.
 
 ## Success criteria
 - S1: Linux-derived module loads, probes, binds to the iGPU, no panics under load/unload.
