@@ -12,11 +12,15 @@ the owner's machines; sandbox use is limited to editing, static checks, referenc
 
 ## Platforms (owner-confirmed)
 - Dev VM: OpenIndiana Hipster 2026.10.
-- Bare-metal GPU testing: Tribblix (the only distro the owner has booted successfully on the laptop), from external SSD/USB.
+- Bare-metal GPU testing: Tribblix 0m41.1 (the only distro the owner has booted successfully on the laptop), from external SSD/USB.
 - Both are illumos, but kernel versions and userland differ: build and load-test the kmods on both. Build against each target's own kernel headers,
   not a shared copy; keep module `_depends_on`/ABI assumptions minimal and record the illumos-gate commit each build matches.
 - Packaging: IPS for OpenIndiana, SVR4/zap for Tribblix. Keep the install layout (kmods, firmware under /usr/lib/firmware, driver.conf, minor-node perms) in one neutral install script and wrap it per package system.
 - Userland (Mesa, libdrm, Xorg): check what Tribblix and OpenIndiana ship; may need to build our own Mesa/libdrm for either.
+
+## Extra machines
+Owner has 2 other PCs. Use one as a log/debug host (ssh, `dumpadm` crash dumps copied off, serial/netconsole if the laptop exposes a port) and
+one as a build/second test box (also useful for a plain-Intel iGPU of a different generation for regression testing; record their GPU IDs).
 
 ## Proposed setup
 - Build host: OpenIndiana (VM or the target laptop) with `build-essential` equivalents (gcc, `onbld` not required;

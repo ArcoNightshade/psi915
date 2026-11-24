@@ -7,8 +7,8 @@
 - Dev setup: OpenIndiana 2026.10 VM; bare-metal tests on Tribblix via external drive (see doc 05).
 
 ## Still open
-1. Are Mesa/Xorg/libdrm on OpenIndiana 2026.10 and Tribblix recent enough (iris, DRI3)? Which Tribblix release exactly?
-2. Bare-metal access: laptop boots Tribblix from external media (owner says yes). Is there a serial/second-machine log path?
+1. Are Mesa/Xorg/libdrm on OpenIndiana 2026.10 and Tribblix recent enough (iris, DRI3)? Tribblix is 0m41.1.
+2. Bare-metal access: laptop boots Tribblix from external media (owner says yes). Two spare PCs available as log/build hosts; still need serial/netconsole path.
 3. Serial/second-machine debug access (Rugged 5420 may have a serial port option; netconsole/kmdb alternatives).
 4. Exact 6.x tag to pin (suggest the LTS drm-kmod tracks).
 
