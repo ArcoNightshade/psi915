@@ -57,6 +57,8 @@
 #include <linux/rbtree_augmented.h>
 #include <linux/rcupdate.h>
 #include <linux/rculist.h>
+#include <linux/xarray.h>
+#include <linux/idr.h>
 
 #ifndef LINUXKPI_ILLUMOS_KERNEL
 #error "expected the illumos kernel configuration"
@@ -90,6 +92,9 @@ static DEFINE_SPINLOCK(kcheck_spin);
 static DECLARE_RWSEM(kcheck_rwsem);
 static DEFINE_SEQLOCK(kcheck_seq);
 static DECLARE_COMPLETION(kcheck_done);
+static DEFINE_IDR(kcheck_idr);
+static DEFINE_XARRAY_ALLOC1(kcheck_xa);
+static DEFINE_IDA(kcheck_ida);
 
 static void
 kcheck_release(struct kref *k)
@@ -171,6 +176,17 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 			sum += pos->v;
 		rcu_read_unlock();
 		synchronize_rcu();
+		{
+			u32 xid;
+			int id = idr_alloc(&kcheck_idr, kc, 1, 0, GFP_KERNEL);
+
+			if (xa_alloc(&kcheck_xa, &xid, kc, xa_limit_31b,
+			    GFP_KERNEL) == 0)
+				(void) xa_erase(&kcheck_xa, xid);
+			if (id > 0)
+				(void) idr_remove(&kcheck_idr, id);
+			ida_free(&kcheck_ida, ida_alloc(&kcheck_ida, GFP_KERNEL));
+		}
 		complete(&kcheck_done);
 		sum += (int)wait_for_completion_timeout(&kcheck_done, HZ);
 		if (kref_put_mutex(&kc->ref, kcheck_release_locked,

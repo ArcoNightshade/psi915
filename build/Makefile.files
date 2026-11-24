@@ -16,4 +16,6 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_lock.o \
 		   linux_list_sort.o \
 		   linux_rbtree.o \
-		   linux_rcu.o
+		   linux_rcu.o \
+		   linux_xarray.o \
+		   linux_idr.o
