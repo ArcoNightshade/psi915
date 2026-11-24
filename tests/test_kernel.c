@@ -112,13 +112,11 @@ TEST(read_write_once)
 	CHECK_EQ(sizeof_field(struct list_head, next), sizeof(void *));
 }
 
-int
-main(void)
+LKPI_SUITE(kernel)
 {
 	RUN(types);
 	RUN(array_size);
 	RUN(min_max);
 	RUN(rounding);
 	RUN(read_write_once);
-	return (harness_done("test_kernel"));
 }

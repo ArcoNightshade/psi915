@@ -19,3 +19,21 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_rcu.o \
 		   linux_xarray.o \
 		   linux_idr.o
+
+#
+#	lkpi_ktest: kernel test module (tests/kernel/ktest_main.c plus the
+#	unit tests compiled with -DLKPI_KTEST); development only
+#
+LKPI_KTEST_OBJS	+= ktest_main.o \
+		   test_kernel.o \
+		   test_list.o \
+		   test_kref.o \
+		   test_atomic.o \
+		   test_bitops.o \
+		   test_printk.o \
+		   test_slab.o \
+		   test_locks.o \
+		   test_list_sort.o \
+		   test_rbtree.o \
+		   test_rcu.o \
+		   test_xarray.o

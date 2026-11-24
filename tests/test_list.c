@@ -372,8 +372,7 @@ TEST(hlist)
 	}
 }
 
-int
-main(void)
+LKPI_SUITE(list)
 {
 	RUN(container_of);
 	RUN(static_head);
@@ -386,5 +385,4 @@ main(void)
 	RUN(cut);
 	RUN(iterators);
 	RUN(hlist);
-	return (harness_done("test_list"));
 }

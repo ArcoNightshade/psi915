@@ -9,3 +9,12 @@
 $(OBJS_DIR)/%.o: $(KSRCBASE)/%.c | $(OBJS_DIR)
 	$(COMPILE.c) -o $@ $<
 	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)
+
+# Kernel test module: the unit tests and their kernel entry point.
+$(OBJS_DIR)/%.o: $(SRCBASE)/tests/%.c | $(OBJS_DIR)
+	$(COMPILE.c) -o $@ $<
+	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)
+
+$(OBJS_DIR)/%.o: $(SRCBASE)/tests/kernel/%.c | $(OBJS_DIR)
+	$(COMPILE.c) -o $@ $<
+	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)

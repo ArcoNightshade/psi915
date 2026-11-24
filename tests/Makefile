@@ -52,6 +52,9 @@ KMOD_CFLAGS	= -std=gnu11 -fno-pic -fno-pie -m64 -mcmodel=kernel -mno-red-zone -f
 KMOD_SRCS	= $(SRC)/linuxkpi_mod.c $(SRC)/plat_illumos.c $(wildcard $(SRC)/linux_*.c)
 KMOD_OBJS	= $(KMOD_SRCS:$(SRC)/%.c=$(OUT)/kmod_%.o)
 EXPECTED_EXPORTS = _fini _info _init linuxkpi_version
+# Kernel test module (build/lkpi_ktest): the unit tests with -DLKPI_KTEST.
+KTEST_SRCS	= kernel/ktest_main.c $(TESTS:%=%.c)
+KTEST_OBJS	= $(KTEST_SRCS:%.c=$(OUT)/ktest_%.o)
 # Undefined symbols the linuxkpi objects may reference: illumos kernel
 # interfaces only (no libc, no libgcc helpers).
 KMOD_ALLOWED	= kmod_allowed_syms.txt
@@ -92,7 +95,12 @@ $(OUT)/kmod_%.o: $(SRC)/%.c $(HDRS) FORCE | $(OUT)
 
 FORCE:
 
-check-kmod: $(KMOD_OBJS) | $(OUT)
+$(OUT)/ktest_%.o: %.c $(HDRS) FORCE | $(OUT)
+	@mkdir -p $(dir $@)
+	@echo "CC (stub illumos kernel headers, LKPI_KTEST) $<"
+	@$(CC) $(KMOD_CFLAGS) $(KMOD_EXTRA) -DLKPI_KTEST -I. -c -o $@ $<
+
+check-kmod: $(KMOD_OBJS) $(KTEST_OBJS) | $(OUT)
 	@echo "CC (stub illumos kernel headers) kmod_headers_check.c"
 	@$(CC) $(KMOD_CFLAGS) $(KMOD_EXTRA) -c -o $(OUT)/kmod_headers_check.o kmod_headers_check.c
 	@got=$$(nm -g --defined-only $(OUT)/kmod_linuxkpi_mod.o | \
@@ -113,6 +121,19 @@ check-kmod: $(KMOD_OBJS) | $(OUT)
 		echo "$$bad"; exit 1; \
 	fi; \
 	echo "linuxkpi undefined symbols: $$(wc -l < $(OUT)/kmod_undefined.txt) (all in $(KMOD_ALLOWED))"
+	@dups=$$(nm -g --defined-only $(KTEST_OBJS) | awk 'NF==3 {print $$3}' | \
+		sort | uniq -d); \
+	if [ -n "$$dups" ]; then echo "duplicate symbols in lkpi_ktest: $$dups"; exit 1; fi; \
+	nm -g --defined-only $(KTEST_OBJS) | awk 'NF==3 {print $$3}' | \
+		cat - $(OUT)/kmod_defined.txt $(OUT)/kmod_allowed.txt | sort -u \
+		> $(OUT)/ktest_resolvable.txt; \
+	bad=$$(nm -u $(KTEST_OBJS) | awk 'NF==2 {print $$2}' | sort -u | \
+		comm -23 - $(OUT)/ktest_resolvable.txt); \
+	if [ -n "$$bad" ]; then \
+		echo "lkpi_ktest references symbols neither in linuxkpi nor in $(KMOD_ALLOWED):"; \
+		echo "$$bad"; exit 1; \
+	fi; \
+	echo "lkpi_ktest objects: $(words $(KTEST_OBJS)), all symbols resolvable"
 	@echo "check-kmod: OK (stub headers only; this is NOT an illumos build)"
 
 clean:

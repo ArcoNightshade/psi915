@@ -20,8 +20,14 @@ $(BINARY): $(OBJECTS)
 	$(if $(CTFMERGE),$(CTFMERGE) $(CTFMRGFLAGS) -o $@ $(OBJECTS))
 
 # Installs every artefact in build/install.manifest, not just this module.
+# Modules outside the installed layout set NO_INSTALL = 1.
+ifeq ($(NO_INSTALL),1)
+install: all
+	@echo "$(MODULE) is not installed; modload $(CURDIR)/$(BINARY)"
+else
 install: all
 	$(INSTALL_SH) -R "$(DESTDIR)" -o $(OBJS_DIR)
+endif
 
 clean:
 	rm -f $(OBJECTS)

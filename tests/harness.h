@@ -18,9 +18,6 @@
  *   TEST(name) { ... CHECK(cond); CHECK_EQ(a, b); ... }
  *   LKPI_SUITE(suite) { RUN(name); ... }
  *
- * Older test files define main() themselves and call harness_done();
- * those are userland-only.
- *
  * harness_run_threads(n, fn, arg) runs fn(arg) on n service threads
  * (lkpi_plat_thread_*: pthreads in userland, kernel threads under
  * LKPI_KTEST) and waits for them, so concurrency tests are portable.

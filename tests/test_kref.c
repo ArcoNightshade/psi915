@@ -14,8 +14,6 @@ static int warn_count;
 #include <linux/kref.h>
 #include <linux/kernel.h>
 
-#include <pthread.h>
-
 #include "harness.h"
 
 struct obj {
@@ -157,7 +155,7 @@ TEST(refcount_misc)
 
 static struct obj shared;
 
-static void *
+static void
 hammer(void *arg)
 {
 	int i;
@@ -171,12 +169,10 @@ hammer(void *arg)
 	}
 	/* Drop the reference main() took on our behalf. */
 	(void)kref_put(&shared.ref, obj_release);
-	return (NULL);
 }
 
 TEST(concurrent)
 {
-	pthread_t t[NTHREADS];
 	int i;
 
 	released = 0;
@@ -184,10 +180,7 @@ TEST(concurrent)
 	kref_init(&shared.ref);
 	for (i = 0; i < NTHREADS; i++)
 		kref_get(&shared.ref);
-	for (i = 0; i < NTHREADS; i++)
-		CHECK(pthread_create(&t[i], NULL, hammer, NULL) == 0);
-	for (i = 0; i < NTHREADS; i++)
-		pthread_join(t[i], NULL);
+	harness_run_threads(NTHREADS, hammer, NULL);
 
 	CHECK_EQ(kref_read(&shared.ref), 1);
 	CHECK_EQ(released, 0);
@@ -196,8 +189,7 @@ TEST(concurrent)
 	CHECK_EQ(warn_count, 0);
 }
 
-int
-main(void)
+LKPI_SUITE(kref)
 {
 	RUN(init_get_put);
 	RUN(static_init);
@@ -207,5 +199,4 @@ main(void)
 	RUN(overflow_saturates);
 	RUN(refcount_misc);
 	RUN(concurrent);
-	return (harness_done("test_kref"));
 }
