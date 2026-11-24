@@ -1,0 +1,31 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# Common targets for one kernel module (cf. illumos uts/Makefile.targ).
+# The including Makefile defines MODULE, OBJECTS and optionally MODDEPS.
+#
+
+BINARY		= $(OBJS_DIR)/$(MODULE)
+
+.PHONY: all install clean clobber
+
+all: $(BINARY)
+
+$(OBJS_DIR):
+	mkdir -p $@
+
+$(BINARY): $(OBJECTS)
+	$(LD) $(LD_KMOD_TYPE) $(LDFLAGS) -o $@ $(OBJECTS)
+	$(if $(CTFMERGE),$(CTFMERGE) $(CTFMRGFLAGS) -o $@ $(OBJECTS))
+
+# Installs every artefact in build/install.manifest, not just this module.
+install: all
+	$(INSTALL_SH) -R "$(DESTDIR)" -o $(OBJS_DIR)
+
+clean:
+	rm -f $(OBJECTS)
+
+clobber: clean
+	rm -f $(BINARY)
+	-rmdir $(OBJS_DIR) 2>/dev/null

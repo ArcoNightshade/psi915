@@ -1,0 +1,110 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# Out-of-gate illumos kernel module build: global definitions.
+#
+# Modelled on the illumos-gate / gfx-drm split (Makefile.master,
+# Makefile.files, Makefile.rules, Makefile.targ, one Makefile per module),
+# but self-contained: it needs only gcc, the system /usr/bin/ld and the
+# kernel headers from the installed system (system/header). No onbld,
+# bldenv or proto area is required. Requires GNU make (gmake).
+#
+# Flags follow illumos-gate usr/src/Makefile.master and uts/Makefile.uts
+# (f71cb08e8c53) for amd64 kernel code compiled with gcc. The gate passes
+# them through cw(1); here they are given to gcc directly:
+#   -xmodel=kernel  -> -mcmodel=kernel -mno-red-zone
+#   -Wu,-save_args  -> -msave-args (illumos-patched gcc only; see
+#                      ILLUMOS_GCC_FLAGS)
+#
+# UNTESTED ON ILLUMOS as of P0: written and reviewed in a Linux container.
+#
+
+# BUILDBASE is set by the including Makefile to the path of build/.
+SRCBASE		= $(BUILDBASE)/..
+INCBASE		= $(SRCBASE)/include
+KSRCBASE	= $(SRCBASE)/src
+
+#
+# Toolchain. Override on the command line, e.g. gmake CC=/usr/gcc/13/bin/gcc
+#
+ifeq ($(origin CC),default)
+CC		= gcc
+endif
+LD		= /usr/bin/ld
+INSTALL_SH	= $(SRCBASE)/scripts/install.sh
+
+#
+# Kernel headers. Empty means the compiler's default (/usr/include, from the
+# system/header package of the running system). Point it at a proto area
+# (.../proto/root_i386/usr/include) to build against a different gate.
+#
+KERNEL_INC	=
+
+#
+# CTF. Optional: used if found. Without CTF the module works, but mdb -k
+# and DTrace cannot see its types.
+#
+ONBLD_TOOLS	= /opt/onbld
+CTFCONVERT	= $(firstword $(wildcard $(ONBLD_TOOLS)/bin/i386/ctfconvert /usr/bin/ctfconvert))
+CTFMERGE	= $(firstword $(wildcard $(ONBLD_TOOLS)/bin/i386/ctfmerge /usr/bin/ctfmerge))
+CTFCVTFLAGS	= -i -L VERSION
+CTFMRGFLAGS	= -L VERSION
+
+#
+# Build type: obj64 (non-DEBUG) or debug64 (DEBUG, ASSERT() enabled).
+#
+DEBUG		= 0
+ifeq ($(DEBUG),0)
+OBJS_DIR	= obj64
+DEBUG_DEFS	=
+COPTFLAG	= -O2
+else
+OBJS_DIR	= debug64
+DEBUG_DEFS	= -DDEBUG
+COPTFLAG	= -O1
+endif
+
+ALWAYS_DEFS	= -D_KERNEL -D_SYSCALL32 -D_SYSCALL32_IMPL -D_ELF64 \
+		  -D_DDI_STRICT -Dsun -D__sun -D__SVR4
+
+INCLUDE_PATH	= -I$(INCBASE) $(if $(KERNEL_INC),-I$(KERNEL_INC))
+CPPFLAGS	= $(ALWAYS_DEFS) $(DEBUG_DEFS) $(INCLUDE_PATH) $(EXTRA_CPPFLAGS)
+
+# Options that exist only in the illumos-patched gcc shipped by OpenIndiana,
+# Tribblix and the gate's gcc shadow:
+#   -msave-args           arguments on the stack for mdb ::stack/::findstack
+#   -fno-clone-functions  no .clone symbols that confuse DTrace fbt
+# Set ILLUMOS_GCC_FLAGS= when using an unpatched (upstream) gcc.
+ILLUMOS_GCC_FLAGS = -msave-args -fno-clone-functions
+
+STAND_FLAGS	= -m64 -fno-pic -mcmodel=kernel -mno-red-zone -ffreestanding \
+		  -mno-mmx -mno-sse $(ILLUMOS_GCC_FLAGS)
+CSTD		= -std=gnu11
+CCNOAUTOINLINE	= -fno-inline-small-functions -fno-inline-functions-called-once \
+		  -fno-ipa-cp -fno-ipa-icf
+CCNOREORDER	= -fno-reorder-functions -fno-reorder-blocks-and-partition
+CCNOAGGRESSIVELOOPS = -fno-aggressive-loop-optimizations
+# Keep the standard prologue at function start for DTrace fbt.
+CCFBT		= -fno-shrink-wrap -fno-omit-frame-pointer
+# Retpolines; the illumos kernel provides __x86_indirect_thunk_*.
+CCRETPOLINE	= -mindirect-branch=thunk-extern -mindirect-branch-register
+DEBUGFORMAT	= -gdwarf-4 -gstrict-dwarf
+CERRWARN	= -Wall -Wextra -Werror -Wno-unused-parameter \
+		  -Wno-missing-field-initializers -Wno-sign-compare
+
+CFLAGS		= $(COPTFLAG) $(STAND_FLAGS) $(CSTD) $(CCNOAUTOINLINE) \
+		  $(CCNOREORDER) $(CCNOAGGRESSIVELOOPS) $(CCFBT) \
+		  $(CCRETPOLINE) $(DEBUGFORMAT) $(CERRWARN) \
+		  -fno-asynchronous-unwind-tables -fno-stack-protector \
+		  $(EXTRA_CFLAGS)
+
+COMPILE.c	= $(CC) $(CFLAGS) $(CPPFLAGS) -c
+
+#
+# Kernel modules are linked as ELF relocatable objects of type kmod.
+# Older illumos ld without -ztype=kmod: gmake LD_KMOD_TYPE=-r
+#
+LD_KMOD_TYPE	= -ztype=kmod
+# Module dependencies (e.g. misc/linuxkpi), set per module in MODDEPS.
+LDFLAGS		= $(if $(MODDEPS),-dy $(MODDEPS:%=-N%)) $(EXTRA_LDFLAGS)

@@ -1,0 +1,12 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# Object lists per kernel module (cf. illumos uts/common/Makefile.files).
+# Sources live in src/; objects are named after their source file.
+#
+
+#
+#	linuxkpi: LinuxKPI core misc module
+#
+LINUXKPI_OBJS	+= linuxkpi_mod.o

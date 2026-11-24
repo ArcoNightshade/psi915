@@ -1,0 +1,11 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# Pattern rules (cf. illumos uts/intel/Makefile.rules): map each source
+# directory to objects in the per-module $(OBJS_DIR).
+#
+
+$(OBJS_DIR)/%.o: $(KSRCBASE)/%.c | $(OBJS_DIR)
+	$(COMPILE.c) -o $@ $<
+	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)

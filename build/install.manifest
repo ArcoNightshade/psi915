@@ -1,0 +1,12 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# Neutral install layout, consumed by scripts/install.sh and by the IPS and
+# SVR4 package wrappers (scripts/install.sh -f ips|svr4).
+#
+# type	mode	owner	group	path (relative to /)	source (relative to repo; @OBJDIR@ = obj64|debug64)
+dir	0755	root	sys	usr/kernel
+dir	0755	root	sys	usr/kernel/misc
+dir	0755	root	sys	usr/kernel/misc/amd64
+file	0755	root	sys	usr/kernel/misc/amd64/linuxkpi	build/linuxkpi/@OBJDIR@/linuxkpi
