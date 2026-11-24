@@ -104,3 +104,4 @@ ddi_copyin
 ddi_copyout
 copyinstr
 copystr
+curcpup

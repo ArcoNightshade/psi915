@@ -33,7 +33,8 @@
 
 #define	LKPI_KTEST_SUITES(X)						\
 	X(kernel) X(list) X(kref) X(atomic) X(bitops) X(printk)		\
-	X(slab) X(locks) X(list_sort) X(rbtree) X(rcu) X(xarray)
+	X(slab) X(locks) X(list_sort) X(rbtree) X(rcu) X(xarray)	\
+	X(sched)
 
 #define	LKPI_KTEST_DECL(name)	int lkpi_ktest_##name(void);
 LKPI_KTEST_SUITES(LKPI_KTEST_DECL)

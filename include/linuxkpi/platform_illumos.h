@@ -281,6 +281,13 @@ lkpi_plat_ncpus(void)
 	return (ncpus > 0 ? (unsigned int)ncpus : 1U);
 }
 
+/* Sequential id (0..ncpus-1) of the CPU running the caller (a hint). */
+static inline unsigned int
+lkpi_plat_cpu_id(void)
+{
+	return ((unsigned int)CPU->cpu_seqid);
+}
+
 /* Give up the CPU to other runnable threads. */
 static inline void
 lkpi_plat_yield(void)

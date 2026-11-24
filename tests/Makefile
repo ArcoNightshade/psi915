@@ -35,7 +35,7 @@ HDRS		= harness.h $(wildcard $(INCLUDE)/linux/*.h $(INCLUDE)/linuxkpi/*.h \
 # KPI sources linked into every test program (userland configuration).
 LIB_SRCS	= $(wildcard $(SRC)/linux_*.c) $(SRC)/plat_userland.c
 
-TESTS		= test_list test_kref test_kernel test_atomic test_bitops test_printk test_slab test_locks test_list_sort test_rbtree test_rcu test_xarray
+TESTS		= test_list test_kref test_kernel test_atomic test_bitops test_printk test_slab test_locks test_list_sort test_rbtree test_rcu test_xarray test_sched
 
 # Kernel-mode compile check: kernel flags from build/Makefile.master minus
 # -msave-args (illumos-patched gcc only).

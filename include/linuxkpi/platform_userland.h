@@ -369,6 +369,12 @@ lkpi_plat_ncpus(void)
 	return (4U);
 }
 
+static inline unsigned int
+lkpi_plat_cpu_id(void)
+{
+	return (0U);
+}
+
 static inline void
 lkpi_plat_yield(void)
 {
