@@ -39,7 +39,7 @@
  *    list_entry_is_head and the *_safe_continue iterator
  *  - list_rotate_to_front follows the Linux semantics (entry becomes first)
  *  - splice helpers check for an empty source list themselves
- *  - RCU list variants and list_sort are deferred to P1
+ *  - list_sort() is in <linux/list_sort.h>, RCU variants in <linux/rculist.h>
  */
 #ifndef _LINUXKPI_LINUX_LIST_H_
 #define	_LINUXKPI_LINUX_LIST_H_
