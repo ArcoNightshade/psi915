@@ -15,6 +15,7 @@
 #include <linux/vmalloc.h>
 #include <linux/string.h>
 #include <linux/bug.h>
+#include <linux/rcupdate.h>
 
 #define	LKPI_KMALLOC_MAGIC	0x6b6d6c63U	/* "kmlc" */
 #define	LKPI_KMALLOC_FREED	0x66726565U	/* "free" */
@@ -229,14 +230,28 @@ kfree_const(const void *p)
 /*
  * Object caches. The Linux handle points at this wrapper; the struct
  * kmem_cache tag itself is never defined.
+ *
+ * SLAB_TYPESAFE_BY_RCU: a freed object may be reused for a new object of
+ * the same cache at once in Linux, but its memory is not returned to the
+ * system until a grace period has passed, so RCU readers can still look at
+ * it (and must re-validate it). Here kmem_cache_free() of such an object
+ * defers the real free with call_rcu(), which is stricter (no reuse within
+ * the grace period either). The rcu_head lives in a trailer after the
+ * object, at rcu_off, so the object's own bytes are left untouched.
  */
 struct lkpi_kmem_cache {
 	lkpi_plat_kcache_t	*kc;
 	void			(*ctor)(void *);
 	unsigned int		size;
+	unsigned int		rcu_off;
 	slab_flags_t		flags;
 	atomic_long_t		live;
 	char			name[32];
+};
+
+struct lkpi_kmem_cache_rcu {
+	struct rcu_head		rh;
+	struct lkpi_kmem_cache	*cache;
 };
 
 #define	LKPI_KC(c)	((struct lkpi_kmem_cache *)(void *)(c))
@@ -267,6 +282,11 @@ lkpi_kmem_cache_create(const char *name, unsigned int size,
 	c->flags = flags;
 	if ((flags & SLAB_HWCACHE_ALIGN) && align < L1_CACHE_BYTES)
 		align = L1_CACHE_BYTES;
+	if (flags & SLAB_TYPESAFE_BY_RCU) {
+		c->rcu_off = ALIGN(size,
+		    (unsigned int)__alignof__(struct lkpi_kmem_cache_rcu));
+		size = c->rcu_off + sizeof (struct lkpi_kmem_cache_rcu);
+	}
 	c->kc = lkpi_plat_kcache_create(c->name, size, align,
 	    ctor != NULL ? lkpi_kmem_cache_ctor : NULL, c);
 	if (c->kc == NULL) {
@@ -296,14 +316,31 @@ lkpi_kmem_cache_alloc(struct kmem_cache *cache, gfp_t gfp)
 	return (obj);
 }
 
+static void
+lkpi_kmem_cache_rcu_free(struct rcu_head *rh)
+{
+	struct lkpi_kmem_cache_rcu *t =
+	    container_of(rh, struct lkpi_kmem_cache_rcu, rh);
+	struct lkpi_kmem_cache *c = t->cache;
+
+	lkpi_plat_kcache_free(c->kc, (char *)t - c->rcu_off);
+}
+
 void
 lkpi_kmem_cache_free(struct kmem_cache *cache, void *obj)
 {
 	struct lkpi_kmem_cache *c = LKPI_KC(cache);
+	struct lkpi_kmem_cache_rcu *t;
 
 	if (obj == NULL)
 		return;
 	atomic_long_dec(&c->live);
+	if (c->flags & SLAB_TYPESAFE_BY_RCU) {
+		t = (struct lkpi_kmem_cache_rcu *)((char *)obj + c->rcu_off);
+		t->cache = c;
+		call_rcu(&t->rh, lkpi_kmem_cache_rcu_free);
+		return;
+	}
 	lkpi_plat_kcache_free(c->kc, obj);
 }
 
@@ -314,6 +351,9 @@ lkpi_kmem_cache_destroy(struct kmem_cache *cache)
 
 	if (c == NULL)
 		return;
+	/* Deferred frees of a TYPESAFE_BY_RCU cache must land first. */
+	if (c->flags & SLAB_TYPESAFE_BY_RCU)
+		rcu_barrier();
 	/*
 	 * A cache with live objects is reported and left alone (Linux leaks
 	 * it); destroying it would leave the objects dangling.

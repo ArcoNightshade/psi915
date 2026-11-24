@@ -25,6 +25,8 @@
  * (constructors keep illumos/Linux constructed-object semantics). The
  * kmem_cache_* names collide with illumos <sys/kmem.h>, so they are macros
  * over lkpi_kmem_cache_*; illumos headers must be included first.
+ * SLAB_TYPESAFE_BY_RCU caches defer the real free by a grace period
+ * (src/linux_slab.c).
  */
 #ifndef _LINUXKPI_LINUX_SLAB_H_
 #define	_LINUXKPI_LINUX_SLAB_H_

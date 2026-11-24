@@ -8,9 +8,10 @@
 /*
  * linuxkpi: illumos loadable misc module providing the LinuxKPI.
  *
- * P0: module linkage only. The module installs, prints a banner, and exports
- * exactly one data symbol besides the mandatory _init/_info/_fini entry
- * points:
+ * Module linkage. _init starts the KPI subsystems that own threads (the RCU
+ * callback thread), then installs the module; _fini removes it and stops
+ * them. Besides the mandatory _init/_info/_fini entry points this file
+ * exports one data symbol (the KPI functions live in the other objects):
  *
  *   linuxkpi_version   the value of LINUXKPI_VERSION this module was built
  *                      with (see <linuxkpi/version.h>)
@@ -24,6 +25,7 @@
 #include <sys/cmn_err.h>
 
 #include <linuxkpi/version.h>
+#include <linuxkpi/subsys.h>
 
 const uint32_t linuxkpi_version = LINUXKPI_VERSION;
 
@@ -42,9 +44,14 @@ _init(void)
 {
 	int error;
 
-	error = mod_install(&linuxkpi_modlinkage);
+	error = lkpi_rcu_init();
 	if (error != 0)
 		return (error);
+	error = mod_install(&linuxkpi_modlinkage);
+	if (error != 0) {
+		lkpi_rcu_fini();
+		return (error);
+	}
 
 	cmn_err(CE_CONT, "linuxkpi %s loaded (LINUXKPI_VERSION %u)\n",
 	    LINUXKPI_RELEASE, (uint_t)linuxkpi_version);
@@ -63,7 +70,9 @@ _fini(void)
 	int error;
 
 	error = mod_remove(&linuxkpi_modlinkage);
-	if (error == 0)
+	if (error == 0) {
+		lkpi_rcu_fini();
 		cmn_err(CE_CONT, "linuxkpi %s unloaded\n", LINUXKPI_RELEASE);
+	}
 	return (error);
 }

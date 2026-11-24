@@ -55,6 +55,8 @@
 #include <linux/list_sort.h>
 #include <linux/rbtree.h>
 #include <linux/rbtree_augmented.h>
+#include <linux/rcupdate.h>
+#include <linux/rculist.h>
 
 #ifndef LINUXKPI_ILLUMOS_KERNEL
 #error "expected the illumos kernel configuration"
@@ -164,6 +166,11 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 		list_sort(NULL, &kcheck_list, kcheck_cmp);
 		(void) rb_add_cached(&kc->rb, &root, kcheck_less);
 		(void) rb_erase_cached(&kc->rb, &root);
+		rcu_read_lock();
+		list_for_each_entry_rcu(pos, &kcheck_list, node)
+			sum += pos->v;
+		rcu_read_unlock();
+		synchronize_rcu();
 		complete(&kcheck_done);
 		sum += (int)wait_for_completion_timeout(&kcheck_done, HZ);
 		if (kref_put_mutex(&kc->ref, kcheck_release_locked,

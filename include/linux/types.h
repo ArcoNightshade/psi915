@@ -75,4 +75,13 @@ struct hlist_node {
 	struct hlist_node **pprev;
 };
 
+/* RCU callback head; operations in <linux/rcupdate.h>. */
+struct callback_head {
+	struct callback_head	*next;
+	void			(*func)(struct callback_head *head);
+} __attribute__((__aligned__(sizeof (void *))));
+#define	rcu_head	callback_head
+
+typedef void (*rcu_callback_t)(struct rcu_head *head);
+
 #endif /* _LINUXKPI_LINUX_TYPES_H_ */
