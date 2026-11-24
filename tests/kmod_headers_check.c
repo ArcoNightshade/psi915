@@ -46,6 +46,12 @@
 #include <linux/vmalloc.h>
 #include <linux/string.h>
 #include <linux/overflow.h>
+#include <linux/spinlock.h>
+#include <linux/mutex.h>
+#include <linux/rwsem.h>
+#include <linux/seqlock.h>
+#include <linux/completion.h>
+#include <linux/lockdep.h>
 
 #ifndef LINUXKPI_ILLUMOS_KERNEL
 #error "expected the illumos kernel configuration"
@@ -59,6 +65,11 @@ struct kcheck {
 };
 
 static LIST_HEAD(kcheck_list);
+static DEFINE_MUTEX(kcheck_mutex);
+static DEFINE_SPINLOCK(kcheck_spin);
+static DECLARE_RWSEM(kcheck_rwsem);
+static DEFINE_SEQLOCK(kcheck_seq);
+static DECLARE_COMPLETION(kcheck_done);
 
 static void
 kcheck_release(struct kref *k)
@@ -66,6 +77,13 @@ kcheck_release(struct kref *k)
 	struct kcheck *kc = container_of(k, struct kcheck, ref);
 
 	list_del_init(&kc->node);
+}
+
+static void
+kcheck_release_locked(struct kref *k)
+{
+	kcheck_release(k);
+	mutex_unlock(&kcheck_mutex);
 }
 
 int kmod_headers_check(struct kcheck *kc, struct hlist_head *h);
@@ -109,6 +127,26 @@ kmod_headers_check(struct kcheck *kc, struct hlist_head *h)
 	WARN_ON_ONCE(IS_ERR(ERR_PTR(-ENOMEM)) == 0);
 	dev_info((struct device *)NULL, "j %lu\n", jiffies + msecs_to_jiffies(10));
 	BUG_ON(sum == -12345);
+	{
+		unsigned long flags;
+		unsigned int seq;
+
+		mutex_lock(&kcheck_mutex);
+		lockdep_assert_held(&kcheck_mutex);
+		mutex_unlock(&kcheck_mutex);
+		spin_lock_irqsave(&kcheck_spin, flags);
+		spin_unlock_irqrestore(&kcheck_spin, flags);
+		down_read(&kcheck_rwsem);
+		up_read(&kcheck_rwsem);
+		do {
+			seq = read_seqbegin(&kcheck_seq);
+		} while (read_seqretry(&kcheck_seq, seq));
+		complete(&kcheck_done);
+		sum += (int)wait_for_completion_timeout(&kcheck_done, HZ);
+		if (kref_put_mutex(&kc->ref, kcheck_release_locked,
+		    &kcheck_mutex) == 0)
+			sum++;
+	}
 	{
 		char *s = kstrdup("x", GFP_KERNEL);
 		struct kmem_cache *c = KMEM_CACHE(kcheck, SLAB_HWCACHE_ALIGN);

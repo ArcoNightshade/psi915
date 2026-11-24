@@ -72,6 +72,20 @@
 #error "linuxkpi: unsupported environment (expected illumos _KERNEL or userland)"
 #endif
 
+/*
+ * Struct tag clash: illumos <sys/mutex.h> defines kmutex_t as
+ * "typedef struct mutex {...} kmutex_t", so Linux's struct mutex cannot use
+ * that tag in the kernel. Every later use of the identifier "mutex" is
+ * renamed to lkpi_mutex instead (struct tags, and also variables or members
+ * called "mutex", consistently across all code built against the KPI).
+ * The environment headers above are already parsed, so kmutex_t keeps its
+ * real definition. Done in userland too, so tests see the same names.
+ * Other illumos/Linux tag clashes to handle the same way when their
+ * headers arrive: struct page (P2), struct file, struct module, struct
+ * cred, struct pid (P3); see docs/03.
+ */
+#define	mutex	lkpi_mutex
+
 /* Service threads (src/plat_*.c). */
 struct lkpi_plat_thread;
 struct lkpi_plat_thread *lkpi_plat_thread_create(void (*fn)(void *),

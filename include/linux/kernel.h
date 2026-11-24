@@ -53,6 +53,15 @@
 #define	__lkpi_rounddown(x, y, ux)	({ typeof(x) ux = (x); ux - (ux % (y)); })
 #define	rounddown(x, y)	__lkpi_rounddown(x, y, __UNIQUE_ID(rdown_x))
 
+/* Sleep-context assertions: only "not in an interrupt handler". */
+#define	might_sleep()		lkpi_assert(!lkpi_plat_in_interrupt())
+#define	might_sleep_if(cond)	do { if (cond) might_sleep(); } while (0)
+#define	might_fault()		might_sleep()
+#define	cant_sleep()		do { } while (0)
+#define	cant_migrate()		do { } while (0)
+#define	non_block_start()	do { } while (0)
+#define	non_block_end()		do { } while (0)
+
 #define	upper_32_bits(n)	((u32)(((n) >> 16) >> 16))
 #define	lower_32_bits(n)	((u32)((n) & 0xffffffff))
 
