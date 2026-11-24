@@ -37,15 +37,23 @@ the owner's machines; sandbox use is limited to editing, static checks, referenc
 - Debug flags: `set kmem_flags=0xf`, DEBUG kernel if available, DTrace SDT probes for KPI tracing.
 - Static checks: sparse/`-Wall -Wextra`, `cppcheck`, `smatch` over KPI.
 
-## Commands (P0)
-- Any host: `make test` (userland unit tests), `make check-kmod` (compile kernel sources against stub illumos
-  headers in `tests/stubs/illumos`; a type check, not a kernel build), `make check` (both).
-- illumos: `gmake kmod [DEBUG=1]`, `gmake install [DESTDIR=...]`; details and knobs in README.md.
+## Commands
+- Any host: `make test` (userland unit tests), `make check-kmod` (compile kernel sources and the
+  lkpi_ktest objects against stub illumos headers in `tests/stubs/illumos`, check exports and that every
+  undefined symbol is an allowed illumos interface, `tests/kmod_allowed_syms.txt`; a type check, not a
+  kernel build), `make check` (both).
+- illumos: `gmake kmod [DEBUG=1]` builds `linuxkpi` and the `lkpi_ktest` test module,
+  `gmake install [DESTDIR=...]` installs `linuxkpi` only; details and knobs in README.md.
+- Kernel tests (untested so far): boot a DEBUG kernel with `set kmem_flags=0xf` in /etc/system, install
+  linuxkpi, then `modload build/lkpi_ktest/debug64/lkpi_ktest`; results go to the console/system log
+  ("lkpi_ktest: 12 suites, 0 failed"); a failing suite makes the modload fail with EIO. Follow with
+  `mdb -k` `::findleaks` and `::kmem_verify`.
 - As of P0 nothing has been built or loaded on illumos: the build harness, install script and module are
   untested there. The first owner-side run should record gcc version, illumos-gate commit and any harness fixes.
 
 ## Tests
-1. KPI unit tests (userland harness + kernel `ktest`).
+1. KPI unit tests: the same `tests/test_*.c` files run as userland programs (`make test`) and inside the
+   kernel module `lkpi_ktest` (`LKPI_SUITE()` in `tests/harness.h`).
 2. Toy device drivers (P2) and `vkms` (P3).
 3. i915: IGT GPU Tools (needs libdrm, ported alongside), piglit, Mesa CTS/dEQP subsets, kms tests.
 4. Soak: module load/unload loops, stress-ng GPU/memory, hotplug loops.

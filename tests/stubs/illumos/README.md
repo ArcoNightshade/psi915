@@ -14,3 +14,9 @@ Where an illumos header is known to define something our headers override
 (e.g. `min`/`max` in `<sys/ddi.h>`, `ARRAY_SIZE` in `<sys/sysmacros.h>`,
 `__packed` in `<sys/ccompile.h>`), the stub defines it the same way so the
 override path is exercised.
+
+Stub headers cover what `include/linuxkpi/platform_illumos.h` and `src/` use:
+types, errno, varargs, cmn_err (cmn_err, vsnprintf, panic), systm, kmem, mutex,
+rwlock, condvar, thread, proc, disp, time, ddi, sunddi, modctl. Signatures follow
+illumos-gate f71cb08e8c53. `<sys/mutex.h>` keeps the real `typedef struct mutex
+kmutex_t`, so the `struct mutex` tag clash is exercised.

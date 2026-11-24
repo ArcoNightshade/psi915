@@ -51,11 +51,13 @@ drm/           DRM core import + patches/ (planned, P3)
 i915/          i915 import + patches/ (planned, P4)
 third_party/   pinned upstream imports (placeholder)
 build/         illumos Makefiles (gfx-drm/Makefile.uts style), install.manifest; IPS/SVR4 wrappers (planned)
-tests/         KPI unit tests (userland harness; kernel ktest planned), stub illumos headers
+tests/         KPI unit tests (userland harness and lkpi_ktest kernel module), stub illumos headers
 scripts/       fetch-refs, install.sh; import tooling, sync-with-linux (planned)
 ```
-Header environments: `include/linuxkpi/platform.h` selects illumos kernel (`_KERNEL` + `__sun`) or hosted userland,
-and is the only place pure-logic headers get environment headers from.
+Header environments: `include/linuxkpi/platform.h` selects illumos kernel (`_KERNEL` + `__sun`,
+`platform_illumos.h`) or hosted userland (`platform_userland.h`, pthread-backed), and is the only place the
+linux/ headers get environment headers from. Both provide the same `lkpi_plat_*` primitives (mutex, rwlock,
+condvar, memory, object caches, tick clock, thread identity, log output, service threads).
 ## Import strategy
 Scripted import (`scripts/import-linux.sh`) from drm-kmod at a pinned tag, apply `patches/` series with quilt-like tooling,
 record upstream commit. Goal: rebase to new Linux LTS yearly.

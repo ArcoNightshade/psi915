@@ -20,6 +20,6 @@
 #define	LINUXKPI_VERSION	61400
 #endif
 
-#define	LINUXKPI_RELEASE	"0.0.1-p0"
+#define	LINUXKPI_RELEASE	"0.0.2-p1"
 
 #endif /* _LINUXKPI_VERSION_H_ */

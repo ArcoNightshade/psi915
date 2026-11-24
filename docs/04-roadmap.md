@@ -35,6 +35,37 @@ Known gaps carried into P1: `kref_put_lock`/`kref_put_mutex` (need locks), `list
 - KPI unit tests (ktest or userland harness for pure-logic parts).
 - Exit: test module exercising each subsystem passes under DEBUG kernel (`kmem_flags`, `lockstat`).
 
+### P1 status (2026-11-24, first slice)
+Done in the Linux dev container; nothing here has been built or loaded on illumos. Per-area detail in
+doc 03 "Implementation status".
+
+- [x] Platform layer: `linuxkpi/platform.h` selects `platform_illumos.h` (kmutex/krwlock/kcondvar,
+  kmem, lbolt, cmn_err, thread_create) or `platform_userland.h` (pthread shims, malloc, 1000 Hz clock).
+- [x] Atomics and barriers (`linux/atomic.h`, `asm/barrier.h`); `refcount_t` on `atomic_t`.
+- [x] Bits and arithmetic: bits, bitops, bitmap, bitfield, log2, math, math64, minmax, limits, overflow.
+- [x] Logging: printk/pr_*/dev_* to cmn_err, ratelimit, WARN*/BUG* (`linuxkpi_bug_panic` tunable,
+  default 0 in the kernel), errno, err, jiffies.
+- [x] Memory: kmalloc/kvmalloc/vmalloc with size header, kmem_cache wrappers, gfp, string helpers.
+- [x] Locks: spinlock_t, rwlock_t, mutex, rw_semaphore, seqlock, completion, lockdep-lite;
+  kref_put_lock/kref_put_mutex. IRQ-safe spinlocks above LOCK_LEVEL need
+  `spin_lock_init_irqsafe(lock, iblock_cookie)` in the port.
+- [x] list_sort, rbtree (+ augmented callbacks), RCU (epoch emulation, call_rcu thread, kfree_rcu,
+  SLAB_TYPESAFE_BY_RCU), rculist, xarray (basic), idr, ida.
+- [x] Userland tests for every piece (`make test`, 12 suites, gcc/clang/ASan+UBSan); `make check-kmod`
+  compiles all sources and the test module in the kernel configuration and checks symbols.
+- [x] Kernel test module scaffold `lkpi_ktest` (tests/kernel, build/lkpi_ktest) running the same suites.
+- [ ] Build `linuxkpi` and `lkpi_ktest` on OpenIndiana and Tribblix; run lkpi_ktest under a DEBUG
+  kernel with `kmem_flags=0xf`, then `::findleaks`, and with lockstat (owner). This is the P1 exit test.
+- [ ] Remaining P1 areas: wait queues and `current`/task shim, schedule/msleep/usleep_range,
+  workqueue/delayed_work, timer_list/hrtimer, kthread, ktime, uaccess (copy_*_user via ddi_copyin/out),
+  module parameters (driver.conf / /etc/system), ww_mutex, semaphore, kstrto*/sort/bsearch/hash,
+  xarray marks, devres (with struct device in P2).
+
+Known limitations carried forward: mutex_lock_interruptible never returns -EINTR; kmalloc does not give
+natural alignment for power-of-two sizes; HZ is not a compile-time constant; RCU readers pay an atomic
+plus a full barrier and cannot run in interrupt handlers above LOCK_LEVEL; rwlock_t readers are not
+recursive while a writer waits; printk does not interpret Linux %p extensions.
+
 ## P2 Hardware plumbing (6-8 wk)
 - pci_dev/DDI binding, MMIO/WC mapping, MSI, DMA/sg_table/IOMMU, firmware loader, ACPI/DMI, i2c, cpu/cache ops.
 - Exit: toy PCI driver (hello-BAR + IRQ + DMA) built unmodified-style against KPI.

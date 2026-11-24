@@ -31,6 +31,39 @@ Difficulty: L low, M medium, H high. Ref = where to look first.
 | Compiler | statement exprs, typeof, `__attribute__`, `static_assert`, `_Generic`, `-std=gnu11`, kconfig macros | illumos builds with gcc: set gnu11/gnu17; generate `autoconf.h` | L | drm-kmod kconfig.mk |
 | TTM/scheduler | ttm, drm_sched, hmm | imported unchanged; sit atop KPI | M | drm-kmod |
 
+## Implementation status (2026-11-24, P1 first slice)
+Done = implemented and unit-tested in userland (gcc, clang, ASan/UBSan) and compile-checked in the
+illumos kernel configuration against stub headers. Nothing below has been built or run on illumos yet;
+every kernel-side mapping is untested there. Partial = the listed subset only.
+
+| Area | Status | What exists | Not yet |
+|------|--------|-------------|---------|
+| Types/utils | partial | types, list, list_sort, rbtree (+augmented callbacks), kref (+kref_put_lock/_mutex), bits, bitops, bitmap (basic), bitfield, log2, math, math64, minmax, limits, overflow, string (strscpy, kstrdup, kmemdup, ...), err, errno | kstrto*, sort, bsearch, hash, hashtable, rbtree _rcu |
+| Atomics/barriers | done | atomic_t/atomic64_t/atomic_long_t with all ordering variants, xchg/cmpxchg/try_cmpxchg, smp_*/mb/rmb/wmb, smp_load_acquire/store_release, smp_cond_load_* (GCC `__atomic` builtins, inline on amd64) | |
+| Memory | partial | kmalloc family with 16-byte size header over kmem_alloc, kvmalloc/vmalloc, krealloc, kmem_cache wrappers (incl. SLAB_TYPESAFE_BY_RCU), gfp mapping to KM_* | devm_*/devres (needs struct device, P2), mempool, natural alignment of power-of-two kmalloc sizes |
+| Locking | partial | spinlock_t, rwlock_t, mutex, rw_semaphore, seqcount/seqlock, lockdep-lite owner assertions | ww_mutex, semaphore, interruptible mutex/rwsem waits (return 0, never -EINTR) |
+| Sleeping/scheduling | not started | only might_sleep() | wait queues, schedule, current, msleep |
+| Workqueue/timers | partial | jiffies/HZ (HZ is run-time `hz` on illumos) | workqueue, timer_list, hrtimer, kthread |
+| RCU | partial | epoch-based rcu_read_lock/synchronize_rcu/call_rcu/rcu_barrier, poll-state API, kfree_rcu, rculist (list/hlist) | SRCU, rcu-protected rbtree |
+| Completions/events | partial | completion (timeouts, interruptible) | kobject, notifier chains |
+| Logging/debug | partial | printk/pr_*/dev_* (to cmn_err), ratelimit, WARN*/BUG* with linuxkpi_bug_panic tunable | Linux %p format extensions, dynamic_debug, tracepoints |
+| Misc | partial | idr, ida, xarray basic API | xarray marks and xas_* API, uaccess, module params, ktime, debugfs/sysfs |
+
+### Name and layout clashes with illumos (handled or to handle)
+- Struct tags: illumos `kmutex_t` is `struct mutex`, so `<linuxkpi/platform.h>` renames the identifier
+  `mutex` to `lkpi_mutex` after the environment headers. The same is needed when these arrive:
+  `struct page` (P2), `struct file`, `struct module`, `struct cred`, `struct pid` (P3).
+- Functions/macros: `mutex_init`, `mutex_destroy`, `kmem_cache_*`, `ffs`, `min`, `max`, `ARRAY_SIZE`
+  are redefined with Linux meaning (macros), so illumos headers must be included before linux/ ones.
+- `include/asm/`: illumos installs `/usr/include/asm/{atomic,bitmap,byteorder,clock,cpu,cpuvar,htable,
+  mmu,sunddi,thread}.h`, which illumos headers include. Our `-I include` would shadow them, so the KPI
+  must never add `asm/` headers with those names (Linux code wanting `<asm/atomic.h>` or
+  `<asm/byteorder.h>` needs another mechanism, e.g. a separate include dir searched after the system).
+- On Linux userland hosts `include/linux/{errno,limits}.h` shadow the UAPI headers glibc includes; both
+  chain to the host header with `#include_next`. Other shadowed UAPI names may need the same.
+- errno: standard names keep illumos values; Linux-internal codes (ERESTARTSYS, EPROBE_DEFER,
+  ENOTSUPP, ...) use the Linux values 512+, and must be translated before reaching userland.
+
 ## Top hazards
 1. Blocking/scheduling semantics (signals, `current`) vs illumos threads.
 2. WC/PAT mapping and cache coherency on Intel (clflush policy).
