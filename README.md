@@ -14,3 +14,4 @@ Status: planning only. No code yet. See `docs/`.
 | docs/04-roadmap.md | Phased plan with exit criteria |
 | docs/05-dev-environment-and-testing.md | Build, debug, test workflow |
 | docs/06-risks-and-open-questions.md | Risks, licensing, decisions needed from the owner |
+| docs/07-feature-scope-and-validation.md | Kernel/userspace feature list, validation ladder, work order |

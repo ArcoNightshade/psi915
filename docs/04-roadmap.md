@@ -1,5 +1,8 @@
 # Roadmap
 
+Feature order and validation ladder are defined in `07-feature-scope-and-validation.md`; phases below map to its steps:
+P4=modeset, P5=GEM..ppGTT, P5/P3=sync, P3/P6=dma-buf, P6=iris/Xorg, P7=PM, P8+=anv.
+
 Each phase has an exit test that runs on real hardware.
 
 ## P0 Foundation (1-2 wk)

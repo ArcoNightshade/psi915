@@ -6,7 +6,7 @@
 2. Primary i915 source base: drm-kmod (recommended) vs OpenBSD tree.
 3. Licensing of the project's own code (CDDL, MIT/BSD-2). Recommended: BSD-2 for KPI so it stays reusable and remains compatible with its BSD-derived pieces.
 4. Dev environment: bare-metal OI on the laptop only, or a second machine/VM? Serial/debug access?
-5. Linux version pin (6.1 LTS or newer; drm-kmod currently tracks 6.x).
+5. Linux version pin: you mentioned a 5.4-era kernel uAPI is fine, but drm-kmod tracks 6.x and 5.4 means an older, less maintained i915. Confirm 6.x source with 5.4+ uAPI as the minimum (my recommendation).
 6. Which OpenIndiana release/kernel (Hipster date); is Mesa/X in oi-userland recent enough (iris, DRI3)?
 
 ## Risks
