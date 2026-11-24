@@ -1,0 +1,78 @@
+/*
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2026 The psi915 Authors. All rights reserved.
+ * See the LICENSE file at the top of the source tree for the full text.
+ *
+ * Clean-room implementation from the documented behaviour of the Linux
+ * kernel API; type set cross-checked against FreeBSD's LinuxKPI types.h
+ * (BSD-2-Clause).
+ */
+#ifndef _LINUXKPI_LINUX_TYPES_H_
+#define	_LINUXKPI_LINUX_TYPES_H_
+
+#include <linuxkpi/platform.h>
+#include <linux/compiler.h>
+
+typedef uint8_t		u8;
+typedef uint16_t	u16;
+typedef uint32_t	u32;
+typedef uint64_t	u64;
+typedef int8_t		s8;
+typedef int16_t		s16;
+typedef int32_t		s32;
+typedef int64_t		s64;
+
+typedef uint8_t		__u8;
+typedef uint16_t	__u16;
+typedef uint32_t	__u32;
+typedef uint64_t	__u64;
+typedef int8_t		__s8;
+typedef int16_t		__s16;
+typedef int32_t		__s32;
+typedef int64_t		__s64;
+
+/* Endian-annotated types; sparse-only distinction, plain integers here. */
+typedef uint16_t	__le16;
+typedef uint16_t	__be16;
+typedef uint32_t	__le32;
+typedef uint32_t	__be32;
+typedef uint64_t	__le64;
+typedef uint64_t	__be64;
+typedef uint16_t	__sum16;
+typedef uint32_t	__wsum;
+
+typedef uint64_t	__aligned_u64 __attribute__((__aligned__(8)));
+
+typedef unsigned int	gfp_t;
+typedef unsigned int	__poll_t;
+typedef uint64_t	phys_addr_t;
+typedef uint64_t	dma_addr_t;
+typedef uint64_t	resource_size_t;
+typedef unsigned long	pgoff_t;
+typedef unsigned long	irq_hw_number_t;
+typedef unsigned long	kernel_ulong_t;
+
+#define	BITS_PER_LONG		(sizeof(long) * 8)
+#define	BITS_PER_LONG_LONG	(sizeof(long long) * 8)
+
+#define	DECLARE_BITMAP(name, bits)					\
+	unsigned long name[((bits) + BITS_PER_LONG - 1) / BITS_PER_LONG]
+
+/* Doubly linked list node/head; operations in <linux/list.h>. */
+struct list_head {
+	struct list_head *next;
+	struct list_head *prev;
+};
+
+/* Hash list with a single-pointer head; operations in <linux/list.h>. */
+struct hlist_head {
+	struct hlist_node *first;
+};
+
+struct hlist_node {
+	struct hlist_node *next;
+	struct hlist_node **pprev;
+};
+
+#endif /* _LINUXKPI_LINUX_TYPES_H_ */
