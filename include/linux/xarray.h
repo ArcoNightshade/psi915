@@ -19,8 +19,14 @@
  * where it reserves the index like xa_reserve(): reserved indices read as
  * NULL, are skipped by iteration, and are not handed out by xa_alloc().
  *
- * Not provided yet: search marks (xa_set_mark(), xa_for_each_marked(),
- * XA_MARK_*), multi-index entries, the xa_state (xas_*) advanced API.
+ * Search marks XA_MARK_0..2 (xa_set_mark(), xa_get_mark(),
+ * xa_for_each_marked(), xa_find() with a mark filter) are kept per node
+ * and propagated up the tree; erasing an entry clears its marks. Unlike
+ * Linux, allocating arrays do not use XA_MARK_0 internally (free slots
+ * are tracked separately), so all three marks are available to callers.
+ *
+ * Not provided yet: multi-index entries, the xa_state (xas_*) advanced
+ * API.
  */
 #ifndef _LINUXKPI_LINUX_XARRAY_H_
 #define	_LINUXKPI_LINUX_XARRAY_H_
@@ -72,6 +78,11 @@ struct xa_limit {
 #endif
 
 typedef unsigned int xa_mark_t;
+#define	XA_MARK_0		((xa_mark_t)0U)
+#define	XA_MARK_1		((xa_mark_t)1U)
+#define	XA_MARK_2		((xa_mark_t)2U)
+#define	XA_MARK_MAX		XA_MARK_2
+#define	XA_FREE_MARK		XA_MARK_0
 #define	XA_PRESENT		((xa_mark_t)8U)
 
 /* Entry encoding: bit 0 set = value, bits 1:0 == 10 = internal. */
@@ -205,6 +216,14 @@ int __xa_alloc(struct xarray *xa, u32 *id, void *entry,
 int __xa_alloc_cyclic(struct xarray *xa, u32 *id, void *entry,
     struct xa_limit limit, u32 *next, gfp_t gfp);
 
+void xa_set_mark(struct xarray *xa, unsigned long index, xa_mark_t mark);
+void xa_clear_mark(struct xarray *xa, unsigned long index, xa_mark_t mark);
+bool xa_get_mark(struct xarray *xa, unsigned long index, xa_mark_t mark);
+bool xa_marked(struct xarray *xa, xa_mark_t mark);
+void __xa_set_mark(struct xarray *xa, unsigned long index, xa_mark_t mark);
+void __xa_clear_mark(struct xarray *xa, unsigned long index,
+    xa_mark_t mark);
+
 /* Entry at index including reserved entries (as XA_ZERO_ENTRY). */
 void *lkpi_xa_load_raw(struct xarray *xa, unsigned long index);
 
@@ -233,5 +252,10 @@ xa_release(struct xarray *xa, unsigned long index)
 	xa_for_each_range(xa, index, entry, start, ULONG_MAX)
 #define	xa_for_each(xa, index, entry)					\
 	xa_for_each_start(xa, index, entry, 0)
+#define	xa_for_each_marked(xa, index, entry, filter)			\
+	for ((index) = 0,						\
+	    (entry) = xa_find((xa), &(index), ULONG_MAX, (filter));	\
+	    (entry) != NULL;						\
+	    (entry) = xa_find_after((xa), &(index), ULONG_MAX, (filter)))
 
 #endif /* _LINUXKPI_LINUX_XARRAY_H_ */

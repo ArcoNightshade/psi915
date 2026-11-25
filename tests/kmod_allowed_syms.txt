@@ -105,3 +105,8 @@ ddi_copyout
 copyinstr
 copystr
 curcpup
+# driver.conf properties (module parameters)
+ddi_prop_exists
+ddi_prop_get_int
+ddi_prop_lookup_string
+ddi_prop_free
