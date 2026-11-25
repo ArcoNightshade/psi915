@@ -113,6 +113,8 @@ lkpi_file_free(struct lkpi_file *f)
 	lkpi_file_unregister_polls(f);
 	if (f->f_lkpi_kind == LKPI_FILE_ANON)
 		lkpi_anon_file_released(f);
+	if (lkpi_glue_be->file_fini != NULL)
+		lkpi_glue_be->file_fini(f);
 	lkpi_glue_be->ph_free(f->f_lkpi_ph);
 	lkpi_inode_put(f->f_lkpi_own_inode);
 	mutex_destroy(&f->f_lkpi_lock);

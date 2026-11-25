@@ -15,4 +15,6 @@ extern int strcmp(const char *, const char *);
 extern int strncmp(const char *, const char *, size_t);
 extern size_t strlcpy(char *, const char *, size_t);
 extern void bzero(void *, size_t);
+extern int copyinstr(const char *, char *, size_t, size_t *);
+extern int copystr(const char *, char *, size_t, size_t *);
 #endif

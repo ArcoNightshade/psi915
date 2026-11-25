@@ -300,6 +300,7 @@ void lkpi_vma_bind(struct lkpi_vma *lv, void *seg);
 /* Fault types as the backend reports them. */
 #define	LKPI_FAULT_INVAL	0	/* ordinary fault (F_INVAL/F_PROT) */
 #define	LKPI_FAULT_SOFTLOCK	1	/* F_SOFTLOCK: translations must load */
+#define	LKPI_FAULT_PROT		2	/* F_PROT: protection fault */
 
 /*
  * devmap_access: make [off, off + len) present in the user's mapping.

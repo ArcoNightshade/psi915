@@ -44,7 +44,8 @@ BINS		= $(foreach v,$(VARIANTS),$(TESTS:%=$(OUT)/%.$(v)))
 
 KMOD_CFLAGS	= -std=gnu11 -fno-pic -fno-pie -m64 -mcmodel=kernel -mno-red-zone \
 		  -ffreestanding -mno-mmx -mno-sse -fno-asynchronous-unwind-tables \
-		  -fno-stack-protector -O2 $(WARN) -Wno-sign-compare \
+		  -fno-stack-protector -O2 -Wall -Wextra -Werror -Wno-unused-parameter \
+		  -Wno-missing-field-initializers -Wno-sign-compare \
 		  -nostdinc -D_KERNEL -D_SYSCALL32 -D_SYSCALL32_IMPL -D_ELF64 \
 		  -D_DDI_STRICT -Dsun -D__sun -D__SVR4 \
 		  $(INCS) -Itests/fakes -Istubs/illumos

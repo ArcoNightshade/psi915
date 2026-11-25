@@ -160,6 +160,7 @@ struct lkpi_file {
 	unsigned int			f_lkpi_npollreg;
 	struct lkpi_file_pollreg	f_lkpi_pollreg[LKPI_FILE_MAX_POLLREG];
 	uint32_t			f_lkpi_mmap_id;	/* anon mmap host id */
+	void				*f_lkpi_mmap_vp; /* backend: host snode */
 	struct inode			*f_lkpi_own_inode; /* freed with file */
 };
 

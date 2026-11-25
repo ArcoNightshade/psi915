@@ -9,4 +9,7 @@ extern void delay(clock_t);
 extern clock_t drv_usectohz(clock_t);
 extern clock_t drv_hztousec(clock_t);
 extern void drv_usecwait(clock_t);
+extern major_t getmajor(dev_t);
+extern minor_t getminor(dev_t);
+extern dev_t makedevice(major_t, minor_t);
 #endif

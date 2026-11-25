@@ -33,6 +33,22 @@ typedef short			pri_t;
 typedef unsigned long		uintmax_t;
 typedef long			intmax_t;
 typedef long long		hrtime_t;
+typedef int			pid_t;
+typedef unsigned long		dev_t;
+typedef unsigned int		major_t;
+typedef unsigned int		minor_t;
+typedef long long		offset_t;
+typedef unsigned long long	u_offset_t;
+typedef unsigned long		pfn_t;
+typedef unsigned long		pgcnt_t;
+typedef unsigned int		uid_t;
+typedef unsigned int		gid_t;
+typedef unsigned int		mode_t;
+typedef unsigned long		ino64_t;
+typedef unsigned int		nlink_t;
+typedef long			blkcnt64_t;
+typedef int			faultcode_t;
+typedef struct cred		cred_t;
 
 #ifndef NULL
 #define	NULL	((void *)0)

@@ -84,6 +84,9 @@ struct lkpi_glue_backend {
 	void	(*fd_unreserve)(int fd);
 	void	(*fd_install)(int fd, void *vn, unsigned int oflags);
 	struct lkpi_file *(*fd_get)(int fd);
+
+	/* Optional: release backend state of a file being freed. */
+	void	(*file_fini)(struct lkpi_file *f);
 };
 
 extern const struct lkpi_glue_backend *lkpi_glue_be;
