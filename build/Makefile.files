@@ -20,7 +20,10 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_xarray.o \
 		   linux_idr.o \
 		   linux_sched.o \
-		   linux_wait.o
+		   linux_wait.o \
+		   linux_timer.o \
+		   linux_workqueue.o \
+		   linux_kthread.o
 
 #
 #	lkpi_ktest: kernel test module (tests/kernel/ktest_main.c plus the
@@ -39,4 +42,5 @@ LKPI_KTEST_OBJS	+= ktest_main.o \
 		   test_rbtree.o \
 		   test_rcu.o \
 		   test_xarray.o \
-		   test_sched.o
+		   test_sched.o \
+		   test_workqueue.o

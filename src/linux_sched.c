@@ -54,9 +54,13 @@ lkpi_task_alloc(void)
 	return (t);
 }
 
+void lkpi_kthread_free(struct lkpi_kthread *kt);
+
 void
 lkpi_task_free(struct task_struct *t)
 {
+	if (t->lkpi_kthread != NULL)
+		lkpi_kthread_free(t->lkpi_kthread);
 	lkpi_plat_cv_destroy(&t->lkpi_sleep_cv);
 	lkpi_plat_mutex_destroy(&t->lkpi_sleep_lock);
 	atomic_dec(&lkpi_task_live);

@@ -52,7 +52,6 @@ int kthread_park(struct task_struct *t);
 void kthread_unpark(struct task_struct *t);
 void kthread_parkme(void);
 void *kthread_data(struct task_struct *t);
-void __noreturn_lkpi kthread_exit_lkpi(long result);
 
 #define	kthread_bind(t, cpu)		do { (void)(t); (void)(cpu); } while (0)
 #define	kthread_bind_mask(t, m)		do { (void)(t); (void)(m); } while (0)
