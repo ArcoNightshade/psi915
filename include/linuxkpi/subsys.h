@@ -19,6 +19,14 @@ int lkpi_rcu_init(void);
 /* Waits for pending call_rcu() callbacks, then stops the thread. */
 void lkpi_rcu_fini(void);
 
+/* Timer thread (src/linux_timer.c). */
+int lkpi_timer_init(void);
+void lkpi_timer_fini(void);
+
+/* Workqueues: manager thread and system_* queues (src/linux_workqueue.c). */
+int lkpi_workqueue_init(void);
+void lkpi_workqueue_fini(void);
+
 /* current/task_struct TSD key (src/linux_sched.c). */
 int lkpi_sched_init(void);
 /* Releases the tasks of all threads still holding one. */

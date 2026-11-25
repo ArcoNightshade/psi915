@@ -39,6 +39,7 @@ static const struct {
 } lkpi_subsys[] = {
 	{ lkpi_sched_init, lkpi_sched_fini_last },
 	{ lkpi_rcu_init, lkpi_rcu_fini },
+	{ lkpi_timer_init, lkpi_timer_fini },
 };
 
 #define	LKPI_NSUBSYS	(sizeof (lkpi_subsys) / sizeof (lkpi_subsys[0]))
