@@ -638,9 +638,13 @@ flush_delayed_work(struct delayed_work *dw)
 bool
 flush_rcu_work(struct rcu_work *rw)
 {
-	if (READ_ONCE(rw->work.lkpi_state) & LKPI_WORK_RCU)
+	bool waited = false;
+
+	if (READ_ONCE(rw->work.lkpi_state) & LKPI_WORK_RCU) {
 		rcu_barrier();
-	return (flush_work(&rw->work));
+		waited = true;
+	}
+	return (flush_work(&rw->work) || waited);
 }
 
 struct work_struct *
