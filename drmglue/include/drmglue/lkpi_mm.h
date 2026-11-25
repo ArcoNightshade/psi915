@@ -42,6 +42,9 @@
 #ifndef PAGE_MASK
 #define	PAGE_MASK	(~(PAGE_SIZE - 1))
 #endif
+#ifndef PAGE_ALIGN
+#define	PAGE_ALIGN(x)	(((x) + PAGE_SIZE - 1) & PAGE_MASK)
+#endif
 
 struct page;		/* KPI struct page (P2) */
 struct mm_struct;
