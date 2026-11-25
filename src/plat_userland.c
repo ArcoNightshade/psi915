@@ -15,38 +15,68 @@
 #ifdef LINUXKPI_USERLAND
 
 __thread char lkpi_plat_self;
+__thread int lkpi_plat_fake_signal;
 
 struct lkpi_plat_thread {
 	pthread_t	tid;
 	void		(*fn)(void *);
 	void		*arg;
+	int		detached;
 };
 
 static void *
 lkpi_plat_thread_start(void *arg)
 {
 	struct lkpi_plat_thread *t = arg;
+	void (*fn)(void *) = t->fn;
+	void *fnarg = t->arg;
 
-	t->fn(t->arg);
+	if (t->detached)
+		free(t);
+	fn(fnarg);
 	return (NULL);
 }
 
-struct lkpi_plat_thread *
-lkpi_plat_thread_create(void (*fn)(void *), void *arg, const char *name)
+static struct lkpi_plat_thread *
+lkpi_plat_thread_spawn(void (*fn)(void *), void *arg, int detached)
 {
 	struct lkpi_plat_thread *t;
+	pthread_attr_t attr;
+	int err;
 
-	(void) name;
 	t = malloc(sizeof (*t));
 	if (t == NULL)
 		return (NULL);
 	t->fn = fn;
 	t->arg = arg;
-	if (pthread_create(&t->tid, NULL, lkpi_plat_thread_start, t) != 0) {
+	t->detached = detached;
+	(void) pthread_attr_init(&attr);
+	if (detached)
+		(void) pthread_attr_setdetachstate(&attr,
+		    PTHREAD_CREATE_DETACHED);
+	err = pthread_create(&t->tid, &attr, lkpi_plat_thread_start, t);
+	(void) pthread_attr_destroy(&attr);
+	if (err != 0) {
 		free(t);
 		return (NULL);
 	}
 	return (t);
+}
+
+struct lkpi_plat_thread *
+lkpi_plat_thread_create(void (*fn)(void *), void *arg, const char *name)
+{
+	(void) name;
+	return (lkpi_plat_thread_spawn(fn, arg, 0));
+}
+
+/* The new thread owns (and frees) the descriptor; do not touch it here. */
+int
+lkpi_plat_thread_create_detached(void (*fn)(void *), void *arg,
+    const char *name)
+{
+	(void) name;
+	return (lkpi_plat_thread_spawn(fn, arg, 1) != NULL ? 0 : EAGAIN);
 }
 
 void

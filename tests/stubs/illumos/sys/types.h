@@ -33,6 +33,7 @@ typedef short			pri_t;
 typedef unsigned long		uintmax_t;
 typedef long			intmax_t;
 typedef long long		hrtime_t;
+typedef int			pid_t;
 
 #ifndef NULL
 #define	NULL	((void *)0)

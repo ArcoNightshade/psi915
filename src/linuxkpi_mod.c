@@ -29,6 +29,52 @@
 
 const uint32_t linuxkpi_version = LINUXKPI_VERSION;
 
+/*
+ * Subsystems in start-up order; torn down in reverse. Each init returns 0
+ * or an errno; a failure unwinds the ones already started.
+ */
+static const struct {
+	int	(*init)(void);
+	void	(*fini)(void);
+} lkpi_subsys[] = {
+	{ lkpi_sched_init, lkpi_sched_fini_last },
+	{ lkpi_rcu_init, lkpi_rcu_fini },
+	{ lkpi_timer_init, lkpi_timer_fini },
+};
+
+#define	LKPI_NSUBSYS	(sizeof (lkpi_subsys) / sizeof (lkpi_subsys[0]))
+
+static void
+lkpi_subsys_unwind(unsigned int n)
+{
+	while (n > 0) {
+		n--;
+		lkpi_subsys[n].fini();
+	}
+}
+
+static int
+lkpi_subsys_init(void)
+{
+	unsigned int i;
+	int error;
+
+	for (i = 0; i < LKPI_NSUBSYS; i++) {
+		error = lkpi_subsys[i].init();
+		if (error != 0) {
+			lkpi_subsys_unwind(i);
+			return (error);
+		}
+	}
+	return (0);
+}
+
+static void
+lkpi_subsys_fini(void)
+{
+	lkpi_subsys_unwind(LKPI_NSUBSYS);
+}
+
 static struct modlmisc linuxkpi_modlmisc = {
 	&mod_miscops,
 	"LinuxKPI " LINUXKPI_RELEASE
@@ -44,12 +90,12 @@ _init(void)
 {
 	int error;
 
-	error = lkpi_rcu_init();
+	error = lkpi_subsys_init();
 	if (error != 0)
 		return (error);
 	error = mod_install(&linuxkpi_modlinkage);
 	if (error != 0) {
-		lkpi_rcu_fini();
+		lkpi_subsys_fini();
 		return (error);
 	}
 
@@ -71,7 +117,7 @@ _fini(void)
 
 	error = mod_remove(&linuxkpi_modlinkage);
 	if (error == 0) {
-		lkpi_rcu_fini();
+		lkpi_subsys_fini();
 		cmn_err(CE_CONT, "linuxkpi %s unloaded\n", LINUXKPI_RELEASE);
 	}
 	return (error);
