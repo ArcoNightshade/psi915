@@ -1,0 +1,13 @@
+# Pinned upstream for scripts/import-linux.sh.  KEY=VALUE, no spaces around "=", no shell expansion.
+# Changing UPSTREAM_COMMIT is a re-pin: run scripts/import-linux.sh -m first; every new upstream file must be
+# classified in third_party/manifest/*.list before the import will run.
+UPSTREAM_NAME=drm-kmod
+UPSTREAM_URL=https://github.com/freebsd/drm-kmod
+UPSTREAM_BRANCH=master
+UPSTREAM_COMMIT=98be24dc99949e0c040e02def52d125e6ddad179
+UPSTREAM_COMMIT_DATE=2026-11-18T12:12:18+01:00
+UPSTREAM_COMMIT_SUBJECT=amdgpu: Reserve VRAM through the end of the EFI framebuffer
+# From drm-kmod linuxkpi_version.mk.  Implies a Linux 6.14 DRM/i915 base; the exact Linux commit that
+# drm-kmod last merged is not recorded upstream and has not been verified here.
+LINUXKPI_VERSION=61400
+LINUX_BASE=6.14
