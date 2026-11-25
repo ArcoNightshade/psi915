@@ -20,6 +20,7 @@
 #include <linux/printk.h>
 #include <drmglue/lkpi_mm.h>
 #include <drmglue/backend.h>
+#include <drmglue/xlate.h>
 
 /* Refault rounds before giving up on a range that keeps being zapped. */
 #define	LKPI_VMA_FAULT_TRIES	16
@@ -233,8 +234,8 @@ unmap_mapping_range(struct address_space *mapping, loff_t holebegin,
 	for (it = lkpi_itree_first(&mapping->i_mmap, a, b); it != NULL;
 	    it = lkpi_itree_next(it, a, b)) {
 		lv = container_of(it, struct lkpi_vma, it);
-		s = MAX(a, it->start);
-		e = MIN(b, it->last);
+		s = a > it->start ? a : it->start;
+		e = b < it->last ? b : it->last;
 		mutex_lock(&lv->lock);
 		lkpi_vma_zap_locked(lv, s - it->start, e - s + 1);
 		mutex_unlock(&lv->lock);
@@ -471,7 +472,7 @@ lkpi_vma_clone_range(struct lkpi_vma *lv, uint64_t poff, size_t plen,
 	nlv = lkpi_vma_alloc(plen >> PAGE_SHIFT);
 	if (nlv == NULL)
 		return (ENOMEM);
-	nlv->vma = lv->vma;
+	memcpy(&nlv->vma, &lv->vma, sizeof (nlv->vma));
 	nlv->vma.vm_start = lv->vma.vm_start + (skip << PAGE_SHIFT);
 	nlv->vma.vm_end = nlv->vma.vm_start + plen;
 	nlv->vma.vm_pgoff = lv->vma.vm_pgoff + skip;

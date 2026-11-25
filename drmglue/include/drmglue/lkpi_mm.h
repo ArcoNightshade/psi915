@@ -313,7 +313,7 @@ int lkpi_vma_dup(struct lkpi_vma *lv, void *new_seg, struct lkpi_vma **nlvp);
 /*
  * devmap_unmap: [off, off + len) of lv goes away. new_seg1/new_seg2 are the
  * handles of the surviving pieces before/after the hole (or NULL); their
- * VMAs are returned in *nlv1/*nlv2. lv is destroyed.
+ * VMAs are returned in *nlv1 and *nlv2. lv is destroyed.
  */
 void lkpi_vma_unmap(struct lkpi_vma *lv, uint64_t off, size_t len,
     void *new_seg1, struct lkpi_vma **nlv1, void *new_seg2,

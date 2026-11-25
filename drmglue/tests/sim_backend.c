@@ -581,3 +581,26 @@ sim_fd_size(int fd)
 	mutex_unlock(&sim_lock);
 	return (sz);
 }
+
+/*
+ * Test doubles for KPI hooks the glue declares but does not own
+ * (docs/10, R8): an opaque reservation object.
+ */
+struct dma_resv;
+struct dma_resv *lkpi_dma_resv_alloc(void);
+void lkpi_dma_resv_free(struct dma_resv *resv);
+long sim_live_resv;
+
+struct dma_resv *
+lkpi_dma_resv_alloc(void)
+{
+	SIM_ADD(sim_live_resv, 1);
+	return (kzalloc(16, GFP_KERNEL));
+}
+
+void
+lkpi_dma_resv_free(struct dma_resv *resv)
+{
+	SIM_ADD(sim_live_resv, -1);
+	kfree(resv);
+}
