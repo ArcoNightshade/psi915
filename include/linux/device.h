@@ -17,7 +17,7 @@
  * properties and sysevents.
  *
  * devres (managed resources): devm_*() allocations and actions are
- * released in reverse order by devres_release_all(), which the PCI glue
+ * released in reverse order by lkpi_devres_release_all(), which the PCI glue
  * calls after remove() and when probe() fails (src/linux_devres.c).
  */
 #ifndef _LINUXKPI_LINUX_DEVICE_H_
@@ -262,10 +262,10 @@ void driver_unregister(struct device_driver *drv);
 typedef void (*dr_release_t)(struct device *dev, void *res);
 typedef int (*dr_match_t)(struct device *dev, void *res, void *match_data);
 
-void *__devres_alloc(dr_release_t release, size_t size, gfp_t gfp,
+void *lkpi_devres_alloc(dr_release_t release, size_t size, gfp_t gfp,
     const char *name) __malloc;
 #define	devres_alloc(release, size, gfp)				\
-	__devres_alloc(release, size, gfp, #release)
+	lkpi_devres_alloc(release, size, gfp, #release)
 void devres_free(void *res);
 void devres_add(struct device *dev, void *res);
 void *devres_find(struct device *dev, dr_release_t release,
@@ -277,7 +277,7 @@ int devres_destroy(struct device *dev, dr_release_t release,
 int devres_release(struct device *dev, dr_release_t release,
     dr_match_t match, void *match_data);
 /* Release every managed resource of dev, newest first. Returns count. */
-int devres_release_all(struct device *dev);
+int lkpi_devres_release_all(struct device *dev);
 void *devres_open_group(struct device *dev, void *id, gfp_t gfp);
 void devres_close_group(struct device *dev, void *id);
 void devres_remove_group(struct device *dev, void *id);

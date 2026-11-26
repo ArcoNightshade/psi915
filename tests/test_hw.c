@@ -109,7 +109,7 @@ TEST(device_devres)
 	devres_close_group(&dev, g);
 	CHECK_EQ(devres_release_group(&dev, g), 1);
 	CHECK_EQ(actions[3], 1);
-	CHECK_EQ(devres_release_all(&dev), 3);	/* kzalloc, act0, act2 */
+	CHECK_EQ(lkpi_devres_release_all(&dev), 3);	/* kzalloc, act0, act2 */
 	CHECK_EQ(actions[0], 1);
 	CHECK_EQ(actions[1], 0);
 	CHECK_EQ(actions[2], 1);

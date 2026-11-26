@@ -255,6 +255,12 @@ Remaining syntax-check failures (11 of 375) are outside the KPI; requests:
   `drm_class` (drm_bsd/drivers/gpu/drm/drm_sysfs.c does not define it; drm_privacy_screen.c uses
   it). Units that fail to compile are not covered, so the list grows as they are fixed.
 
+- [x] Module-load risk review (docs/11 section 10): scripts/kpi-modcheck.py checks load-order
+  resolution, duplicate globals across modules, weak symbols, clashes with illumos kernel symbols
+  (heuristic over usr/src/uts), allowlisted illumos symbols, relocation types krtld supports, sizes,
+  and the linuxkpi export namespace. No blocking finding; three internal helpers renamed to lkpi_.
+  Not covered: usr/src/common (absent from the reference tree), units that do not compile yet.
+
 KPI work still open (behaviour, not syntax):
 - [ ] User address-space features refused for now: i915 userptr (no VMAs visible), legacy
   I915_GEM_MMAP (vm_mmap), kernel SSE (SSE4.1 hidden), relay (GuC log), sysctl publishing.

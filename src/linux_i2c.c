@@ -73,7 +73,7 @@ i2c_del_adapter(struct i2c_adapter *adap)
 	(void) idr_remove(&lkpi_i2c_idr, adap->nr);
 	mutex_unlock(&lkpi_i2c_lock);
 	adap->lkpi_registered = false;
-	(void) devres_release_all(&adap->dev);
+	(void) lkpi_devres_release_all(&adap->dev);
 	kfree(adap->dev.kobj.name);
 	adap->dev.kobj.name = NULL;
 	mutex_destroy(&adap->bus_lock);

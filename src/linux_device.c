@@ -302,7 +302,7 @@ lkpi_device_release(struct kobject *kobj)
 {
 	struct device *dev = kobj_to_dev(kobj);
 
-	(void) devres_release_all(dev);
+	(void) lkpi_devres_release_all(dev);
 	if (dev->release != NULL)
 		dev->release(dev);
 	else if (dev->type != NULL && dev->type->release != NULL)

@@ -41,7 +41,7 @@ lkpi_dr_of(void *res)
 }
 
 void *
-__devres_alloc(dr_release_t release, size_t size, gfp_t gfp, const char *name)
+lkpi_devres_alloc(dr_release_t release, size_t size, gfp_t gfp, const char *name)
 {
 	struct lkpi_devres *dr;
 
@@ -186,7 +186,7 @@ lkpi_dr_release_range(struct device *dev, struct lkpi_devres *from,
 }
 
 int
-devres_release_all(struct device *dev)
+lkpi_devres_release_all(struct device *dev)
 {
 	if (!dev->lkpi_initialized)
 		return (0);
@@ -304,7 +304,7 @@ lkpi_devm_kmalloc_release(struct device *dev, void *res)
 void *
 devm_kmalloc(struct device *dev, size_t size, gfp_t gfp)
 {
-	void *p = __devres_alloc(lkpi_devm_kmalloc_release, size, gfp,
+	void *p = lkpi_devres_alloc(lkpi_devm_kmalloc_release, size, gfp,
 	    "devm_kmalloc");
 
 	if (p != NULL)
@@ -396,7 +396,7 @@ devm_add_action(struct device *dev, void (*action)(void *), void *data)
 {
 	struct lkpi_devm_action *a;
 
-	a = __devres_alloc(lkpi_devm_action_release, sizeof (*a), GFP_KERNEL,
+	a = lkpi_devres_alloc(lkpi_devm_action_release, sizeof (*a), GFP_KERNEL,
 	    "devm_action");
 	if (a == NULL)
 		return (-ENOMEM);

@@ -365,7 +365,9 @@ void simple_release_fs(struct vfsmount **mount, int *count);
 #endif
 
 loff_t noop_llseek(struct lkpi_file *f, loff_t off, int whence);
-loff_t no_llseek(struct lkpi_file *f, loff_t off, int whence);
+/* Removed from Linux in 6.12; kept for older users (always -ESPIPE). */
+loff_t lkpi_no_llseek(struct lkpi_file *f, loff_t off, int whence);
+#define	no_llseek	lkpi_no_llseek
 
 /*
  * Pseudo file systems (anonymous inodes and files of dma-buf, sync_file
