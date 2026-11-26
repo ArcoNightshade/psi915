@@ -22,6 +22,7 @@
 struct lkpi_ioctl_ctx {
 	enum lkpi_ioc_abi	abi;
 	bool			ilp32;		/* caller is a 32-bit process */
+	bool			refuse_ilp32;	/* policy: EINVAL for ilp32 */
 	bool			kernel;		/* FKIOCTL: arg is a kernel address */
 	bool			nonblock;	/* FNONBLOCK|FNDELAY on the file */
 	/* Kernel definition of (type, nr), or 0 (see lkpi_ioc_translate). */

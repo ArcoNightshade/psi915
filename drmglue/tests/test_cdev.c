@@ -223,6 +223,13 @@ TEST(ioctl_dispatch)
 	CHECK(last_kernel);
 	CHECK(last_nonblock);
 	CHECK(!current->lkpi_uaccess_kernel);	/* restored */
+
+	/* Default illumos policy (docs/09 5.9): 32-bit callers refused. */
+	ctx.refuse_ilp32 = true;
+	CHECK_EQ(lkpi_file_ioctl(f, LKPI_SUN_IOC(LKPI_SUN_IOC_VOID, 'd', 0x3,
+	    0), 0, &ctx, &rv), EINVAL);
+	CHECK_EQ(compat_calls, 1);
+	ctx.refuse_ilp32 = false;
 	fput(f);
 	CHECK_EQ(lkpi_cdev_close(NODE_CARD, c), 0);
 

@@ -46,6 +46,8 @@
 #include <drmglue/illumos.h>
 
 int drmglue_ioctl_abi = LKPI_IOC_ABI_ILLUMOS;
+/* 0: refuse ioctls from 32-bit processes (docs/09 5.9); 1: compat_ioctl. */
+int drmglue_allow_ilp32 = 0;
 major_t drmglue_major = (major_t)-1;
 dev_info_t *drmglue_host_dip;
 
@@ -213,6 +215,7 @@ drmglue_file_ioctl(struct lkpi_file *f, int cmd, intptr_t arg, int mode,
 
 	ctx.abi = (enum lkpi_ioc_abi)drmglue_ioctl_abi;
 	ctx.ilp32 = ddi_model_convert_from(mode & FMODELS) == DDI_MODEL_ILP32;
+	ctx.refuse_ilp32 = drmglue_allow_ilp32 == 0;
 	ctx.kernel = (mode & FKIOCTL) != 0;
 	ctx.nonblock = (mode & (FNONBLOCK | FNDELAY)) != 0;
 	ctx.kcmd = kcmd;

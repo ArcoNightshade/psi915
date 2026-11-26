@@ -197,6 +197,15 @@ lkpi_file_ioctl(struct lkpi_file *f, uint32_t ucmd, unsigned long arg,
 	if (e != 0)
 		return (lkpi_errno_to_user(e));
 
+	/*
+	 * docs/09 section 5.9: until a 32-bit Mesa exists, 32-bit callers are
+	 * refused (EINVAL, logged once) rather than sent to compat_ioctl.
+	 */
+	if (ctx->ilp32 && ctx->refuse_ilp32) {
+		pr_warn_once("drmglue: ioctl from a 32-bit process refused\n");
+		return (EINVAL);
+	}
+
 	/* Linux: no compat_ioctl means 32-bit callers get ENOTTY. */
 	fn = ctx->ilp32 ? f->f_op->compat_ioctl : f->f_op->unlocked_ioctl;
 	if (fn == NULL)
