@@ -22,8 +22,10 @@
  *   set_pages_xx, set_memory_xx change the kernel mapping's cache attribute
  *                            (<asm/set_memory.h>)
  *
- * Process-memory interfaces (vm_area_struct, get_user_pages, mmap) are
- * the DRM glue's (drmglue), not here.
+ * VMA types (vm_area_struct, vm_fault, vm_operations_struct, VM_*) are in
+ * <linux/mm_types.h>; the VMA helpers below (vmf_insert_pfn, remap_pfn_range,
+ * unmap_mapping_range, ...) are implemented by the DRM glue (drmglue)
+ * over illumos devmap. get_user_pages is not provided.
  */
 #ifndef _LINUXKPI_LINUX_MM_H_
 #define	_LINUXKPI_LINUX_MM_H_
@@ -39,6 +41,7 @@
 #include <linux/vmalloc.h>
 #include <linux/overflow.h>
 #include <linux/err.h>
+#include <linux/fs.h>
 
 #define	MAX_PAGE_ORDER		10
 #define	MAX_ORDER		MAX_PAGE_ORDER
@@ -150,6 +153,36 @@ get_order(unsigned long size)
 	}
 	return (order);
 }
+
+/*
+ * PTE-installing helpers (src/vma.c). addr is a user address inside the
+ * vma; only (addr - vm_start) matters. A page that is already present is
+ * left alone (Linux insert_pfn semantics).
+ */
+vm_fault_t vmf_insert_pfn(struct vm_area_struct *vma, unsigned long addr,
+    unsigned long pfn);
+vm_fault_t vmf_insert_pfn_prot(struct vm_area_struct *vma, unsigned long addr,
+    unsigned long pfn, pgprot_t prot);
+int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
+    unsigned long pfn, unsigned long size, pgprot_t prot);
+#define	io_remap_pfn_range(v, a, p, s, pr)	remap_pfn_range(v, a, p, s, pr)
+int vm_insert_page(struct vm_area_struct *vma, unsigned long addr,
+    struct page *page);
+vm_fault_t vmf_insert_page(struct vm_area_struct *vma, unsigned long addr,
+    struct page *page);
+void zap_vma_ptes(struct vm_area_struct *vma, unsigned long addr,
+    unsigned long size);
+void unmap_mapping_range(struct address_space *mapping, loff_t holebegin,
+    loff_t holelen, int even_cows);
+
+/*
+ * Batched insertion of n contiguous-in-address pfns from pfns[] (or, if
+ * pfns is NULL, pfn_base + i). For i915's remap_io_sg/remap_io_mapping
+ * replacement (docs/10, R7). Returns 0 or -EINVAL/-EFAULT.
+ */
+int lkpi_vma_insert_pfns(struct vm_area_struct *vma, unsigned long addr,
+    const unsigned long *pfns, unsigned long pfn_base, unsigned long n,
+    pgprot_t prot);
 
 #define	si_meminfo(i)			do { (void)(i); } while (0)
 #define	cond_resched_lockless()		do { } while (0)

@@ -107,3 +107,10 @@ system_wq
 # KPI symbols declared by include/linux/mm.h whose implementation
 # (src/linux_page.c) is not in the tree yet.
 lkpi_page_release
+# interval tree, moved into the KPI (src/linux_itree.c, docs/10 R1)
+lkpi_itree_insert
+lkpi_itree_remove
+lkpi_itree_first
+lkpi_itree_next
+lkpi_itree_min
+lkpi_itree_succ

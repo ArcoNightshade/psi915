@@ -27,7 +27,7 @@ TEST_CFLAGS	= -std=gnu11 $(WARN) -O2 -g $(INCS) -Itests \
 		  -I$(TOP)/tests -pthread
 SAN_FLAGS	= -fsanitize=address,undefined -fno-sanitize-recover=all -O1
 
-CORE_SRCS	= src/xlate.c src/itree.c src/vmoff.c src/file.c src/vma.c \
+CORE_SRCS	= src/xlate.c src/vmoff.c src/file.c src/vma.c \
 		  src/anonfile.c src/cdev.c src/pseudofs.c
 ILLUMOS_SRCS	= src/cdev_illumos.c src/segdev_illumos.c src/anonfs_illumos.c
 # Only the KPI sources drmglue needs, so WIP elsewhere in src/ cannot break
@@ -35,7 +35,7 @@ ILLUMOS_SRCS	= src/cdev_illumos.c src/segdev_illumos.c src/anonfs_illumos.c
 KPI_LIB		= $(addprefix $(KPI_SRC)/,linux_idr.c linux_lock.c linux_printk.c \
 		  linux_rbtree.c linux_rcu.c linux_sched.c linux_slab.c linux_wait.c \
 		  linux_xarray.c linux_kthread.c linux_timer.c linux_workqueue.c \
-		  linux_device.c linux_devres.c \
+		  linux_device.c linux_devres.c linux_itree.c \
 		  plat_userland.c)
 TEST_LIB	= tests/sim_backend.c $(CORE_SRCS) $(KPI_LIB)
 HDRS		= $(wildcard include/*/*.h include/linux/*.h tests/*.h \
