@@ -10,6 +10,7 @@
 #define	_LINUXKPI_INCLUDE_LINUX_SWAP_H_
 
 #include <linux/mm.h>
+#include <linux/writeback.h>	/* via memcontrol.h in Linux */
 
 #define	get_nr_swap_pages()	(0L)
 #define	total_swap_pages	(0L)

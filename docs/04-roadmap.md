@@ -137,6 +137,7 @@ illumos headers, so it measures KPI header coverage only; per-module pass counts
 |--------------|-----------------|--------------|-----------------|------|-------|
 | docs/11 snapshot (merge 9cfcdba) | 17/18 | 48/77 | 3/3 | 16/287 | 84/385 |
 | after batch 6, compiler_types.h, -DI915 in build/i915 | 17/18 | 73/77 | 3/3 | 259/287 | 352/385 |
+| after batch 7, drmglue in linuxkpi (R-K2: g1 loses 10 drmglue TUs) | 8/8 | 75/77 | 3/3 | 270/287 | 356/375 |
 
 Done:
 - [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
@@ -186,6 +187,22 @@ Done:
   tasklet_unlock_spin_wait, container_of_const, video/cmdline.h, video/mipi_display.h (values checked
   numerically against v6.14), illumos ENOTCONN/ENOPKG/EADDRINUSE in the stub errno.h; build
   Makefile.lkpi force-includes compiler_types.h; the compile loop passes -DI915 for i915 units.
+- [x] Batch 7: of_graph.h, pinctrl/consumer.h + machine.h, agp_backend.h, pm_generic_* callbacks,
+  irq_chip/irq_data (no irq_desc allocator), relay callbacks (relay_open fails), bin_attribute.mmap,
+  power_group_name, platform_device_info, acpi_bus_event, VGA_SWITCHEROO_CAN_SWITCH_DDC,
+  pci_bus_alloc_resource (fails) and pcibios_align_resource, PTR_IF, ratelimit flags, SEEK_*,
+  kdev_t.h and dcache.h from fs.h, writeback.h from swap.h, sysctl.h from perf_event.h, uaccess.h
+  from mm.h, ECHRNG/EWOULDBLOCK; slab.h no longer redefines L1_CACHE_BYTES.
+- [x] docs/11 R-K2: drmglue/src is linked into linuxkpi (build/Makefile.files DRMGLUE_OBJS,
+  drmglue_<file>.o; linuxkpi_mod.c starts drmglue_init last and stops it first); Makefile.lkpi
+  defaults to DRMGLUE_IN=none, so linuxkpi_gpl_g1 has no BSD infrastructure. tests/Makefile
+  check-kmod compiles the drmglue objects as part of linuxkpi (both allowlists).
+- [x] docs/11 R-K4: module parameter descriptors are __lkpi_param_<LKPI_MODNAME>_<name>
+  (Makefile.lkpi passes -DLKPI_MODNAME=$(LINUX_MODNAME)); LKPI_PARAM_SYM/LKPI_PARAM_DECLARE, used by
+  drivers/i915_glue/i915_drm_glue.c; tested in test_misc (param_modname).
+- [x] docs/11 R-B1: build/Makefile SUBDIRS = linuxkpi linuxkpi_gpl_g1 drm linuxkpi_gpl_g2 i915
+  lkpi_ktest lkpi_toy; `gmake install` runs scripts/install-all.sh (ROOT, DEBUG) plus the test
+  modules' own install targets.
 - [x] docs/11 R-K1: core/postcore/arch/fs/rootfs_initcall and __exitcall in <linux/module.h>.
 - [x] docs/11 R-K3: LKPI_PCI_DRIVER_MODULE_OPS(name, desc, cbops, getinfo, attach, detach, init,
   exit); LKPI_PCI_DRIVER_MODULE now accepts a cb_ops address (NULL told apart by type).

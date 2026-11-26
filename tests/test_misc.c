@@ -8,6 +8,9 @@
  * kstrto*, sort/bsearch, hashtable, xarray marks, mempool and SRCU.
  */
 
+/* All module parameters of this file are __lkpi_param_tmisc_<name>. */
+#define	LKPI_MODNAME	tmisc
+
 #include <linux/kernel.h>
 #include <linux/uaccess.h>
 #include <linux/module.h>
@@ -140,16 +143,16 @@ TEST(module_params)
 		LKPI_PARAM_REF(p_cb)
 	};
 
-	CHECK_EQ(strcmp(__lkpi_param_renamed.name, "renamed"), 0);
-	CHECK(__lkpi_param_renamed.var == &p_uint);
-	CHECK_EQ(lkpi_module_param_set(&__lkpi_param_p_str, "abc"), 0);
+	CHECK_EQ(strcmp(LKPI_PARAM_SYM(renamed).name, "renamed"), 0);
+	CHECK(LKPI_PARAM_SYM(renamed).var == &p_uint);
+	CHECK_EQ(lkpi_module_param_set(&LKPI_PARAM_SYM(p_str), "abc"), 0);
 	CHECK_EQ(strcmp(p_str, "abc"), 0);
-	CHECK_EQ(lkpi_module_param_set(&__lkpi_param_p_str, "toolongvalue"),
+	CHECK_EQ(lkpi_module_param_set(&LKPI_PARAM_SYM(p_str), "toolongvalue"),
 	    -ENOSPC);
-	CHECK_EQ(lkpi_module_param_set(&__lkpi_param_p_ulong, "123"), 0);
+	CHECK_EQ(lkpi_module_param_set(&LKPI_PARAM_SYM(p_ulong), "123"), 0);
 	CHECK_EQ(p_ulong, 123);
-	CHECK_EQ(lkpi_module_param_set(&__lkpi_param_renamed, "-1"), -EINVAL);
-	CHECK_EQ(lkpi_module_param_set(&__lkpi_param_p_int, "x"), -EINVAL);
+	CHECK_EQ(lkpi_module_param_set(&LKPI_PARAM_SYM(renamed), "-1"), -EINVAL);
+	CHECK_EQ(lkpi_module_param_set(&LKPI_PARAM_SYM(p_int), "x"), -EINVAL);
 #ifndef LKPI_KTEST
 	CHECK_EQ(lkpi_module_params_apply((void *)param_lookup, tbl,
 	    ARRAY_SIZE(tbl)), 5);
@@ -748,6 +751,18 @@ TEST(p3_helpers)
 #endif
 }
 
+/* Module-qualified parameter descriptors (LKPI_MODNAME, docs/11 R-K4). */
+static int qparam = 3;
+module_param(qparam, int, 0444);
+
+TEST(param_modname)
+{
+	CHECK(LKPI_PARAM_REF(qparam) == &__lkpi_param_tmisc_qparam);
+	CHECK_EQ(strcmp(__lkpi_param_tmisc_qparam.name, "qparam"), 0);
+	CHECK_EQ(lkpi_module_param_set(LKPI_PARAM_REF(qparam), "9"), 0);
+	CHECK_EQ(qparam, 9);
+}
+
 static int cleanup_frees;
 
 static void
@@ -811,6 +826,7 @@ TEST(cleanup_classes)
 LKPI_SUITE(misc)
 {
 	RUN(cleanup_classes);
+	RUN(param_modname);
 	RUN(uaccess);
 	RUN(module_params);
 	RUN(ww_mutex_basic);

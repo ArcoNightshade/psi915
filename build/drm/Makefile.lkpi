@@ -63,10 +63,11 @@ MODSIZE_WARN_KB	= 32768
 #   drm    linuxkpi_drm: G1 would then need misc/linuxkpi_drm, a dependency
 #          cycle (drm needs dma_fence_*). Not loadable; kept for the case
 #          that G1 is replaced by BSD code again.
-#   none   linked elsewhere (target layout: inside linuxkpi, requested in
-#          docs/11 section 7).
+#   none   (default) linked into linuxkpi (build/Makefile.files
+#          DRMGLUE_OBJS, docs/11 R-K2): G1 then contains no BSD
+#          infrastructure and depends on linuxkpi only.
 #
-DRMGLUE_IN	= g1
+DRMGLUE_IN	?= none
 
 #
 # Configuration headers. linux/kconfig.h includes generated/autoconf.h
@@ -101,6 +102,7 @@ INCLUDE_PATH	= $(MODULE_INC) \
 		  $(if $(KERNEL_INC),-I$(KERNEL_INC))
 
 LINUX_DEFS	= -D__KERNEL__ -DKBUILD_MODNAME='"$(LINUX_MODNAME)"' \
+		  -DLKPI_MODNAME=$(LINUX_MODNAME) \
 		  -include $(KCONFIG_H) -include $(COMPILER_TYPES_H) \
 		  $(MODULE_DEFS)
 CPPFLAGS	= $(ALWAYS_DEFS) $(DEBUG_DEFS) $(INCLUDE_PATH) $(LINUX_DEFS) \

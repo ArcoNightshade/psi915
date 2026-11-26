@@ -10,6 +10,11 @@ $(OBJS_DIR)/%.o: $(KSRCBASE)/%.c | $(OBJS_DIR)
 	$(COMPILE.c) -o $@ $<
 	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)
 
+# drmglue, linked into linuxkpi (Makefile.files DRMGLUE_OBJS).
+$(OBJS_DIR)/drmglue_%.o: $(SRCBASE)/drmglue/src/%.c | $(OBJS_DIR)
+	$(COMPILE.c) -I$(SRCBASE)/drmglue/include -o $@ $<
+	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)
+
 # Kernel test module: the unit tests and their kernel entry point.
 $(OBJS_DIR)/%.o: $(SRCBASE)/tests/%.c | $(OBJS_DIR)
 	$(COMPILE.c) -o $@ $<

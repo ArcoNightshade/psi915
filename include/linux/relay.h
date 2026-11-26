@@ -13,9 +13,23 @@
 
 struct rchan;
 struct rchan_buf;
+struct dentry;
+struct file_operations;
+
+/*
+ * relay channels (GuC log relay, a debugfs feature): not supported,
+ * relay_open() fails (NULL) and the other calls accept NULL.
+ */
 struct rchan_callbacks {
 	int	(*subbuf_start)(struct rchan_buf *, void *, void *, size_t);
+	struct dentry *(*create_buf_file)(const char *filename,
+		    struct dentry *parent, umode_t mode,
+		    struct rchan_buf *buf, int *is_global);
+	int	(*remove_buf_file)(struct dentry *dentry);
 };
+extern const struct file_operations relay_file_operations;
+#define	relay_buf_full(b)		((void)(b), 0)
+#define	relay_write(c, d, l)		do { (void)(c); } while (0)
 #define	relay_open(n, p, s, c, cb, pd)	((struct rchan *)NULL)
 #define	relay_close(c)			do { (void)(c); } while (0)
 #define	relay_flush(c)			do { (void)(c); } while (0)

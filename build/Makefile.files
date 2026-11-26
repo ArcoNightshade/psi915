@@ -13,6 +13,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   plat_illumos.o \
 		   plat_illumos_dev.o \
 		   linux_acpi.o \
+		   linux_capability.o \
 		   linux_cpu.o \
 		   linux_device.o \
 		   linux_devres.o \
@@ -40,6 +41,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_rcu.o \
 		   linux_scatterlist.o \
 		   linux_sched.o \
+		   linux_shrinker.o \
 		   linux_slab.o \
 		   linux_sort.o \
 		   linux_srcu.o \
@@ -48,6 +50,23 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_workqueue.o \
 		   linux_ww_mutex.o \
 		   linux_xarray.o
+
+#
+#	drmglue (Linux file layer, DRM character device, mmap glue) is part
+#	of linuxkpi (docs/10 R1/R3, docs/11 R-K2): objects drmglue_<file>.o
+#	from drmglue/src, started and stopped by linuxkpi_mod.c.
+#
+DRMGLUE_OBJS	= drmglue_anonfile.o \
+		   drmglue_anonfs_illumos.o \
+		   drmglue_cdev.o \
+		   drmglue_cdev_illumos.o \
+		   drmglue_file.o \
+		   drmglue_pseudofs.o \
+		   drmglue_segdev_illumos.o \
+		   drmglue_vma.o \
+		   drmglue_vmoff.o \
+		   drmglue_xlate.o
+LINUXKPI_OBJS	+= $(DRMGLUE_OBJS)
 
 #
 #	lkpi_ktest: kernel test module (tests/kernel/ktest_main.c plus the

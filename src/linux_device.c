@@ -14,6 +14,8 @@
 #include <linux/kobject.h>
 #include <linux/device.h>
 #include <linux/sysctl.h>
+#include <linux/relay.h>
+#include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/bug.h>
@@ -712,3 +714,6 @@ unregister_sysctl_table(struct ctl_table_header *h)
 {
 	kfree(h);
 }
+
+/* relay files are never created (relay_open fails). */
+const struct file_operations relay_file_operations;

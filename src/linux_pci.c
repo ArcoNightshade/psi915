@@ -1101,3 +1101,14 @@ lkpi_pci_resume(struct pci_dev *pdev)
 	dev->power.is_suspended = false;
 	return (r);
 }
+
+/* Alignment callback for pci_bus_alloc_resource(), which always fails. */
+resource_size_t
+pcibios_align_resource(void *data, const struct resource *res,
+    resource_size_t size, resource_size_t align)
+{
+	(void) data;
+	(void) size;
+	(void) align;
+	return (res->start);
+}

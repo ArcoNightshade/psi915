@@ -59,5 +59,7 @@
 #define	ENOTCONN	134
 #define	ENOPKG	65
 #define	EADDRINUSE	125
+#define	ECHRNG	37
+#define	EWOULDBLOCK	EAGAIN
 #define	EPROTO	71
 #endif

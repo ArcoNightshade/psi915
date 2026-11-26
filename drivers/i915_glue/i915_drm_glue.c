@@ -224,8 +224,7 @@ psi915_drm_kcmd(struct lkpi_file *f, unsigned int type, unsigned int nr)
 	X(enable_dpcd_backlight) X(disable_display) X(verbose_state_checks) \
 	X(enable_fbc) X(enable_psr) X(enable_dp_mst)
 
-#define	PSI915_PARAM_EXTERN(n)	\
-	extern const struct lkpi_module_param __lkpi_param_##n;
+#define	PSI915_PARAM_EXTERN(n)	LKPI_PARAM_DECLARE(n);
 PSI915_PARAMS(PSI915_PARAM_EXTERN)
 
 #define	PSI915_PARAM_REF(n)	LKPI_PARAM_REF(n),

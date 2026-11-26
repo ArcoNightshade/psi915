@@ -34,15 +34,24 @@ struct attribute_group {
 	struct bin_attribute	**bin_attrs;
 };
 
+struct lkpi_file;
+struct vm_area_struct;
+
 struct bin_attribute {
 	struct attribute	attr;
 	size_t			size;
 	void			*private;
-	ssize_t			(*read)(void *f, struct kobject *, struct bin_attribute *,
-				    char *, long long, size_t);
-	ssize_t			(*write)(void *f, struct kobject *,
+	ssize_t			(*read)(struct lkpi_file *, struct kobject *,
 				    struct bin_attribute *, char *, long long, size_t);
+	ssize_t			(*write)(struct lkpi_file *, struct kobject *,
+				    struct bin_attribute *, char *, long long, size_t);
+	int			(*mmap)(struct lkpi_file *, struct kobject *,
+				    const struct bin_attribute *,
+				    struct vm_area_struct *);
 };
+
+/* Name of the power/ attribute group of a device. */
+#define	power_group_name	"power"
 
 struct sysfs_ops {
 	ssize_t	(*show)(struct kobject *, struct attribute *, char *);

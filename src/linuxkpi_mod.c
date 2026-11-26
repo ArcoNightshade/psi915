@@ -27,6 +27,10 @@
 #include <linuxkpi/version.h>
 #include <linuxkpi/subsys.h>
 
+/* drmglue/include/drmglue/illumos.h; linked into this module. */
+int drmglue_init(void);
+void drmglue_fini(void);
+
 const uint32_t linuxkpi_version = LINUXKPI_VERSION;
 
 /*
@@ -41,6 +45,8 @@ static const struct {
 	{ lkpi_rcu_init, lkpi_rcu_fini },
 	{ lkpi_timer_init, lkpi_timer_fini },
 	{ lkpi_workqueue_init, lkpi_workqueue_fini },
+	/* drmglue: Linux file layer and DRM cdev (docs/11 R-K2). */
+	{ drmglue_init, drmglue_fini },
 };
 
 #define	LKPI_NSUBSYS	(sizeof (lkpi_subsys) / sizeof (lkpi_subsys[0]))

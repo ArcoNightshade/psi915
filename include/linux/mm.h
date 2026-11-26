@@ -226,4 +226,7 @@ si_meminfo(struct sysinfo *si)
 }
 #define	cond_resched_lockless()		do { } while (0)
 
+/* Imported code expects copy_{to,from}_user from the mm headers. */
+#include <linux/uaccess.h>
+
 #endif /* _LINUXKPI_LINUX_MM_H_ */

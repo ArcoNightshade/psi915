@@ -22,6 +22,7 @@
 #include <linux/types.h>
 #include <linux/atomic.h>
 #include <linux/stat.h>
+#include <linux/kdev_t.h>
 #include <linux/mutex.h>
 #include <linux/rwsem.h>
 #include <linux/list.h>
@@ -309,6 +310,12 @@ static const struct file_operations __fops = {				\
 }
 #define	DEFINE_SIMPLE_ATTRIBUTE_SIGNED(f, g, s, fmt)			\
 	DEFINE_SIMPLE_ATTRIBUTE(f, g, s, fmt)
+
+#ifndef SEEK_SET
+#define	SEEK_SET	0
+#define	SEEK_CUR	1
+#define	SEEK_END	2
+#endif
 
 loff_t noop_llseek(struct lkpi_file *f, loff_t off, int whence);
 loff_t no_llseek(struct lkpi_file *f, loff_t off, int whence);

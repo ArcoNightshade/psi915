@@ -14,6 +14,7 @@
 #include <linux/list.h>
 #include <linux/sysfs.h>
 #include <linux/interrupt.h>
+#include <linux/sysctl.h>
 #include <linux/seq_file.h>	/* via cgroup.h in Linux */
 
 struct lkpi_module;

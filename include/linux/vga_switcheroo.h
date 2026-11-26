@@ -13,6 +13,9 @@
 #include <linux/fb.h>
 
 struct pci_dev;
+#define	VGA_SWITCHEROO_CAN_SWITCH_DDC	(1 << 0)
+#define	VGA_SWITCHEROO_NEEDS_EDP_CONFIG	(1 << 1)
+
 enum vga_switcheroo_state {
 	VGA_SWITCHEROO_OFF,
 	VGA_SWITCHEROO_ON,

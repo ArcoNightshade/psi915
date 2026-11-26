@@ -76,6 +76,16 @@
  */
 #define	PCIBIOS_MIN_MEM		0x10000000UL
 
+/*
+ * Bus address allocation (i915 gen <= 3 MCHBAR placement only): not
+ * supported, fails with -ENOSPC.
+ */
+resource_size_t pcibios_align_resource(void *data,
+    const struct resource *res, resource_size_t size,
+    resource_size_t align);
+#define	pci_bus_alloc_resource(bus, res, size, align, min, flags, af, d) \
+	((void)(bus), (void)(res), (void)(af), (void)(d), -ENOSPC)
+
 #define	PCI_IRQ_INTX		(1U << 0)
 #define	PCI_IRQ_LEGACY		PCI_IRQ_INTX
 #define	PCI_IRQ_MSI		(1U << 1)

@@ -127,6 +127,15 @@ extern int acpi_disabled;
 #define	acpi_target_system_state()		(0)
 #define	acpi_reconfig_notifier_register(nb)	(0)
 #define	acpi_reconfig_notifier_unregister(nb)	(0)
+/* ACPI bus events (notifier payload); none are delivered. */
+struct acpi_bus_event {
+	struct list_head	node;
+	char			device_class[20];
+	char			bus_id[15];
+	u32			type;
+	u32			data;
+};
+
 #define	register_acpi_notifier(nb)		(0)
 #define	unregister_acpi_notifier(nb)		(0)
 #define	acpi_bus_get_device(h, d)		(-ENODEV)

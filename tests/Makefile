@@ -50,7 +50,12 @@ KMOD_CFLAGS	= -std=gnu11 -fno-pic -fno-pie -m64 -mcmodel=kernel -mno-red-zone -f
 		  -I$(INCLUDE) -Istubs/illumos
 # Sources of the linuxkpi module (build/Makefile.files LINUXKPI_OBJS).
 KMOD_SRCS	= $(SRC)/linuxkpi_mod.c $(SRC)/plat_illumos.c $(SRC)/plat_illumos_dev.c $(wildcard $(SRC)/linux_*.c)
-KMOD_OBJS	= $(KMOD_SRCS:$(SRC)/%.c=$(OUT)/kmod_%.o)
+# drmglue is linked into linuxkpi (build/Makefile.files DRMGLUE_OBJS).
+DG_SRCS		= $(addprefix $(TOP)/drmglue/src/,anonfile.c anonfs_illumos.c \
+		  cdev.c cdev_illumos.c file.c pseudofs.c segdev_illumos.c vma.c \
+		  vmoff.c xlate.c)
+DG_OBJS		= $(DG_SRCS:$(TOP)/drmglue/src/%.c=$(OUT)/kmod_dg_%.o)
+KMOD_OBJS	= $(KMOD_SRCS:$(SRC)/%.c=$(OUT)/kmod_%.o) $(DG_OBJS)
 EXPECTED_EXPORTS = _fini _info _init linuxkpi_version
 # Kernel test module (build/lkpi_ktest): the unit tests with -DLKPI_KTEST.
 KTEST_SRCS	= kernel/ktest_main.c $(TESTS:%=%.c)
@@ -99,6 +104,13 @@ $(OUT)/kmod_%.o: $(SRC)/%.c $(HDRS) FORCE | $(OUT)
 
 FORCE:
 
+# drmglue's own stub headers (as in make -C drmglue check-kmod) come
+# ahead of the KPI test stubs.
+$(OUT)/kmod_dg_%.o: $(TOP)/drmglue/src/%.c $(HDRS) FORCE | $(OUT)
+	@echo "CC (stub illumos kernel headers) $<"
+	@$(CC) -I$(TOP)/drmglue/stubs/illumos -I$(TOP)/drmglue/include \
+	    $(KMOD_CFLAGS) $(KMOD_EXTRA) -c -o $@ $<
+
 $(OUT)/ktest_%.o: %.c $(HDRS) FORCE | $(OUT)
 	@mkdir -p $(dir $@)
 	@echo "CC (stub illumos kernel headers, LKPI_KTEST) $<"
@@ -126,7 +138,8 @@ check-kmod: $(KMOD_OBJS) $(KTEST_OBJS) $(TOY_OBJS) | $(OUT)
 		sort -u > $(OUT)/kmod_defined.txt; \
 	nm -u $(KMOD_OBJS) $(OUT)/kmod_headers_check.o 2>/dev/null | awk 'NF==2 {print $$2}' | sort -u | \
 		comm -23 - $(OUT)/kmod_defined.txt > $(OUT)/kmod_undefined.txt; \
-	grep -v '^#' $(KMOD_ALLOWED) | sed '/^$$/d' | sort -u > $(OUT)/kmod_allowed.txt; \
+	cat $(KMOD_ALLOWED) $(TOP)/drmglue/kmod_allowed_syms.txt | grep -v '^#' | \
+		awk 'NF > 0 {print $$1}' | sort -u > $(OUT)/kmod_allowed.txt; \
 	bad=$$(comm -23 $(OUT)/kmod_undefined.txt $(OUT)/kmod_allowed.txt); \
 	if [ -n "$$bad" ]; then \
 		echo "linuxkpi objects reference symbols not in $(KMOD_ALLOWED):"; \

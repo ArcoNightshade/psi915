@@ -24,6 +24,25 @@ struct platform_driver {
 	struct device_driver driver;
 };
 
+struct resource;
+
+struct platform_device_info {
+	struct device		*parent;
+	void			*fwnode;
+	bool			of_node_reused;
+	const char		*name;
+	int			id;
+	const struct resource	*res;
+	unsigned int		num_res;
+	const void		*data;
+	size_t			size_data;
+	u64			dma_mask;
+	void			*properties;
+};
+
+#define	PLATFORM_DEVID_NONE	(-1)
+#define	PLATFORM_DEVID_AUTO	(-2)
+
 #define	to_platform_device(d)	container_of(d, struct platform_device, dev)
 #define	platform_get_drvdata(p)	dev_get_drvdata(&(p)->dev)
 #define	platform_set_drvdata(p, d) dev_set_drvdata(&(p)->dev, d)

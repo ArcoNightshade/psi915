@@ -21,7 +21,10 @@
 #define	DEFAULT_RATELIMIT_BURST		10
 
 /* interval == 0 in the initialiser means the default (resolved at use). */
+#define	RATELIMIT_MSG_ON_RELEASE	(1UL << 0)
+
 struct ratelimit_state {
+	unsigned long	flags;
 	int		interval;
 	int		burst;
 	int		printed;
@@ -74,5 +77,12 @@ __ratelimit(struct ratelimit_state *rs)
 }
 
 #define	ratelimit(rs)	__ratelimit(rs)
+
+/* Flags are kept; missed-message reports are not printed. */
+static inline void
+ratelimit_set_flags(struct ratelimit_state *rs, unsigned long flags)
+{
+	rs->flags = flags;
+}
 
 #endif /* _LINUXKPI_LINUX_RATELIMIT_H_ */

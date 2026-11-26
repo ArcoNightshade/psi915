@@ -7,7 +7,12 @@
  * Clean-room implementation of Linux module parameters.
  *
  * module_param*() defines the variable's descriptor, a global named
- * __lkpi_param_<name> (struct lkpi_module_param). illumos has no
+ * __lkpi_param_<LKPI_MODNAME>_<name> (struct lkpi_module_param) when the
+ * build defines LKPI_MODNAME before any include (a token, e.g.
+ * -DLKPI_MODNAME=i915; the
+ * module build does), so modules cannot collide (docs/11 R-K4); else
+ * __lkpi_param_<name>. LKPI_PARAM_SYM(name) names it and
+ * LKPI_PARAM_DECLARE(name) declares it. illumos has no
  * equivalent of Linux's parameter section walked at load time, and
  * krtld neither runs constructors nor (portably) provides section bounds,
  * so a driver collects its descriptors in a table and applies them from
@@ -87,10 +92,19 @@ struct lkpi_module_param {
 #define	__lkpi_param_type_invbool	LKPI_PARAM_INVBOOL
 #define	__lkpi_param_type_charp		LKPI_PARAM_CHARP
 
-#define	LKPI_PARAM_REF(name)	(&__lkpi_param_##name)
+#define	__lkpi_pcat3(a, b, c)	a ## b ## _ ## c
+#define	__lkpi_pcat3x(a, b, c)	__lkpi_pcat3(a, b, c)
+#ifdef LKPI_MODNAME
+#define	LKPI_PARAM_SYM(name)	__lkpi_pcat3x(__lkpi_param_, LKPI_MODNAME, name)
+#else
+#define	LKPI_PARAM_SYM(name)	__lkpi_param_ ## name
+#endif
+#define	LKPI_PARAM_DECLARE(name)					\
+	extern const struct lkpi_module_param LKPI_PARAM_SYM(name)
+#define	LKPI_PARAM_REF(name)	(&LKPI_PARAM_SYM(name))
 
 #define	module_param_named(n_, v_, t_, p_)				\
-	const struct lkpi_module_param __lkpi_param_##n_ __used = {	\
+	const struct lkpi_module_param LKPI_PARAM_SYM(n_) __used = {	\
 		.name = #n_, .var = &(v_),				\
 		.type = __lkpi_param_type_##t_, .size = sizeof (v_) }
 #define	module_param(n_, t_, p_)	module_param_named(n_, n_, t_, p_)
@@ -98,17 +112,17 @@ struct lkpi_module_param {
 #define	module_param_named_unsafe(n_, v_, t_, p_)			\
 	module_param_named(n_, v_, t_, p_)
 #define	module_param_string(n_, buf_, len_, p_)				\
-	const struct lkpi_module_param __lkpi_param_##n_ __used = {	\
+	const struct lkpi_module_param LKPI_PARAM_SYM(n_) __used = {	\
 		.name = #n_, .var = (buf_), .type = LKPI_PARAM_STRING,	\
 		.size = (len_) }
 #define	module_param_array_named(n_, arr_, t_, nump_, p_)		\
-	const struct lkpi_module_param __lkpi_param_##n_ __used = {	\
+	const struct lkpi_module_param LKPI_PARAM_SYM(n_) __used = {	\
 		.name = #n_, .var = (arr_), .type = LKPI_PARAM_ARRAY,	\
 		.size = sizeof (arr_) }
 #define	module_param_array(n_, t_, nump_, p_)				\
 	module_param_array_named(n_, n_, t_, nump_, p_)
 #define	module_param_cb(n_, ops_, arg_, p_)				\
-	const struct lkpi_module_param __lkpi_param_##n_ __used = {	\
+	const struct lkpi_module_param LKPI_PARAM_SYM(n_) __used = {	\
 		.name = #n_, .var = (arg_), .type = LKPI_PARAM_CB,	\
 		.kp = { .name = #n_, .ops = (ops_), .perm = (p_),	\
 		    .arg = (arg_) } }

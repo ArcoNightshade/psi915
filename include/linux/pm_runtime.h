@@ -66,6 +66,22 @@ pm_runtime_get_noresume(struct device *dev)
 #define	pm_runtime_status_suspended(dev) ((void)(dev), false)
 #define	pm_runtime_enabled(dev)		((dev)->power.runtime_enabled)
 #define	pm_runtime_idle(dev)		((void)(dev), 0)
+/* Generic PM callbacks: nothing to do for KPI-created devices. */
+#define	pm_generic_runtime_suspend	lkpi_pm_generic_nop
+#define	pm_generic_runtime_resume	lkpi_pm_generic_nop
+#define	pm_generic_suspend		lkpi_pm_generic_nop
+#define	pm_generic_resume		lkpi_pm_generic_nop
+#define	pm_generic_freeze		lkpi_pm_generic_nop
+#define	pm_generic_thaw			lkpi_pm_generic_nop
+#define	pm_generic_poweroff		lkpi_pm_generic_nop
+#define	pm_generic_restore		lkpi_pm_generic_nop
+static inline int
+lkpi_pm_generic_nop(struct device *dev)
+{
+	(void) dev;
+	return (0);
+}
+
 #define	pm_runtime_suspend(dev)		((void)(dev), 0)
 #define	pm_runtime_resume(dev)		((void)(dev), 0)
 #define	pm_runtime_barrier(dev)		do { (void)(dev); } while (0)

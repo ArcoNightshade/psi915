@@ -31,6 +31,9 @@
 #include <linux/typecheck.h>
 #include <linux/jump_label.h>
 
+/* ptr if cond (a constant), else NULL: usable in static initialisers. */
+#define	PTR_IF(cond, ptr)	((cond) ? (ptr) : NULL)
+
 /*
  * illumos <sys/sysmacros.h> defines ARRAY_SIZE without the array check
  * (and <sys/ddi.h> plain min()/max(), see <linux/minmax.h>). Linux code
