@@ -25,7 +25,7 @@ How `scripts/import-linux.sh` works:
 - It writes `third_party/IMPORT_FILES` (blob, set, licence per file).
 
 `-c` verifies the committed trees against pin + manifest + patches + config, then runs the five GPL-boundary
-checks (section 5). Both pass as of this commit. Three patches are applied (section 3.4); every other
+checks (section 5). Both pass as of this commit. Five patches are applied (section 3.4); every other
 imported file is byte-identical to v6.14.
 
 The i915 sets come from the upstream i915 Makefile:
@@ -184,6 +184,8 @@ Applied:
 
 | Patch | Change |
 |-------|--------|
+| 0004-i915-ggtt-gmch-stub-intel-gtt | Local stubs for the intel-gtt interface (Gen2-5); probing fails with -ENODEV. intel-gtt.h comes off the GPL allow list |
+| 0005-i915-pxp-gsccs-ready-stub-without-pxp | Inline "false" stub when PXP is off. Upstream relies on inlining, which the illumos -fno-inline-small-functions flags prevent (upstream candidate) |
 | 0001-i915-gemfs-no-tmpfs-mount | `i915_gemfs_init()` mounts nothing. GEM shmem objects use `shmem_file_setup()` from the KPI/drmglue backing store |
 | 0002-i915-rps-no-intel-ips-link | Drops the GPL intel_ips.h include and the Ironlake intel_ips `symbol_get` handshake |
 | 0003-i915-mm-remap-via-lkpi-vma-insert-pfns | `remap_io_mapping()`/`remap_io_sg()` become loops over drmglue's `lkpi_vma_insert_pfns()` (docs/10 R7). The `i915_gem_mman.c` callers stay unchanged |
@@ -223,6 +225,55 @@ below.
 | ACPI, DMI, X86_PAT, AS_MOVNTDQA | on | opregion, quirks, WC mappings, i915_memcpy |
 | TRACEPOINTS | off | trace headers become no-ops |
 | i915 timeouts (heartbeat, preempt, ...) | upstream Kconfig.profile defaults | checked against v6.14 |
+
+### 4.1 Review against the v6.14 i915 Kconfig (2026-11-26)
+
+Method: I compared gen9.config with the `select`/`depends on` rules of drivers/gpu/drm/i915/Kconfig
+(DRM_I915 and its sub-options) and with every CONFIG_* test in the Gen9 closure
+(tools/kpi-config-usage.tsv). For each unset symbol the code tests, I read the code and judged what
+happens at runtime on KBL-R. The judgements come from reading code; nothing has run on hardware.
+
+The `depends on` rules all hold: X86 && PCI, !PREEMPT_RT, and DRM_I915_DP_TUNNEL off because it needs USB4.
+Where gen9.config leaves a symbol off that DRM_I915 `select`s, the choices are deliberate:
+
+| Kconfig select | gen9.config | Runtime effect on Gen9.5 | Verdict |
+|----------------|-------------|--------------------------|---------|
+| INTEL_GTT if X86 | off | intel_ggtt_gmch.c (Gen2-5 GGTT) has no intel-gtt driver; patch 0004 makes probing those devices fail with -ENODEV. Gen6+ GGTT never uses it | OK |
+| BACKLIGHT_CLASS_DEVICE, ACPI_VIDEO, ACPI_WMI, INPUT, X86_PLATFORM_DEVICES if ACPI | off | No backlight device is registered, so userspace cannot set eDP brightness. The panel is still powered and lit by intel_backlight_enable() at modeset. Firmware brightness requests (ASLE through the OpRegion) are still handled, because the KPI's acpi_video_get_backlight_type() returns native (intel_opregion.c). Enabling the symbol would change nothing yet: the KPI's backlight_device_register() returns -ENODEV | OK for bring-up; P4 needs an illumos brightness interface |
+| IOSF_MBI if X86 | off | IOSF sideband only on VLV/CHV (link-only vlv_sideband.c) | OK |
+| SND_HDA_I915 if SND_HDA_CORE, AUXILIARY_BUS | off | No HDMI/DP audio binding (component framework). Video is unaffected | OK (audio is out of scope) |
+| CEC_CORE if CEC_NOTIFIER | off | No HDMI CEC | OK |
+| DRM_CLIENT_SELECTION, FB_IOMEM_HELPERS | off | No in-kernel fbdev client; the illumos console handoff is separate (docs/06 R5) | OK |
+| RELAY | off | GuC log relay only; GuC is off on Gen9 | OK |
+| SHMEM, TMPFS | n/a | Provided by the KPI/drmglue shmem; patch 0001 removes the tmpfs mount | OK |
+| SYNC_FILE, DRM_TTM, DRM_BUDDY, display helpers, DRM_PANEL, DRM_MIPI_DSI, I2C, I2C_ALGOBIT, IRQ_WORK, INTERVAL_TREE, VMAP_PFN, CRC32 | on, or KPI-provided | none | OK |
+
+Other unset symbols the closure tests, and their effect:
+
+| Symbol (upstream default) | Effect | Verdict |
+|---------------------------|--------|---------|
+| DRM_I915_CAPTURE_ERROR (y) | No GPU error state after a hang. Hang detection and reset (heartbeat, engine/GT reset) work without it | OK for bring-up; enable once an error-state export path exists |
+| MMU_NOTIFIER (selected by DRM_I915_USERPTR, default y) | I915_GEM_USERPTR fails with -ENODEV. iris works without it; some anv paths would lose host-pointer import | OK (docs/07) |
+| PNP | intel_gmch_bar_setup() returns early when the BIOS has enabled MCHBAR (the normal case on KBL), so the PNP-reservation test is reached only on systems where the BIOS left MCHBAR disabled | OK |
+| FRAMEBUFFER_CONSOLE | The BIOS framebuffer is kept even when it is larger than half of stolen memory, which suits the console takeover | OK |
+| PREEMPT_COUNT | Only disables a debug assertion in _wait_for_atomic, as on non-preemptible Linux | OK |
+| COMPAT | drmglue refuses 32-bit ioctl callers (docs/09); 64-bit Xorg/Mesa required | OK, known |
+| PROC_FS, DEBUG_FS, PERF_EVENTS, HWMON, OF, PXP, GVT, MEI_* | Features off; the headers' stubs take over | OK |
+
+Two findings that the configuration does not cover:
+1. **VT-d workarounds depend on the KPI, not on CONFIG.** i915 decides through `i915_vtd_active()`
+   (`device_iommu_mapped()`, which is constant false in the KPI). On Gen9, `intel_scanout_needs_vtd_wa()`
+   then skips the 256 KiB scanout alignment and the guard pages that the display engine needs when the
+   IOMMU translates its fetches. If the illumos immu ever maps the GPU, KBL-R would see DMA faults and
+   display corruption. CONFIG_INTEL_IOMMU and IOMMU_API are tested nowhere in the closure, so their
+   "not set" lines have no effect. Request to the KPI: docs/11 R-K7. Until then, the GPU must not sit
+   behind an active immu (unverified on the target).
+2. **CONFIG_AS_MOVNTDQA=y is inert.** i915_memcpy.c compiles the SSE4.1 path, but the KPI hides SSE4.1
+   (docs/04), so `i915_memcpy_from_wc()` always reports failure and callers use the slow copy. That is
+   correct but slow when reading back from WC memory. No change.
+
+No CONFIG value needed changing. gen9.config now carries a comment block that records these deliberate
+divergences.
 
 Link-closure stubbing (later patches, effort unverified): stubbing out the entry points of the 100 i915
 `link` files would let them be dropped. The largest groups are gt/uc (GuC/HuC/GSC), the discrete LMEM/TTM
@@ -292,7 +343,6 @@ G2's 15 EXPORT_SYMBOLs are the list. Check 5 below enforces that drm/ never uses
 1. **GPL headers still included by MIT code** (`allow-header` in gpl-policy.conf; tools/gpl-headers.tsv):
    - drm_mipi_dsi.h: link-only DSI encoders and drm_mipi_dsi.c.
    - i915_hdcp_interface.h: HDCP 2.2 over MEI.
-   - intel-gtt.h: Gen2-5 GGTT.
    - drm_accel.h (drm_drv.c), drm_of.h, drm_dp_mst_topology_internal.h.
    Each needs a BSD header in drm_bsd/ or a patch. Most of them disappear when the link-only files are
    stubbed.

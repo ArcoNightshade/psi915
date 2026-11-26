@@ -358,6 +358,10 @@ KPI (include/, src/, build/linuxkpi):
   (16 i915 units), `__read_mostly`.
 - R-K6b A declaration of `video_bsd_set_firmware_drivers_only()` / `video_bsd_set_option()` in a header
   (`<video/nomodeset.h>` / `<video/cmdline.h>`); the glue declares the first itself for now.
+- R-K7 `device_iommu_mapped()` is constant false (include/linux/device.h). i915 uses it (through
+  `i915_vtd_active()`) to apply the Gen9 VT-d scanout workarounds (256 KiB alignment, guard pages;
+  docs/08 4.1). It must return true when the illumos immu translates the device's DMA (rootnex/immu
+  state for the dip). Otherwise the GPU must stay outside immu translation.
 
 GPL policy / imports (third_party/):
 - R-G1 `allow-header include/drm/drm_gem_atomic_helper.h` includes `drm/drm_format_helper.h`, a GPL
