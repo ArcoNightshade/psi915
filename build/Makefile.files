@@ -41,6 +41,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_rcu.o \
 		   linux_scatterlist.o \
 		   linux_sched.o \
+		   linux_shmem.o \
 		   linux_shrinker.o \
 		   linux_slab.o \
 		   linux_sort.o \
@@ -63,6 +64,7 @@ DRMGLUE_OBJS	= drmglue_anonfile.o \
 		   drmglue_cdev_illumos.o \
 		   drmglue_file.o \
 		   drmglue_pseudofs.o \
+		   drmglue_shmem.o \
 		   drmglue_segdev_illumos.o \
 		   drmglue_vma.o \
 		   drmglue_vmoff.o \

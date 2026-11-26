@@ -235,17 +235,27 @@ Remaining syntax-check failures (11 of 375) are outside the KPI; requests:
   upstream headers that include "i915_drv.h", "gt/intel_engine.h", "i915_irq.h" (resp.
   "intel_crtc.h", "intel_display_types.h", ...); several units relied on that (gen6_ppgtt.c,
   gen8_ppgtt.c, intel_ppgtt.c, intel_gtt.c, i915_gem_shrinker.c, i9xx_wm.c, intel_pmdemand.c).
+- [ ] drm_bsd: drm_sysfs.c should define `struct class *drm_class` (referenced by the imported
+  drm_privacy_screen.c; found by scripts/kpi-linkcheck.sh).
 - [ ] Module build: build/i915/Objects.mk lists gt/hsw_clear_kernel.c and gt/ivb_clear_kernel.c,
   which are #included by gen7_renderclear.c and are not translation units.
 - [ ] Import (P3 loop only, set-dependent): drm/intel/i915_hdcp_interface.h, intel-gtt.h,
   drm_mipi_dsi.h, drm_accel.h, drm_dp_mst_topology_internal.h, intel_acpi.h for the
   third_party/IMPORT_FILES layout used by scripts/p3-compile-check.py (the module build has them).
 
+- [x] shmem backing store: src/linux_shmem.c (page cache over address_space.i_pages, zero-filled
+  pages on first use, truncate, find_lock_page, write_begin/write_end; unit-tested in test_hw) and
+  drmglue/src/shmem.c (shmem_file_setup/_with_mnt: internal file + inode, pages freed with the
+  inode). No swap: pages stay resident until truncated or the object is freed; writeback of
+  purgeable objects does nothing (no writepage).
+- [x] Link-time closure check: scripts/kpi-linkcheck.sh compiles the module set to objects
+  (HOST_STUBS=1, `objects` target added to build/drm/Makefile.lkpi) and lists symbols that neither
+  the set, nor linuxkpi (check-kmod), nor the illumos allowlists define. 2026-11-26: 364 objects,
+  104 unresolved, all defined in the 11 units that do not compile yet (other owners, above) except
+  `drm_class` (drm_bsd/drivers/gpu/drm/drm_sysfs.c does not define it; drm_privacy_screen.c uses
+  it). Units that fail to compile are not covered, so the list grows as they are fixed.
+
 KPI work still open (behaviour, not syntax):
-- [ ] shmem backing store (GEM objects; page cache, write_begin/write_end, writeback), today
-  find_lock_page() finds nothing and shmem_file_setup() is declaration-only.
-- [ ] Link-time closure: compile the module set to objects (HOST_STUBS) and check `nm -u` against
-  linuxkpi + allowlist, like check-kmod does for linuxkpi itself (docs/11 section 8, item 1).
 - [ ] User address-space features refused for now: i915 userptr (no VMAs visible), legacy
   I915_GEM_MMAP (vm_mmap), kernel SSE (SSE4.1 hidden), relay (GuC log), sysctl publishing.
 

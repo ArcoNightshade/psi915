@@ -35,6 +35,7 @@
 #include <asm/set_memory.h>
 #include <asm/cpu_device_id.h>
 #include <linuxkpi/subsys.h>
+#include <linux/shmem_fs.h>
 
 #include "harness.h"
 
@@ -852,8 +853,57 @@ TEST(i2c_bitbang)
 
 #endif /* !LKPI_KTEST */
 
+/* shmem page cache (src/linux_shmem.c) on a hand-made inode. */
+TEST(shmem_cache)
+{
+	struct inode *ip = kzalloc(sizeof (*ip), GFP_KERNEL);
+	struct address_space *m;
+	struct page *p, *q;
+	struct folio *f;
+	void *fsdata;
+	char *va;
+
+	CHECK(ip != NULL);
+	ip->i_mapping = &ip->i_data;
+	ip->i_data.host = ip;
+	ip->i_size = 3 * PAGE_SIZE - 1;		/* 3 pages */
+	m = ip->i_mapping;
+	lkpi_shmem_mapping_init(m);
+	CHECK(find_lock_page(m, 0) == NULL);
+	p = shmem_read_mapping_page(m, 1);
+	CHECK(!IS_ERR(p));
+	va = page_address(p);
+	CHECK(va[0] == 0 && va[PAGE_SIZE - 1] == 0);	/* zero-filled */
+	va[7] = 42;
+	CHECK_EQ(page_count(p), 2);		/* cache + caller */
+	put_page(p);
+	q = shmem_read_mapping_page(m, 1);
+	CHECK(q == p && ((char *)page_address(q))[7] == 42);
+	put_page(q);
+	CHECK(IS_ERR(shmem_read_mapping_page(m, 3)));	/* beyond i_size */
+	CHECK(m->a_ops->write_begin(NULL, m, 2 * PAGE_SIZE + 5, 4, &f,
+	    &fsdata) == 0);
+	memcpy((char *)page_address(&f->page) + 5, "abcd", 4);
+	CHECK_EQ(m->a_ops->write_end(NULL, m, 2 * PAGE_SIZE + 5, 4, 4, f,
+	    fsdata), 4);
+	CHECK_EQ(lkpi_shmem_nr_pages(m), 2);
+	q = find_lock_page(m, 2);
+	CHECK(q != NULL && memcmp((char *)page_address(q) + 5, "abcd", 4) == 0);
+	put_page(q);
+	shmem_truncate_range(ip, PAGE_SIZE, -1);	/* drops 1 and 2 */
+	CHECK_EQ(lkpi_shmem_nr_pages(m), 0);
+	f = shmem_read_folio(m, 0);
+	CHECK(!IS_ERR(f));
+	folio_put(f);
+	shmem_truncate_range(ip, 1, PAGE_SIZE - 1);	/* partial page: kept */
+	CHECK_EQ(lkpi_shmem_nr_pages(m), 1);
+	m->lkpi_release(m);				/* inode release */
+	kfree(ip);
+}
+
 LKPI_SUITE(hw)
 {
+	RUN(shmem_cache);
 #ifndef LKPI_KTEST
 	CHECK_EQ(lkpi_workqueue_init(), 0);
 	RUN(device_devres);

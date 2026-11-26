@@ -108,9 +108,29 @@ void dma_fence_set_deadline(struct dma_fence *fence, ktime_t deadline);
 struct dma_fence *dma_fence_get_stub(void);
 struct dma_fence *dma_fence_allocate_private_stub(ktime_t timestamp);
 u64 dma_fence_context_alloc(unsigned int num);
+/* Signalling annotations: lockdep-only in Linux (dma-fence.c). */
+#ifdef CONFIG_LOCKDEP
 bool dma_fence_begin_signalling(void);
 void dma_fence_end_signalling(bool cookie);
 void __dma_fence_might_wait(void);
+#else
+static inline bool
+dma_fence_begin_signalling(void)
+{
+	return (true);
+}
+
+static inline void
+dma_fence_end_signalling(bool cookie)
+{
+	(void) cookie;
+}
+
+static inline void
+__dma_fence_might_wait(void)
+{
+}
+#endif
 
 static inline void
 dma_fence_put(struct dma_fence *fence)

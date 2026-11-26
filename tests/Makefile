@@ -52,7 +52,7 @@ KMOD_CFLAGS	= -std=gnu11 -fno-pic -fno-pie -m64 -mcmodel=kernel -mno-red-zone -f
 KMOD_SRCS	= $(SRC)/linuxkpi_mod.c $(SRC)/plat_illumos.c $(SRC)/plat_illumos_dev.c $(wildcard $(SRC)/linux_*.c)
 # drmglue is linked into linuxkpi (build/Makefile.files DRMGLUE_OBJS).
 DG_SRCS		= $(addprefix $(TOP)/drmglue/src/,anonfile.c anonfs_illumos.c \
-		  cdev.c cdev_illumos.c file.c pseudofs.c segdev_illumos.c vma.c \
+		  cdev.c cdev_illumos.c file.c pseudofs.c segdev_illumos.c shmem.c vma.c \
 		  vmoff.c xlate.c)
 DG_OBJS		= $(DG_SRCS:$(TOP)/drmglue/src/%.c=$(OUT)/kmod_dg_%.o)
 KMOD_OBJS	= $(KMOD_SRCS:$(SRC)/%.c=$(OUT)/kmod_%.o) $(DG_OBJS)

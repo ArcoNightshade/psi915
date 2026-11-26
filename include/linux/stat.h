@@ -25,6 +25,18 @@
 #define	S_IWOTH		00002
 #define	S_IXOTH		00001
 #endif
+#ifndef S_IFMT
+#define	S_IFMT		00170000
+#endif
+#ifndef S_IFREG
+#define	S_IFREG		0100000
+#endif
+#ifndef S_IFDIR
+#define	S_IFDIR		0040000
+#endif
+#ifndef S_IFCHR
+#define	S_IFCHR		0020000
+#endif
 #define	S_IRUGO		(S_IRUSR | S_IRGRP | S_IROTH)
 #define	S_IWUGO		(S_IWUSR | S_IWGRP | S_IWOTH)
 #define	S_IXUGO		(S_IXUSR | S_IXGRP | S_IXOTH)

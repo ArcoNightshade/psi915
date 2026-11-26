@@ -60,6 +60,8 @@ lkpi_inode_put(struct inode *ip)
 		return;
 	/* A mapping still registered here would be a use-after-free. */
 	WARN_ON(!lkpi_itree_empty(&ip->i_data.i_mmap));
+	if (ip->i_data.lkpi_release != NULL)
+		ip->i_data.lkpi_release(&ip->i_data);	/* shmem pages */
 	lkpi_rwsem_destroy(&ip->i_data.i_mmap_rwsem);
 	kfree(ip);
 }

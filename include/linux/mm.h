@@ -247,12 +247,11 @@ si_meminfo(struct sysinfo *si)
 #define	fault_flag_allow_retry_first(fl)	((void)(fl), false)
 
 /*
- * Page cache lookups of shmem files. The shmem backend (GEM backing
- * store) has no page cache yet: nothing is found, so write-back of
- * purgeable objects does nothing (docs/04, shmem backend pending).
+ * Page cache of shmem files (src/linux_shmem.c). Pages are not locked
+ * (one owner, the GEM object); find_lock_page() returns a reference.
  */
-#define	find_lock_page(mapping, index)	\
-	((void)(mapping), (void)(index), (struct page *)NULL)
+struct page *find_lock_page(struct address_space *mapping,
+    unsigned long index);
 #define	unlock_page(p)			do { (void)(p); } while (0)
 #define	lock_page(p)			do { (void)(p); } while (0)
 #define	clear_page_dirty_for_io(p)	((void)(p), false)

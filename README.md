@@ -117,6 +117,7 @@ rem_drv lkpi_toy
 | illumos hardware backend, driver glue, lkpi_toy kmod | compile against stub headers only | not built |
 | Unit tests: P3 helpers (cleanup/CLASS, static keys, strscpy/sscanf/string helpers, uuid, unaligned, hex dump, x86_match_cpu, bitmap regions, module-qualified params, anon_inode_getfd) | passing (gcc, clang, ASan/UBSan) | not run |
 | Imported DRM/i915 module set: -fsyntax-only with HOST_STUBS (364/375 units) | against stub headers only | not built |
+| Module set link closure (scripts/kpi-linkcheck.sh, `nm -u` of HOST_STUBS objects vs linuxkpi + allowlists) | no KPI symbol missing in the units that compile | not linked |
 | Kernel sources and lkpi_ktest compile with kernel flags; undefined symbols in allowlist | against stub headers only | not built |
 | lkpi_ktest in kernel under kmem_flags=0xf | n/a | not done |
 | Kmod link (`ld -ztype=kmod`), CTF, modload/modunload | n/a | not done |

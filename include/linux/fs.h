@@ -29,6 +29,7 @@
 #include <linux/wait.h>
 #include <linux/workqueue.h>
 #include <linuxkpi/itree.h>
+#include <linux/xarray.h>
 
 #include <linux/fcntl.h>
 #include <linux/capability.h>
@@ -85,6 +86,13 @@ struct address_space_operations {
 struct address_space {
 	struct inode		*host;
 	const struct address_space_operations *a_ops;
+	/*
+	 * Page cache of shmem files (src/linux_shmem.c): index -> struct
+	 * page holding one reference. lkpi_release, when set, frees it
+	 * with the inode (lkpi_inode_put).
+	 */
+	struct xarray		i_pages;
+	void			(*lkpi_release)(struct address_space *m);
 	struct rw_semaphore	i_mmap_rwsem;
 	struct lkpi_itree	i_mmap;
 };
@@ -170,7 +178,8 @@ struct lkpi_mmap_req {
 
 enum lkpi_file_kind {
 	LKPI_FILE_CDEV = 1,	/* clone open of a /dev/dri node */
-	LKPI_FILE_ANON = 2	/* anon_inode_getfile(): dma-buf, sync_file, ... */
+	LKPI_FILE_ANON = 2,	/* anon_inode_getfile(): dma-buf, sync_file, ... */
+	LKPI_FILE_SHMEM = 3	/* shmem_file_setup(): GEM backing store */
 };
 
 struct lkpi_file {
@@ -329,7 +338,8 @@ static const struct file_operations __fops = {				\
 #define	unregister_chrdev(maj, name)	do { (void)(maj); } while (0)
 
 /* Calls the file's mmap (dma-buf mmap forwarding). */
-#define	call_mmap(file, vma)	((file)->f_op->mmap((file), (vma)))
+#define	call_mmap(file, vma)						\
+	((file)->f_op->mmap != NULL ? (file)->f_op->mmap((file), (vma)) : -ENODEV)
 
 /* f_op reference helpers (no module reference counts). */
 #define	fops_get(f)		(f)

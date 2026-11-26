@@ -171,9 +171,13 @@ ALL_SRCS	= $(LINUX_SRCS) $(GLUE_SRCS)
 $(GLUE_OBJS) $(GLUE_SRCS:%.c=$(OBJS_DIR)/syntax/%.syn): CERRWARN = $(GLUE_CERRWARN)
 $(GLUE_OBJS) $(GLUE_SRCS:%.c=$(OBJS_DIR)/syntax/%.syn): HOST_STUB_PRE = $(GLUE_HOST_STUB_PRE)
 
-.PHONY: all install clean clobber syntax-check objlist sizecheck gplallow FORCE
+.PHONY: all install clean clobber syntax-check objlist sizecheck gplallow objects FORCE
 
 all: $(BINARY)
+
+# Objects only, no kmod link (scripts/kpi-linkcheck.sh uses it with
+# HOST_STUBS=1 -k to list symbols the module set needs from the KPI).
+objects: $(OBJECTS)
 
 $(BINARY): $(OBJECTS)
 	$(LD) $(LD_KMOD_TYPE) $(LDFLAGS) -o $@ $(OBJECTS)

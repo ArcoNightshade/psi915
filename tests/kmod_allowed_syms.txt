@@ -197,3 +197,16 @@ random_get_pseudo_bytes
 drv_priv
 # stub-only: CRED() is a macro in illumos
 CRED
+# illumos symbols used by other kmods of the graphics set (i915 glue);
+# checked by scripts/kpi-linkcheck.sh
+callb_add
+callb_delete
+gfxp_bm_register_fbops
+gfxp_fb_attach
+gfxp_fb_close
+gfxp_fb_detach
+gfxp_fb_devmap
+gfxp_fb_ioctl
+gfxp_fb_open
+gfxp_fb_softc_alloc
+gfxp_fb_softc_free
