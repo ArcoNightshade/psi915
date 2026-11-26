@@ -8,5 +8,8 @@
 #   git diff -- drm i915 gpl >third_party/patches/NNNN-....patch, add it here, re-run the import,
 #   and check with scripts/import-linux.sh -c.
 #
-# Empty at the first import: drm/, i915/ and gpl/ are byte-identical to upstream Linux v6.14
-# (see third_party/IMPORT_FILES).  Known first patches are listed in docs/08-kpi-requirements.md.
+# drm/, i915/ and gpl/ equal upstream Linux v6.14 plus these patches; pristine blobs in IMPORT_FILES.
+# Patches guard illumos code with CONFIG_PSI915 (third_party/config/gen9.config).  Planned ones: docs/08 3.4.
+0001-i915-gemfs-no-tmpfs-mount.patch
+0002-i915-rps-no-intel-ips-link.patch
+0003-i915-mm-remap-via-lkpi-vma-insert-pfns.patch

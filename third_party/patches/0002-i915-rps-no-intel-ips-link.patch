@@ -1,0 +1,41 @@
+i915: drop the intel_ips link (and its GPL header include) on illumos
+
+gt/intel_rps.c includes ../../../platform/x86/intel_ips.h, a GPL-2.0 header in gpl/, only for
+the symbol_get(ips_link_to_i915_driver) handshake with the Ironlake (Gen5) intel_ips driver.
+There is no intel_ips on illumos and MIT code must not include GPL headers
+(import-linux.sh -c, GPL check 3), so the include and the handshake are compiled out.
+
+Upstream: not-applicable (illumos only; guarded by CONFIG_PSI915)
+
+diff --git a/i915/drivers/gpu/drm/i915/gt/intel_rps.c b/i915/drivers/gpu/drm/i915/gt/intel_rps.c
+index fa304ea..4259916 100644
+--- a/i915/drivers/gpu/drm/i915/gt/intel_rps.c
++++ b/i915/drivers/gpu/drm/i915/gt/intel_rps.c
+@@ -24,7 +24,9 @@
+ #include "intel_pcode.h"
+ #include "intel_rps.h"
+ #include "vlv_sideband.h"
++#ifndef CONFIG_PSI915
+ #include "../../../platform/x86/intel_ips.h"
++#endif
+ 
+ #define BUSY_MAX_EI	20u /* ms */
+ 
+@@ -2723,6 +2725,9 @@ static struct drm_i915_private __rcu *ips_mchdev;
+ static void
+ ips_ping_for_i915_load(void)
+ {
++#ifdef CONFIG_PSI915
++	/* psi915: no intel_ips (Ironlake IPS) driver on illumos; nothing to notify. */
++#else
+ 	void (*link)(void);
+ 
+ 	link = symbol_get(ips_link_to_i915_driver);
+@@ -2730,6 +2735,7 @@ ips_ping_for_i915_load(void)
+ 		link();
+ 		symbol_put(ips_link_to_i915_driver);
+ 	}
++#endif
+ }
+ 
+ void intel_rps_driver_register(struct intel_rps *rps)

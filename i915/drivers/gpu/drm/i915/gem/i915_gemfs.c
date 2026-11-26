@@ -11,6 +11,20 @@
 #include "i915_gemfs.h"
 #include "i915_utils.h"
 
+#ifdef CONFIG_PSI915
+/*
+ * psi915: illumos has no tmpfs to mount with huge-page options; GEM objects use the default
+ * shmem backing store (i915_gem_shmem.c falls back to shmem_file_setup() when gemfs is NULL).
+ */
+void i915_gemfs_init(struct drm_i915_private *i915)
+{
+	i915->mm.gemfs = NULL;
+}
+
+void i915_gemfs_fini(struct drm_i915_private *i915)
+{
+}
+#else
 void i915_gemfs_init(struct drm_i915_private *i915)
 {
 	char huge_opt[] = "huge=within_size"; /* r/w */
@@ -58,3 +72,4 @@ void i915_gemfs_fini(struct drm_i915_private *i915)
 {
 	kern_unmount(i915->mm.gemfs);
 }
+#endif /* CONFIG_PSI915 */
