@@ -69,6 +69,12 @@
 #ifndef EMULTIHOP
 #define	EMULTIHOP		607
 #endif
+#ifndef ESTALE
+#define	ESTALE			608
+#endif
+#ifndef ENOBUFS
+#define	ENOBUFS			609
+#endif
 #ifndef ENOKEY
 #define	ENOKEY			606
 #endif

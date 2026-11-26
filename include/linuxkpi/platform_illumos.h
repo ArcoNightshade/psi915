@@ -370,6 +370,7 @@ void lkpi_plat_getcomm(char *buf, size_t len);
 long lkpi_plat_copyinstr(const char *uaddr, char *kbuf, size_t len,
     bool kernel);
 void lkpi_plat_sleep_ns(uint64_t ns);
+bool lkpi_plat_privileged(void);
 
 static inline int
 __lkpi_plat_kmflag(int flags)

@@ -142,7 +142,7 @@ sg_chain(struct scatterlist *prv, unsigned int prv_nents,
 }
 
 static inline struct scatterlist *
-__sg_next(struct scatterlist *sg)
+__lkpi_sg_next(struct scatterlist *sg)
 {
 	sg++;
 	if (unlikely(sg_is_chain(sg)))
@@ -155,7 +155,7 @@ sg_next(struct scatterlist *sg)
 {
 	if (sg_is_last(sg))
 		return (NULL);
-	return (__sg_next(sg));
+	return (__lkpi_sg_next(sg));
 }
 
 #define	for_each_sg(sglist, sg, nr, i)					\

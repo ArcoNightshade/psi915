@@ -33,6 +33,7 @@
 #include <linux/delay.h>
 #include <asm/cacheflush.h>
 #include <asm/set_memory.h>
+#include <asm/cpu_device_id.h>
 #include <linuxkpi/subsys.h>
 
 #include "harness.h"
@@ -625,6 +626,24 @@ TEST(firmware_dmi_acpi_cpu)
 	CHECK(boot_cpu_data.x86_clflush_size >= 32);
 	CHECK(boot_cpu_has(X86_FEATURE_CLFLUSH));
 	CHECK(boot_cpu_data.x86_vendor_id[0] != '\0');
+	{
+		/* x86_match_cpu: a table built from the boot CPU must match. */
+		struct x86_cpu_id ids[3];
+
+		memset(ids, 0, sizeof (ids));
+		ids[0].vendor = X86_VENDOR_ANY;
+		ids[0].family = (u16)(boot_cpu_data.x86 + 1);
+		ids[0].flags = X86_CPU_ID_FLAG_ENTRY_VALID;
+		ids[1].vendor = boot_cpu_data.x86_vendor;
+		ids[1].family = boot_cpu_data.x86;
+		ids[1].model = boot_cpu_data.x86_model;
+		ids[1].flags = X86_CPU_ID_FLAG_ENTRY_VALID;
+		ids[1].driver_data = 7;
+		if (boot_cpu_data.x86_model != 0)
+			CHECK(x86_match_cpu(ids) == &ids[1]);
+		ids[1].model = (u16)(boot_cpu_data.x86_model + 1);
+		CHECK(x86_match_cpu(ids) == NULL);
+	}
 	{
 		char buf[64];
 		struct seq_file m;

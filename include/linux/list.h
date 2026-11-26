@@ -47,6 +47,7 @@
 #include <linuxkpi/platform.h>
 #include <linux/compiler.h>
 #include <linux/types.h>
+#include <linux/poison.h>
 #include <linux/container_of.h>
 
 /*

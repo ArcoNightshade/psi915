@@ -25,6 +25,7 @@
 #include <linux/kref.h>
 #include <linux/list.h>
 #include <linux/sysfs.h>
+#include <linux/completion.h>
 
 struct kobject;
 struct kset;
@@ -101,5 +102,6 @@ kobject_name(const struct kobject *kobj)
 }
 
 extern struct kobject *kernel_kobj;
+extern const struct sysfs_ops kobj_sysfs_ops;
 
 #endif /* _LINUXKPI_LINUX_KOBJECT_H_ */

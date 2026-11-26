@@ -624,3 +624,50 @@ seq_printf(struct seq_file *m, const char *fmt, ...)
 		seq_write(m, tmp, (size_t)n < sizeof (tmp) ? (size_t)n :
 		    sizeof (tmp) - 1);
 }
+
+int
+single_open(struct lkpi_file *f, int (*show)(struct seq_file *, void *),
+    void *data)
+{
+	(void) f;
+	(void) show;
+	(void) data;
+	return (-ENODEV);
+}
+
+int
+single_release(struct inode *inode, struct lkpi_file *f)
+{
+	(void) inode;
+	(void) f;
+	return (0);
+}
+
+int
+seq_release(struct inode *inode, struct lkpi_file *f)
+{
+	(void) inode;
+	(void) f;
+	return (0);
+}
+
+long
+seq_read(struct lkpi_file *f, char __user *buf, size_t size, long long *ppos)
+{
+	(void) f;
+	(void) buf;
+	(void) size;
+	(void) ppos;
+	return (-ENODEV);
+}
+
+long long
+seq_lseek(struct lkpi_file *f, long long off, int whence)
+{
+	(void) f;
+	(void) off;
+	(void) whence;
+	return (-ESPIPE);
+}
+
+const struct sysfs_ops kobj_sysfs_ops;

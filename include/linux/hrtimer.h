@@ -25,6 +25,7 @@
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/ktime.h>
+#include <linux/seqlock.h>
 #include <linux/timer.h>
 
 #ifndef CLOCK_REALTIME

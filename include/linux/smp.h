@@ -16,6 +16,7 @@
 
 #include <linuxkpi/platform.h>
 #include <linux/compiler.h>
+#include <asm/cpufeature.h>
 
 #define	smp_processor_id()		((int)lkpi_plat_cpu_id())
 #define	raw_smp_processor_id()		((int)lkpi_plat_cpu_id())

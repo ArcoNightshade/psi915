@@ -30,6 +30,7 @@
 #include <linux/string.h>
 #include <linux/jiffies.h>
 #include <linux/ktime.h>
+#include <linux/seqlock.h>
 
 #define	TIMER_DEFERRABLE	0x00080000
 #define	TIMER_PINNED		0x00100000

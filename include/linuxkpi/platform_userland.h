@@ -440,6 +440,12 @@ lkpi_plat_fatal_signal_pending(void)
 	return (lkpi_plat_fake_signal > 1);
 }
 
+static inline bool
+lkpi_plat_privileged(void)
+{
+	return (geteuid() == 0);
+}
+
 static inline int
 lkpi_plat_getpid(void)
 {

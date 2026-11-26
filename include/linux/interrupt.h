@@ -137,23 +137,10 @@ void tasklet_unlock_wait(struct tasklet_struct *t);
 #define	tasklet_hi_schedule(t)		tasklet_schedule(t)
 #define	tasklet_disable_in_atomic(t)	tasklet_disable(t)
 
-static inline bool
-tasklet_is_locked(const struct tasklet_struct *t)
-{
-	return (test_bit(TASKLET_STATE_RUN, &t->state));
-}
-
-static inline bool
-__tasklet_is_enabled(const struct tasklet_struct *t)
-{
-	return (atomic_read(&t->count) == 0);
-}
-
-static inline bool
-__tasklet_is_scheduled(const struct tasklet_struct *t)
-{
-	return (test_bit(TASKLET_STATE_SCHED, &t->state));
-}
+/*
+ * tasklet_is_locked(), __tasklet_is_enabled() and __tasklet_is_scheduled()
+ * are not Linux API: i915 defines them itself (i915_tasklet.h).
+ */
 
 #define	local_softirq_pending()		(0)
 

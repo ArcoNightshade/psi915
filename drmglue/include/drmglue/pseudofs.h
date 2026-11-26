@@ -23,8 +23,9 @@
  *     dput calls d_op->d_release (dma_buf_release frees the dma_buf
  *     there), then drops the inode.
  *
- * REQUESTED CHANGE (docs/10, R1): belongs in include/linux/fs.h,
- * dcache.h, mount.h, fs_context.h and pseudo_fs.h of the KPI.
+ * The types and prototypes now live in the KPI (docs/10, R1):
+ * include/linux/fs.h, dcache.h, mount.h, fs_context.h and pseudo_fs.h;
+ * this header only gathers them for the glue.
  */
 #ifndef _DRMGLUE_PSEUDOFS_H_
 #define	_DRMGLUE_PSEUDOFS_H_
@@ -32,82 +33,10 @@
 #include <linux/types.h>
 #include <linux/atomic.h>
 #include <drmglue/lkpi_fs.h>
-
-struct qstr {
-	const unsigned char	*name;
-	unsigned int		len;
-};
-
-struct dentry_operations {
-	char	*(*d_dname)(struct dentry *, char *, int);
-	void	(*d_release)(struct dentry *);
-};
-
-#define	LKPI_DNAME_INLINE_LEN	40
-
-struct dentry {
-	atomic_t		d_count;
-	struct inode		*d_inode;
-	void			*d_fsdata;
-	const struct dentry_operations *d_op;
-	struct super_block	*d_sb;
-	struct qstr		d_name;
-	unsigned char		d_iname[LKPI_DNAME_INLINE_LEN];
-};
-
-struct super_operations;
-struct xattr_handler;
-
-struct super_block {
-	unsigned long		s_magic;
-	const struct dentry_operations *s_d_op;
-	const struct super_operations *s_op;
-	struct file_system_type	*s_type;
-	atomic_long_t		s_lkpi_next_ino;
-};
-
-struct vfsmount {
-	struct super_block	*mnt_sb;
-};
-
-struct fs_context {
-	struct file_system_type	*fs_type;
-	void			*fs_private;
-};
-
-struct pseudo_fs_context {
-	const struct super_operations	*ops;
-	const struct xattr_handler * const *xattr;
-	const struct dentry_operations	*dops;
-	unsigned long			magic;
-};
-
-struct file_system_type {
-	const char	*name;
-	int		fs_flags;
-	int		(*init_fs_context)(struct fs_context *);
-	void		(*kill_sb)(struct super_block *);
-	struct module	*owner;
-};
-
-struct pseudo_fs_context *init_pseudo(struct fs_context *fc,
-    unsigned long magic);
-struct vfsmount *kern_mount(struct file_system_type *type);
-void kern_unmount(struct vfsmount *mnt);
-void kill_anon_super(struct super_block *sb);
-
-struct inode *alloc_anon_inode(struct super_block *sb);
-void iput(struct inode *ip);
-void ihold(struct inode *ip);
-void inode_set_bytes(struct inode *ip, loff_t bytes);
-
-struct lkpi_file *alloc_file_pseudo(struct inode *ip, struct vfsmount *mnt,
-    const char *name, int flags, const struct file_operations *fops);
-struct dentry *dget(struct dentry *d);
-void dput(struct dentry *d);
-
-/* Formats into the end of buffer, as Linux d_dname helpers do. */
-char *dynamic_dname(char *buffer, int buflen, const char *fmt, ...)
-    __attribute__((format(printf, 3, 4)));
+#include <linux/fs.h>
+#include <linux/dcache.h>
+#include <linux/mount.h>
+#include <linux/fs_context.h>
+#include <linux/pseudo_fs.h>
 
 #endif /* _DRMGLUE_PSEUDOFS_H_ */

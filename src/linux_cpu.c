@@ -15,6 +15,7 @@
 #include <linux/string.h>
 #include <asm/cpufeature.h>
 #include <asm/cacheflush.h>
+#include <asm/cpu_device_id.h>
 #include <linuxkpi/plat_dev.h>
 
 static struct cpuinfo_x86 lkpi_cpu;
@@ -124,4 +125,29 @@ void
 wbinvd_on_all_cpus(void)
 {
 	lkpi_plat_wbinvd();
+}
+
+/*
+ * Returns the first entry matching the boot CPU's vendor, family and
+ * model (and feature bit, when given); entries with X86_*_ANY match
+ * anything. The table ends with an all-zero entry (flags == 0).
+ */
+const struct x86_cpu_id *
+x86_match_cpu(const struct x86_cpu_id *match)
+{
+	const struct cpuinfo_x86 *c = &boot_cpu_data;
+	const struct x86_cpu_id *m;
+
+	for (m = match; m->flags & X86_CPU_ID_FLAG_ENTRY_VALID; m++) {
+		if (m->vendor != X86_VENDOR_ANY && m->vendor != c->x86_vendor)
+			continue;
+		if (m->family != X86_FAMILY_ANY && m->family != c->x86)
+			continue;
+		if (m->model != X86_MODEL_ANY && m->model != c->x86_model)
+			continue;
+		if (m->feature != X86_FEATURE_ANY && !boot_cpu_has(m->feature))
+			continue;
+		return (m);
+	}
+	return (NULL);
 }

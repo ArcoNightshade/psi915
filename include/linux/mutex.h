@@ -27,6 +27,7 @@
 #include <linux/atomic.h>
 #include <linux/refcount.h>
 #include <linux/bug.h>
+#include <linux/list.h>
 
 struct mutex {
 	lkpi_plat_mutex_t	m;

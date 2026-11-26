@@ -57,6 +57,7 @@
 #define	__percpu
 #define	__bitwise
 #define	__counted_by(m)
+#define	fallthrough		__attribute__((__fallthrough__))
 #define	__nonstring
 #define	__randomize_layout
 #define	__no_randomize_layout

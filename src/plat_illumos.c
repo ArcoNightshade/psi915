@@ -30,6 +30,7 @@
 #include <sys/signal.h>
 #include <sys/disp.h>
 #include <sys/systm.h>
+#include <sys/cred.h>
 
 #include <linuxkpi/platform.h>
 
@@ -197,6 +198,15 @@ lkpi_plat_sleep_ns(uint64_t ns)
 	lkpi_plat_mutex_exit(&m);
 	lkpi_plat_cv_destroy(&cv);
 	lkpi_plat_mutex_destroy(&m);
+}
+
+/* Privileged caller (capable()): drv_priv(9F) on the thread's credentials. */
+bool
+lkpi_plat_privileged(void)
+{
+	if (servicing_interrupt())
+		return (false);
+	return (drv_priv(CRED()) == 0);
 }
 
 #endif /* LINUXKPI_ILLUMOS_KERNEL */

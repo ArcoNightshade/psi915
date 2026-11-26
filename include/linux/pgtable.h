@@ -33,6 +33,11 @@
 
 #define	LKPI_HAVE_PGPROT	1
 
+/* x86 page-table cache bits (PAT index bits, used for GTT PPAT setup). */
+#define	_PAGE_PWT		(1UL << 3)
+#define	_PAGE_PCD		(1UL << 4)
+#define	_PAGE_PAT		(1UL << 7)
+
 enum lkpi_cache_mode {
 	LKPI_CACHE_WB = 0,	/* write-back (vm_get_page_prot) */
 	LKPI_CACHE_WC = 1,	/* write-combining (pgprot_writecombine) */

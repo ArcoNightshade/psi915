@@ -10,6 +10,7 @@
 #define	_LINUXKPI_LINUX_MOD_DEVICETABLE_H_
 
 #include <linux/types.h>
+#include <linux/uuid.h>
 
 struct dmi_strmatch {
 	unsigned char	slot:7;

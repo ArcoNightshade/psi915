@@ -38,6 +38,11 @@
 #define	_IOW(type, nr, t)	_IOC(_IOC_WRITE, (type), (nr), _IOC_TYPECHECK(t))
 #define	_IOWR(type, nr, t)						\
 	_IOC(_IOC_READ | _IOC_WRITE, (type), (nr), _IOC_TYPECHECK(t))
+#define	IOC_IN		(_IOC_WRITE << _IOC_DIRSHIFT)
+#define	IOC_OUT		(_IOC_READ << _IOC_DIRSHIFT)
+#define	IOC_INOUT	((_IOC_WRITE | _IOC_READ) << _IOC_DIRSHIFT)
+#define	IOCSIZE_MASK	(_IOC_SIZEMASK << _IOC_SIZESHIFT)
+#define	IOCSIZE_SHIFT	(_IOC_SIZESHIFT)
 #define	_IOC_DIR(nr)		(((nr) >> _IOC_DIRSHIFT) & _IOC_DIRMASK)
 #define	_IOC_TYPE(nr)		(((nr) >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)
 #define	_IOC_NR(nr)		(((nr) >> _IOC_NRSHIFT) & _IOC_NRMASK)

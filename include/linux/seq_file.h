@@ -57,9 +57,13 @@ lkpi_seq_init(struct seq_file *m, char *buf, size_t size)
 #define	DEFINE_SEQ_ATTRIBUTE(name)					\
 	static inline void *__maybe_unused name##_lkpi_ops_ref(void)	\
 	{ return ((void *)&name##_sops); }
-#define	single_open(f, show, data)	((void)(show), -ENODEV)
-#define	single_release(i, f)		(0)
-#define	seq_read			NULL
-#define	seq_lseek			NULL
+/* No file ever reads through these (no debugfs/procfs). */
+int single_open(struct lkpi_file *f, int (*show)(struct seq_file *, void *),
+    void *data);
+int single_release(struct inode *inode, struct lkpi_file *f);
+int seq_release(struct inode *inode, struct lkpi_file *f);
+long seq_read(struct lkpi_file *f, char __user *buf, size_t size,
+    long long *ppos);
+long long seq_lseek(struct lkpi_file *f, long long off, int whence);
 
 #endif /* _LINUXKPI_LINUX_SEQ_FILE_H_ */

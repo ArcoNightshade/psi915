@@ -20,4 +20,7 @@ void lkpi_panic(const char *fmt, ...) __printf(1, 2)
 #define	panic(...)	lkpi_panic(__VA_ARGS__)
 #endif
 
+#define	oops_in_progress	(0)
+#define	panic_timeout		(0)
+
 #endif /* _LINUXKPI_LINUX_PANIC_H_ */

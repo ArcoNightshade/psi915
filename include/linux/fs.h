@@ -29,11 +29,10 @@
 #include <linuxkpi/itree.h>
 
 #include <linux/fcntl.h>
+#include <linux/capability.h>
+#include <linux/uidgid.h>
 
-typedef long long	lkpi_loff_t;
-#define	loff_t		lkpi_loff_t
 typedef unsigned int	fmode_t;
-typedef unsigned short	umode_t;
 typedef void		*fl_owner_t;
 
 /* Linux kdev_t: 12-bit major, 20-bit minor (in-kernel encoding). */
@@ -95,8 +94,17 @@ struct path {
 	struct dentry		*dentry;
 };
 
+typedef unsigned int fop_flags_t;
+#define	FOP_BUFFER_RASYNC	((fop_flags_t)1 << 0)
+#define	FOP_BUFFER_WASYNC	((fop_flags_t)1 << 1)
+#define	FOP_MMAP_SYNC		((fop_flags_t)1 << 2)
+#define	FOP_DIO_PARALLEL_WRITE	((fop_flags_t)1 << 3)
+#define	FOP_HUGE_PAGES		((fop_flags_t)1 << 4)
+#define	FOP_UNSIGNED_OFFSET	((fop_flags_t)1 << 5)
+
 struct file_operations {
 	struct lkpi_module	*owner;
+	fop_flags_t	fop_flags;
 	loff_t		(*llseek)(struct lkpi_file *, loff_t, int);
 	ssize_t		(*read)(struct lkpi_file *, char __user *, size_t,
 			    loff_t *);
@@ -264,7 +272,45 @@ stream_open(struct inode *ip, struct lkpi_file *f)
 	return (nonseekable_open(ip, f));
 }
 
+/* No 32-bit compat ioctls (docs/09 5.9). */
+#define	compat_ptr_ioctl	NULL
+
 loff_t noop_llseek(struct lkpi_file *f, loff_t off, int whence);
 loff_t no_llseek(struct lkpi_file *f, loff_t off, int whence);
+
+/*
+ * Pseudo file systems (anonymous inodes and files of dma-buf, sync_file
+ * and DRM); moved from drmglue (docs/10, R1). Implemented in
+ * drmglue/src/pseudofs.c.
+ */
+struct fs_context;
+struct super_operations;
+
+struct super_block {
+	unsigned long		s_magic;
+	const struct dentry_operations *s_d_op;
+	const struct super_operations *s_op;
+	struct file_system_type	*s_type;
+	atomic_long_t		s_lkpi_next_ino;
+};
+
+#define	FS_REQUIRES_DEV		1
+#define	FS_USERNS_MOUNT		8
+
+struct file_system_type {
+	const char	*name;
+	int		fs_flags;
+	int		(*init_fs_context)(struct fs_context *);
+	void		(*kill_sb)(struct super_block *);
+	struct lkpi_module *owner;
+};
+
+void kill_anon_super(struct super_block *sb);
+struct inode *alloc_anon_inode(struct super_block *sb);
+void iput(struct inode *ip);
+void ihold(struct inode *ip);
+void inode_set_bytes(struct inode *ip, loff_t bytes);
+struct lkpi_file *alloc_file_pseudo(struct inode *ip, struct vfsmount *mnt,
+    const char *name, int flags, const struct file_operations *fops);
 
 #endif /* _LINUXKPI_LINUX_FS_H_ */
