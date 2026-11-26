@@ -4,7 +4,6 @@ direction	symbol	kind	via	upstream_EXPORT_SYMBOL	defined_in	users	user_files
 gpl->main	dma_fence_add_callback	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	6	drm/drivers/gpu/drm/drm_syncobj.c i915/drivers/gpu/drm/i915/display/intel_fb.c i915/drivers/gpu/drm/i915/gem/i915_gem_ttm_move.c i915/drivers/gpu/drm/i915/gt/intel_engine_pm.c i915/drivers/gpu/drm/i915/i915_request.c i915/drivers/gpu/drm/i915/i915_sw_fence.c
 gpl->main	dma_fence_context_alloc	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	5	drm/drivers/dma-buf/dma-resv.c drm/drivers/gpu/drm/drm_crtc.c i915/drivers/gpu/drm/i915/gt/intel_execlists_submission.c i915/drivers/gpu/drm/i915/gt/intel_timeline.c i915/drivers/gpu/drm/i915/gt/uc/intel_guc_submission.c
 gpl->main	dma_fence_init	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	5	drm/drivers/gpu/drm/drm_crtc.c i915/drivers/gpu/drm/i915/gem/i915_gem_ttm_move.c i915/drivers/gpu/drm/i915/i915_request.c i915/drivers/gpu/drm/i915/i915_sw_fence_work.c i915/drivers/gpu/drm/i915/i915_vma_resource.c
-gpl->main	drm_lease_held	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	5	drm/drivers/gpu/drm/drm_crtc.c drm/drivers/gpu/drm/drm_encoder.c drm/drivers/gpu/drm/drm_mode_config.c drm/drivers/gpu/drm/drm_plane.c drm/drivers/gpu/drm/drm_vblank.c
 gpl->main	dma_fence_signal	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	4	drm/drivers/gpu/drm/drm_file.c i915/drivers/gpu/drm/i915/gem/i915_gem_ttm_move.c i915/drivers/gpu/drm/i915/i915_sw_fence_work.c i915/drivers/gpu/drm/i915/i915_vma_resource.c
 gpl->main	dma_fence_wait_timeout	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	4	drm/drivers/dma-buf/dma-resv.c i915/drivers/gpu/drm/i915/display/intel_display.c i915/drivers/gpu/drm/i915/gem/i915_gem_wait.c i915/drivers/gpu/drm/i915/gt/intel_gt_requests.c
 gpl->main	dma_buf_put	func	function/variable	yes	gpl/drivers/dma-buf/dma-buf.c	3	drm/drivers/gpu/drm/drm_gem.c drm/drivers/gpu/drm/drm_prime.c i915/drivers/gpu/drm/i915/gem/i915_gem_dmabuf.c
@@ -18,11 +17,6 @@ gpl->main	dma_fence_chain_find_seqno	func	function/variable	yes	gpl/drivers/dma-
 gpl->main	dma_fence_chain_init	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence-chain.c	2	drm/drivers/gpu/drm/drm_syncobj.c i915/drivers/gpu/drm/i915/display/intel_atomic_plane.c
 gpl->main	dma_fence_enable_sw_signaling	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	2	drm/drivers/gpu/drm/ttm/ttm_bo.c i915/drivers/gpu/drm/i915/i915_active.c
 gpl->main	dma_fence_remove_callback	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	2	drm/drivers/gpu/drm/drm_syncobj.c i915/drivers/gpu/drm/i915/i915_request.c
-gpl->main	drm_lease_filter_crtcs	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	2	drm/drivers/gpu/drm/drm_encoder.c drm/drivers/gpu/drm/drm_plane.c
-gpl->main	drm_sysfs_connector_hotplug_event	func	function/variable	yes	gpl/drivers/gpu/drm/drm_sysfs.c gpl/include/drm/drm_sysfs.h	2	drm/drivers/gpu/drm/drm_connector.c drm/drivers/gpu/drm/drm_probe_helper.c
-gpl->main	drm_sysfs_hotplug_event	func	function/variable	yes	gpl/drivers/gpu/drm/drm_sysfs.c gpl/include/drm/drm_sysfs.h	2	drm/drivers/gpu/drm/drm_connector.c drm/drivers/gpu/drm/drm_probe_helper.c
-gpl->main	drm_writeback_cleanup_job	func	function/variable	yes	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h	2	drm/drivers/gpu/drm/drm_atomic.c drm/drivers/gpu/drm/drm_atomic_state_helper.c
-gpl->main	_drm_lease_held	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_mode_object.c
 gpl->main	dma_buf_export	func	function/variable	yes	gpl/drivers/dma-buf/dma-buf.c	1	drm/drivers/gpu/drm/drm_prime.c
 gpl->main	dma_buf_get	func	function/variable	yes	gpl/drivers/dma-buf/dma-buf.c	1	drm/drivers/gpu/drm/drm_prime.c
 gpl->main	dma_buf_map_attachment	func	function/variable	yes	gpl/drivers/dma-buf/dma-buf.c	1	i915/drivers/gpu/drm/i915/gem/i915_gem_dmabuf.c
@@ -37,26 +31,10 @@ gpl->main	dma_fence_free	func	function/variable	yes	gpl/drivers/dma-buf/dma-fenc
 gpl->main	dma_fence_get_stub	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	1	drm/drivers/gpu/drm/drm_syncobj.c
 gpl->main	dma_fence_signal_locked	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	1	i915/drivers/gpu/drm/i915/i915_request.c
 gpl->main	dma_fence_signal_timestamp	func	function/variable	yes	gpl/drivers/dma-buf/dma-fence.c	1	drm/drivers/gpu/drm/drm_file.c
-gpl->main	drm_lease_destroy	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_auth.c
-gpl->main	drm_lease_owner	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_auth.c
-gpl->main	drm_lease_revoke	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_auth.c
-gpl->main	drm_mode_create_lease_ioctl	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_ioctl.c
-gpl->main	drm_mode_get_lease_ioctl	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_ioctl.c
-gpl->main	drm_mode_list_lessees_ioctl	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_ioctl.c
-gpl->main	drm_mode_revoke_lease_ioctl	func	function/variable	no	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h	1	drm/drivers/gpu/drm/drm_ioctl.c
-gpl->main	drm_sysfs_connector_property_event	func	function/variable	yes	gpl/drivers/gpu/drm/drm_sysfs.c gpl/include/drm/drm_sysfs.h	1	drm/drivers/gpu/drm/drm_connector.c
-gpl->main	drm_writeback_get_out_fence	func	function/variable	yes	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h	1	drm/drivers/gpu/drm/drm_atomic_uapi.c
-gpl->main	drm_writeback_prepare_job	func	function/variable	yes	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h	1	drm/drivers/gpu/drm/drm_atomic_helper.c
-gpl->main	drm_writeback_set_fb	func	function/variable	no	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h	1	drm/drivers/gpu/drm/drm_atomic_uapi.c
-gpl->main	drmm_kstrdup	func	function/variable	yes	gpl/drivers/gpu/drm/drm_managed.c gpl/include/drm/drm_managed.h	1	drm/drivers/gpu/drm/drm_drv.c
-gpl->main	video_firmware_drivers_only	func	function/variable	yes	gpl/drivers/video/nomodeset.c	1	drm/include/drm/drm_drv.h
-gpl->main	video_get_options	func	function/variable	yes	gpl/drivers/video/cmdline.c	1	drm/drivers/gpu/drm/drm_connector.c
-gpl->main	drmm_add_action_or_reset	fmacro	header	no	gpl/include/drm/drm_managed.h	12	drm/drivers/gpu/drm/drm_connector.c drm/drivers/gpu/drm/drm_crtc.c drm/drivers/gpu/drm/drm_drv.c drm/drivers/gpu/drm/drm_encoder.c drm/drivers/gpu/drm/drm_mode_config.c drm/drivers/gpu/drm/drm_plane.c drm/drivers/gpu/drm/drm_probe_helper.c drm/drivers/gpu/drm/drm_vblank.c drm/drivers/gpu/drm/ttm/ttm_bo_vm.c i915/drivers/gpu/drm/i915/i915_driver.c i915/drivers/gpu/drm/i915/intel_uncore.c i915/drivers/gpu/drm/i915/soc/intel_gmch.c
 gpl->main	mipi_dsi_device	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	8	drm/drivers/gpu/drm/drm_mipi_dsi.c i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi.h i915/drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.c i915/drivers/gpu/drm/i915/display/intel_dsi_vbt.c i915/drivers/gpu/drm/i915/display/intel_vdsc.c i915/drivers/gpu/drm/i915/display/vlv_dsi.c
 gpl->main	hdcp_port_data	tag	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	5	i915/drivers/gpu/drm/i915/display/intel_display_types.h i915/drivers/gpu/drm/i915/display/intel_dp_hdcp.c i915/drivers/gpu/drm/i915/display/intel_hdcp.c i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.h
 gpl->main	mipi_dsi_host_ops	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	5	drm/drivers/gpu/drm/drm_mipi_dsi.c i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi.h i915/drivers/gpu/drm/i915/display/vlv_dsi.c
 gpl->main	MIPI_DSI_MODE_LPM	macro	header	no	gpl/include/drm/drm_mipi_dsi.h	4	drm/drivers/gpu/drm/drm_mipi_dsi.c i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.c i915/drivers/gpu/drm/i915/display/intel_dsi_vbt.c
-gpl->main	drm_writeback_job	tag	header	no	gpl/include/drm/drm_writeback.h	4	drm/drivers/gpu/drm/drm_atomic.c drm/drivers/gpu/drm/drm_atomic_helper.c drm/include/drm/drm_connector.h drm/include/drm/drm_modeset_helper_vtables.h
 gpl->main	mipi_dsi_host	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	4	drm/drivers/gpu/drm/drm_mipi_dsi.c i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi.h i915/drivers/gpu/drm/i915/display/vlv_dsi.c
 gpl->main	mipi_dsi_pixel_format	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	4	i915/drivers/gpu/drm/i915/display/intel_dsi.h i915/drivers/gpu/drm/i915/display/intel_dsi_vbt.c i915/drivers/gpu/drm/i915/display/vlv_dsi.c i915/drivers/gpu/drm/i915/display/vlv_dsi_pll.c
 gpl->main	MIPI_DSI_FMT_RGB565	enum	header	no	gpl/include/drm/drm_mipi_dsi.h	3	i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi_vbt.c i915/drivers/gpu/drm/i915/display/vlv_dsi.c
@@ -68,7 +46,6 @@ gpl->main	i915_hdcp_arbiter	tag	header	no	gpl/include/drm/intel/i915_hdcp_interf
 gpl->main	mipi_dsi_msg	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	3	drm/drivers/gpu/drm/drm_mipi_dsi.c i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/vlv_dsi.c
 gpl->main	mipi_dsi_packet	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	3	drm/drivers/gpu/drm/drm_mipi_dsi.c i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/vlv_dsi.c
 gpl->main	drm_gem_plane_helper_prepare_fb	func	header	no	gpl/include/drm/drm_gem_atomic_helper.h	2	drm/drivers/gpu/drm/drm_atomic_helper.c i915/drivers/gpu/drm/i915/display/intel_atomic_plane.c
-gpl->main	drm_writeback_connector	tag	header	no	gpl/include/drm/drm_writeback.h	2	drm/drivers/gpu/drm/drm_atomic_uapi.c drm/include/drm/drm_modeset_helper_vtables.h
 gpl->main	ACCEL_MAX_MINORS	macro	header	no	gpl/include/drm/drm_accel.h	1	drm/drivers/gpu/drm/drm_drv.c
 gpl->main	FW_HDCP_STATUS_SUCCESS	enum	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
 gpl->main	HDCP_API_VERSION	macro	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
@@ -101,7 +78,6 @@ gpl->main	WIRED_REPEATER_AUTH_STREAM_REQ	enum	header	no	gpl/include/drm/intel/i9
 gpl->main	WIRED_VALIDATE_LOCALITY	enum	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
 gpl->main	WIRED_VERIFY_RECEIVER_CERT	enum	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
 gpl->main	WIRED_VERIFY_REPEATER	enum	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
-gpl->main	drmm_add_action	fmacro	header	no	gpl/include/drm/drm_managed.h	1	drm/drivers/gpu/drm/drm_gem.c
 gpl->main	hdcp_ddi	tag	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp.c
 gpl->main	hdcp_transcoder	tag	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp.c
 gpl->main	hdcp_wired_protocol	tag	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_shim.h
@@ -114,7 +90,6 @@ gpl->main	intel_gmch_gtt_insert_page	func	header	no	gpl/include/drm/intel/intel-
 gpl->main	intel_gmch_gtt_insert_sg_entries	func	header	no	gpl/include/drm/intel/intel-gtt.h	1	i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c
 gpl->main	intel_gmch_probe	func	header	no	gpl/include/drm/intel/intel-gtt.h	1	i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c
 gpl->main	intel_gmch_remove	func	header	no	gpl/include/drm/intel/intel-gtt.h	1	i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c
-gpl->main	ips_link_to_i915_driver	func	header	no	gpl/drivers/platform/x86/intel_ips.h	1	i915/drivers/gpu/drm/i915/gt/intel_rps.c
 gpl->main	mipi_dsi_compression_algo	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	1	drm/drivers/gpu/drm/drm_mipi_dsi.c
 gpl->main	mipi_dsi_dcs_tear_mode	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	1	drm/drivers/gpu/drm/drm_mipi_dsi.c
 gpl->main	mipi_dsi_device_info	tag	header	no	gpl/include/drm/drm_mipi_dsi.h	1	drm/drivers/gpu/drm/drm_mipi_dsi.c
@@ -143,7 +118,6 @@ gpl->main	wired_cmd_verify_receiver_cert_in	tag	header	no	gpl/include/drm/intel/
 gpl->main	wired_cmd_verify_receiver_cert_out	tag	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
 gpl->main	wired_cmd_verify_repeater_in	tag	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
 gpl->main	wired_cmd_verify_repeater_out	tag	header	no	gpl/include/drm/intel/i915_hdcp_interface.h	1	i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c
-main->gpl	drm_object_attach_property	func	function/variable	yes	drm/drivers/gpu/drm/drm_mode_object.c drm/include/drm/drm_mode_object.h	2	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c gpl/drivers/gpu/drm/drm_writeback.c
 main->gpl	dma_resv_add_fence	func	function/variable	yes	drm/drivers/dma-buf/dma-resv.c	1	gpl/drivers/dma-buf/dma-buf.c
 main->gpl	dma_resv_fini	func	function/variable	yes	drm/drivers/dma-buf/dma-resv.c	1	gpl/drivers/dma-buf/dma-buf.c
 main->gpl	dma_resv_get_singleton	func	function/variable	yes	drm/drivers/dma-buf/dma-resv.c	1	gpl/drivers/dma-buf/dma-buf.c
@@ -152,15 +126,6 @@ main->gpl	dma_resv_reserve_fences	func	function/variable	yes	drm/drivers/dma-buf
 main->gpl	dma_resv_wait_timeout	func	function/variable	yes	drm/drivers/dma-buf/dma-resv.c	1	gpl/drivers/dma-buf/dma-buf.c
 main->gpl	drm_any_plane_has_format	func	function/variable	yes	drm/drivers/gpu/drm/drm_plane.c drm/include/drm/drm_plane.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_atomic_helper_dirtyfb	func	function/variable	yes	drm/drivers/gpu/drm/drm_damage_helper.c drm/include/drm/drm_damage_helper.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
-main->gpl	drm_connector_attach_encoder	func	function/variable	yes	drm/drivers/gpu/drm/drm_connector.c drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_connector_cleanup	func	function/variable	yes	drm/drivers/gpu/drm/drm_connector.c drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_connector_init	func	function/variable	yes	drm/drivers/gpu/drm/drm_connector.c drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_connector_list_iter_begin	func	function/variable	yes	drm/drivers/gpu/drm/drm_connector.c drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	drm_connector_list_iter_end	func	function/variable	yes	drm/drivers/gpu/drm/drm_connector.c drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	drm_edid_connector_property_show	func	function/variable	no	drm/drivers/gpu/drm/drm_crtc_internal.h drm/drivers/gpu/drm/drm_edid.c	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	drm_encoder_cleanup	func	function/variable	yes	drm/drivers/gpu/drm/drm_encoder.c drm/include/drm/drm_encoder.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_encoder_init	func	function/variable	yes	drm/drivers/gpu/drm/drm_encoder.c drm/include/drm/drm_encoder.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_file_get_master	func	function/variable	yes	drm/drivers/gpu/drm/drm_auth.c drm/include/drm/drm_auth.h	1	gpl/drivers/gpu/drm/drm_lease.c
 main->gpl	drm_format_info_bpp	func	function/variable	yes	drm/drivers/gpu/drm/drm_fourcc.c drm/include/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_format_info_min_pitch	func	function/variable	yes	drm/drivers/gpu/drm/drm_fourcc.c drm/include/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_framebuffer_cleanup	func	function/variable	yes	drm/drivers/gpu/drm/drm_framebuffer.c drm/include/drm/drm_framebuffer.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
@@ -170,75 +135,28 @@ main->gpl	drm_gem_mmap	func	function/variable	yes	drm/drivers/gpu/drm/drm_gem.c 
 main->gpl	drm_gem_object_lookup	func	function/variable	yes	drm/drivers/gpu/drm/drm_gem.c drm/include/drm/drm_gem.h i915/drivers/gpu/drm/i915/gem/i915_gem_object.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_gem_vmap_unlocked	func	function/variable	yes	drm/drivers/gpu/drm/drm_gem.c drm/include/drm/drm_gem.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_gem_vunmap_unlocked	func	function/variable	yes	drm/drivers/gpu/drm/drm_gem.c drm/include/drm/drm_gem.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
-main->gpl	drm_get_connector_status_name	func	function/variable	yes	drm/drivers/gpu/drm/drm_connector.c drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
 main->gpl	drm_get_format_info	func	function/variable	yes	drm/drivers/gpu/drm/drm_fourcc.c drm/include/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_helper_mode_fill_fb_struct	func	function/variable	yes	drm/drivers/gpu/drm/drm_modeset_helper.c drm/include/drm/drm_modeset_helper.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_ioctl	func	function/variable	yes	drm/drivers/gpu/drm/drm_ioctl.c drm/include/drm/drm_ioctl.h	1	gpl/include/drm/drm_accel.h
-main->gpl	drm_master_create	func	function/variable	no	drm/drivers/gpu/drm/drm_auth.c drm/include/drm/drm_auth.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_master_get	func	function/variable	yes	drm/drivers/gpu/drm/drm_auth.c drm/include/drm/drm_auth.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_master_put	func	function/variable	yes	drm/drivers/gpu/drm/drm_auth.c drm/include/drm/drm_auth.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_mode_obj_find_prop_id	func	function/variable	no	drm/drivers/gpu/drm/drm_crtc_internal.h drm/drivers/gpu/drm/drm_mode_object.c	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	drm_mode_object_find	func	function/variable	yes	drm/drivers/gpu/drm/drm_mode_object.c drm/include/drm/drm_mode_object.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_mode_object_lease_required	func	function/variable	no	drm/drivers/gpu/drm/drm_mode_object.c drm/include/drm/drm_mode_object.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_mode_object_put	func	function/variable	yes	drm/drivers/gpu/drm/drm_mode_object.c drm/include/drm/drm_mode_object.h	1	gpl/drivers/gpu/drm/drm_lease.c
+main->gpl	drm_object_attach_property	func	function/variable	yes	drm/drivers/gpu/drm/drm_mode_object.c drm/include/drm/drm_mode_object.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	drm_poll	func	function/variable	yes	drm/drivers/gpu/drm/drm_file.c drm/include/drm/drm_file.h	1	gpl/include/drm/drm_accel.h
-main->gpl	drm_property_blob_put	func	function/variable	yes	drm/drivers/gpu/drm/drm_property.c drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_property_create	func	function/variable	yes	drm/drivers/gpu/drm/drm_property.c drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_property_create_blob	func	function/variable	yes	drm/drivers/gpu/drm/drm_property.c drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/drm_writeback.c
 main->gpl	drm_property_create_enum	func	function/variable	yes	drm/drivers/gpu/drm/drm_property.c drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	drm_property_create_object	func	function/variable	yes	drm/drivers/gpu/drm/drm_property.c drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_property_create_range	func	function/variable	yes	drm/drivers/gpu/drm/drm_property.c drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/drm_writeback.c
 main->gpl	drm_read	func	function/variable	yes	drm/drivers/gpu/drm/drm_file.c drm/include/drm/drm_file.h	1	gpl/include/drm/drm_accel.h
 main->gpl	drm_release	func	function/variable	yes	drm/drivers/gpu/drm/drm_file.c drm/include/drm/drm_file.h	1	gpl/include/drm/drm_accel.h
-main->gpl	i915_gem_evict_vm	func	function/variable	no	i915/drivers/gpu/drm/i915/i915_gem_evict.c i915/drivers/gpu/drm/i915/i915_gem_evict.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_gem_shrink	func	function/variable	no	i915/drivers/gpu/drm/i915/gem/i915_gem_shrinker.c i915/drivers/gpu/drm/i915/gem/i915_gem_shrinker.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_ppgtt_create	func	function/variable	no	i915/drivers/gpu/drm/i915/gt/intel_gtt.h i915/drivers/gpu/drm/i915/gt/intel_ppgtt.c	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_request_add	func	function/variable	no	i915/drivers/gpu/drm/i915/i915_request.c i915/drivers/gpu/drm/i915/i915_request.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_request_retire	func	function/variable	no	i915/drivers/gpu/drm/i915/i915_request.c i915/drivers/gpu/drm/i915/i915_request.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_vma_bind	func	function/variable	no	i915/drivers/gpu/drm/i915/i915_vma.c i915/drivers/gpu/drm/i915/i915_vma.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_vma_unbind	func	function/variable	no	i915/drivers/gpu/drm/i915/i915_vma.c i915/drivers/gpu/drm/i915/i915_vma.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	intel_crtc_for_pipe	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_crtc.c i915/drivers/gpu/drm/i915/display/intel_crtc.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_crtc_get_vblank_counter	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_crtc.c i915/drivers/gpu/drm/i915/display/intel_crtc.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_get_crtc_scanline	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_vblank.c i915/drivers/gpu/drm/i915/display/intel_vblank.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_pipe_update_end	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_crtc.c i915/drivers/gpu/drm/i915/display/intel_crtc.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_pipe_update_start	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_crtc.c i915/drivers/gpu/drm/i915/display/intel_crtc.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_plane_async_flip	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_atomic_plane.c i915/drivers/gpu/drm/i915/display/intel_atomic_plane.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_plane_disable_arm	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_atomic_plane.c i915/drivers/gpu/drm/i915/display/intel_atomic_plane.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_plane_update_arm	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_atomic_plane.c i915/drivers/gpu/drm/i915/display/intel_atomic_plane.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_plane_update_noarm	func	function/variable	no	i915/drivers/gpu/drm/i915/display/intel_atomic_plane.c i915/drivers/gpu/drm/i915/display/intel_atomic_plane.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	drm_device	tag	header	no	drm/include/drm/drm_device.h	14	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/drivers/gpu/drm/drm_lease.c gpl/drivers/gpu/drm/drm_managed.c gpl/drivers/gpu/drm/drm_sysfs.c gpl/drivers/gpu/drm/drm_writeback.c gpl/drivers/gpu/drm/i915/display/intel_acpi.c gpl/include/drm/drm_accel.h gpl/include/drm/drm_format_helper.h gpl/include/drm/drm_lease.h gpl/include/drm/drm_managed.h gpl/include/drm/drm_of.h gpl/include/drm/drm_sysfs.h gpl/include/drm/drm_writeback.h
-main->gpl	drm_connector	tag	header	no	drm/include/drm/drm_connector.h	6	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c gpl/drivers/gpu/drm/drm_sysfs.c gpl/drivers/gpu/drm/drm_writeback.c gpl/drivers/gpu/drm/i915/display/intel_acpi.c gpl/include/drm/drm_sysfs.h gpl/include/drm/drm_writeback.h
-main->gpl	drm_file	tag	header	no	drm/include/drm/drm_file.h	4	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/drivers/gpu/drm/drm_lease.c gpl/drivers/gpu/drm/drm_trace.h gpl/include/drm/drm_lease.h
-main->gpl	drm_framebuffer	tag	header	no	drm/include/drm/drm_framebuffer.h	4	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_format_helper.h gpl/include/drm/drm_writeback.h
-main->gpl	drm_property	tag	header	no	drm/include/drm/drm_property.h	4	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c gpl/drivers/gpu/drm/drm_sysfs.c gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_sysfs.h
-main->gpl	drm_connector_state	tag	header	no	drm/include/drm/drm_connector.h	3	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h
-main->gpl	drm_encoder	tag	header	no	drm/include/drm/drm_encoder.h	3	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_of.h gpl/include/drm/drm_writeback.h
-main->gpl	DRM_DEBUG	fmacro	header	no	drm/include/drm/drm_print.h	2	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	DRM_DEBUG_KMS	fmacro	header	no	drm/include/drm/drm_print.h	2	gpl/drivers/gpu/drm/drm_lease.c gpl/drivers/gpu/drm/i915/display/intel_acpi.c
+main->gpl	drm_sysfs_connector_property_event	func	function/variable	yes	drm_bsd/drivers/gpu/drm/drm_sysfs.c drm_bsd/include/drm/drm_sysfs.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
+main->gpl	drm_device	tag	header	no	drm/include/drm/drm_device.h	5	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/include/drm/drm_accel.h gpl/include/drm/drm_format_helper.h gpl/include/drm/drm_of.h
 main->gpl	DRM_FORMAT_MAX_PLANES	macro	header	no	drm/include/drm/drm_fourcc.h	2	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/include/drm/drm_gem_atomic_helper.h
-main->gpl	drm_connector_funcs	tag	header	no	drm/include/drm/drm_connector.h	2	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h
-main->gpl	drm_dbg_kms	fmacro	header	no	drm/include/drm/drm_print.h	2	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	drm_dbg_lease	fmacro	header	no	drm/include/drm/drm_print.h	2	gpl/drivers/gpu/drm/drm_lease.c gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	drm_encoder_helper_funcs	tag	header	no	drm/include/drm/drm_modeset_helper_vtables.h	2	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h
-main->gpl	drm_err	fmacro	header	no	drm/include/drm/drm_print.h	2	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/drivers/gpu/drm/drm_sysfs.c
 main->gpl	drm_format_info	tag	header	no	drm/include/drm/drm_fourcc.h	2	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/include/drm/drm_format_helper.h
-main->gpl	drm_master	tag	header	no	drm/include/drm/drm_auth.h	2	gpl/drivers/gpu/drm/drm_lease.c gpl/include/drm/drm_lease.h
-main->gpl	drm_property_blob	tag	header	no	drm/include/drm/drm_property.h	2	gpl/drivers/gpu/drm/drm_writeback.c gpl/include/drm/drm_writeback.h
-main->gpl	drm_rect	tag	header	no	drm/include/drm/drm_rect.h	2	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h gpl/include/drm/drm_format_helper.h
-main->gpl	intel_display	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_display_core.h	2	gpl/drivers/gpu/drm/i915/display/intel_acpi.c gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
+main->gpl	drm_framebuffer	tag	header	no	drm/include/drm/drm_framebuffer.h	2	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c gpl/include/drm/drm_format_helper.h
 main->gpl	AFBC_FORMAT_MOD_BLOCK_SIZE_16x16	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	AFBC_FORMAT_MOD_BLOCK_SIZE_32x8	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	AFBC_FORMAT_MOD_BLOCK_SIZE_32x8_64x4	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	AFBC_FORMAT_MOD_BLOCK_SIZE_64x4	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	AFBC_FORMAT_MOD_BLOCK_SIZE_MASK	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	AFBC_FORMAT_MOD_TILED	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
-main->gpl	DRIVER_MODESET	enum	header	no	drm/include/drm/drm_drv.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	DRM_DEBUG_DRIVER	fmacro	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
+main->gpl	DRM_DEBUG	fmacro	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	DRM_ENUM_NAME_FN	fmacro	header	no	drm/include/drm/drm_mode_object.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	DRM_ERROR	fmacro	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	DRM_FORCE_OFF	enum	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	DRM_FORCE_ON	enum	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	DRM_FORCE_ON_DIGITAL	enum	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
 main->gpl	DRM_FORMAT_VUY101010	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	DRM_FORMAT_YUV420_10BIT	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	DRM_FORMAT_YUV420_8BIT	macro	header	no	drm/include/uapi/drm/drm_fourcc.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
@@ -253,45 +171,11 @@ main->gpl	DRM_HDCP_2_SRM_ID	macro	header	no	drm/include/drm/display/drm_hdcp.h	1
 main->gpl	DRM_HDCP_2_VRL_LENGTH_SIZE	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	DRM_HDCP_KSV_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	DRM_HDCP_SRM_ID_MASK	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	DRM_MAJOR	macro	header	no	drm/include/drm/drm_ioctl.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	DRM_MINOR_ACCEL	enum	header	no	drm/include/drm/drm_file.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	DRM_MINOR_RENDER	enum	header	no	drm/include/drm/drm_file.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	DRM_MODE_CONNECTOR_9PinDIN	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_Component	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_Composite	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_DSI	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_DVIA	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_DVID	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_DVII	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_DisplayPort	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_HDMIA	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_HDMIB	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_LVDS	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_SVIDEO	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_TV	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_Unknown	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_VGA	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_VIRTUAL	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	DRM_MODE_CONNECTOR_WRITEBACK	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	DRM_MODE_CONNECTOR_eDP	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
 main->gpl	DRM_MODE_CONTENT_PROTECTION_DESIRED	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	DRM_MODE_CONTENT_PROTECTION_ENABLED	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	DRM_MODE_CONTENT_PROTECTION_UNDESIRED	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	DRM_MODE_ENCODER_VIRTUAL	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_writeback.c
 main->gpl	DRM_MODE_HDCP_CONTENT_TYPE0	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
 main->gpl	DRM_MODE_HDCP_CONTENT_TYPE1	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	DRM_MODE_OBJECT_ANY	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	DRM_MODE_OBJECT_CONNECTOR	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	DRM_MODE_OBJECT_CRTC	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	DRM_MODE_OBJECT_FB	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	DRM_MODE_OBJECT_PLANE	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	DRM_MODE_PROP_ATOMIC	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	DRM_MODE_PROP_BLOB	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	DRM_MODE_PROP_IMMUTABLE	macro	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	DRM_RECT_ARG	fmacro	header	no	drm/include/drm/drm_rect.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	DRM_RECT_FMT	macro	header	no	drm/include/drm/drm_rect.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	DRM_RECT_FP_ARG	fmacro	header	no	drm/include/drm/drm_rect.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	DRM_RECT_FP_FMT	macro	header	no	drm/include/drm/drm_rect.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
 main->gpl	HDCP_2_2_E_DKEY_KS_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	HDCP_2_2_E_KH_KM_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	HDCP_2_2_E_KH_KM_M_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
@@ -308,54 +192,32 @@ main->gpl	HDCP_2_2_RXCAPS_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h
 main->gpl	HDCP_2_2_RXINFO_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	HDCP_2_2_SEQ_NUM_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	HDCP_2_2_V_PRIME_HALF_LEN	macro	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
-main->gpl	MISSING_CASE	fmacro	header	no	i915/drivers/gpu/drm/i915/i915_utils.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	PIN_MAPPABLE	macro	header	no	i915/drivers/gpu/drm/i915/i915_gem_gtt.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	PLANE_CURSOR	enum	header	no	i915/drivers/gpu/drm/i915/display/intel_display_limits.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	PLANE_PRIMARY	enum	header	no	i915/drivers/gpu/drm/i915/display/intel_display_limits.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	PLANE_SPRITE0	enum	header	no	i915/drivers/gpu/drm/i915/display/intel_display_limits.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	PLANE_SPRITE1	enum	header	no	i915/drivers/gpu/drm/i915/display/intel_display_limits.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	U64_MAX	enum	header	no	drm/include/drm/drm_mm.h	1	gpl/drivers/gpu/drm/drm_writeback.c
 main->gpl	drm_WARN_ON_ONCE	fmacro	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_afbc_framebuffer	tag	header	no	drm/include/drm/drm_framebuffer.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_bridge	tag	header	no	drm/include/drm/drm_bridge.h	1	gpl/include/drm/drm_of.h
 main->gpl	drm_compat_ioctl	macro	header	no	drm/include/drm/drm_ioctl.h	1	gpl/include/drm/drm_accel.h
-main->gpl	drm_connector_force	tag	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	drm_connector_helper_funcs	tag	header	no	drm/include/drm/drm_modeset_helper_vtables.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_connector_list_iter	tag	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	drm_connector_status	tag	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	drm_crtc	tag	header	no	drm/include/drm/drm_crtc.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_dbg_drmres	fmacro	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/drm_managed.c
-main->gpl	drm_display_mode	tag	header	no	drm/include/drm/drm_modes.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
+main->gpl	drm_connector	tag	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
+main->gpl	drm_connector_state	tag	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
+main->gpl	drm_dbg_kms	fmacro	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_dp_sideband_msg_req_body	tag	header	no	drm/include/drm/display/drm_dp_mst_helper.h	1	gpl/drivers/gpu/drm/display/drm_dp_mst_topology_internal.h
 main->gpl	drm_dp_sideband_msg_tx	tag	header	no	drm/include/drm/display/drm_dp_mst_helper.h	1	gpl/drivers/gpu/drm/display/drm_dp_mst_topology_internal.h
 main->gpl	drm_dsc_config	tag	header	no	drm/include/drm/display/drm_dsc.h	1	gpl/include/drm/drm_mipi_dsi.h
 main->gpl	drm_dsc_picture_parameter_set	tag	header	no	drm/include/drm/display/drm_dsc.h	1	gpl/include/drm/drm_mipi_dsi.h
-main->gpl	drm_encoder_funcs	tag	header	no	drm/include/drm/drm_encoder.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_for_each_connector_iter	fmacro	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
+main->gpl	drm_encoder	tag	header	no	drm/include/drm/drm_encoder.h	1	gpl/include/drm/drm_of.h
+main->gpl	drm_err	fmacro	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
+main->gpl	drm_file	tag	header	no	drm/include/drm/drm_file.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_framebuffer_funcs	tag	header	no	drm/include/drm/drm_framebuffer.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_gem_object	tag	header	no	drm/include/drm/drm_gem.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
 main->gpl	drm_get_content_protection_name	func	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	drm_get_dpms_name	func	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
 main->gpl	drm_get_hdcp_content_type_name	func	header	no	drm/include/drm/drm_connector.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	drm_i915_gem_object	tag	header	no	i915/drivers/gpu/drm/i915/gem/i915_gem_object_types.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	drm_i915_private	tag	header	no	i915/drivers/gpu/drm/i915/i915_drv.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	drm_minor	tag	header	no	drm/include/drm/drm_file.h	1	gpl/drivers/gpu/drm/drm_sysfs.c
-main->gpl	drm_mm_node	tag	header	no	drm/include/drm/drm_mm.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	drm_mode_config	tag	header	no	drm/include/drm/drm_mode_config.h	1	gpl/drivers/gpu/drm/drm_writeback.c
-main->gpl	drm_mode_create_lease	tag	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
 main->gpl	drm_mode_fb_cmd2	tag	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_gem_framebuffer_helper.c
-main->gpl	drm_mode_get_lease	tag	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_mode_list_lessees	tag	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_mode_object	tag	header	no	drm/include/drm/drm_mode_object.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	drm_mode_revoke_lease	tag	header	no	drm/include/uapi/drm/drm_mode.h	1	gpl/drivers/gpu/drm/drm_lease.c
 main->gpl	drm_panel	tag	header	no	drm/include/drm/drm_panel.h	1	gpl/include/drm/drm_of.h
 main->gpl	drm_plane	tag	header	no	drm/include/drm/drm_plane.h	1	gpl/include/drm/drm_gem_atomic_helper.h
 main->gpl	drm_plane_state	tag	header	no	drm/include/drm/drm_plane.h	1	gpl/include/drm/drm_gem_atomic_helper.h
 main->gpl	drm_printer	tag	header	no	drm/include/drm/drm_print.h	1	gpl/drivers/gpu/drm/display/drm_dp_mst_topology_internal.h
 main->gpl	drm_prop_enum_list	tag	header	no	drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	for_each_intel_connector_iter	fmacro	header	no	i915/drivers/gpu/drm/i915/display/intel_display.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	for_each_intel_crtc	fmacro	header	no	i915/drivers/gpu/drm/i915/display/intel_display.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	g4x_wm_values	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_wm_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
+main->gpl	drm_property	tag	header	no	drm/include/drm/drm_property.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
+main->gpl	drm_rect	tag	header	no	drm/include/drm/drm_rect.h	1	gpl/include/drm/drm_format_helper.h
 main->gpl	hdcp2_ake_init	tag	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	hdcp2_ake_no_stored_km	tag	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	hdcp2_ake_send_cert	tag	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
@@ -371,20 +233,3 @@ main->gpl	hdcp2_ske_send_eks	tag	header	no	drm/include/drm/display/drm_hdcp.h	1	
 main->gpl	hdcp2_streamid_type	tag	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	hdcp2_tx_caps	tag	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/include/drm/intel/i915_hdcp_interface.h
 main->gpl	hdcp_srm_header	tag	header	no	drm/include/drm/display/drm_hdcp.h	1	gpl/drivers/gpu/drm/display/drm_hdcp_helper.c
-main->gpl	i915_address_space	tag	header	no	i915/drivers/gpu/drm/i915/gt/intel_gtt.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_gem_context	tag	header	no	i915/drivers/gpu/drm/i915/gem/i915_gem_context_types.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_mmio_reg_offset	fmacro	header	no	i915/drivers/gpu/drm/i915/i915_reg_defs.h	1	gpl/drivers/gpu/drm/i915/intel_uncore_trace.h
-main->gpl	i915_reg_t	typedef	header	no	i915/drivers/gpu/drm/i915/i915_reg_defs.h	1	gpl/drivers/gpu/drm/i915/intel_uncore_trace.h
-main->gpl	i915_request	tag	header	no	i915/drivers/gpu/drm/i915/i915_request.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	i915_vma	tag	header	no	i915/drivers/gpu/drm/i915/i915_vma_types.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	intel_connector	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_display_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	intel_context	tag	header	no	i915/drivers/gpu/drm/i915/gt/intel_context_types.h	1	gpl/drivers/gpu/drm/i915/i915_trace.h
-main->gpl	intel_crtc	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_display_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	intel_panel	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_display_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	intel_plane	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_display_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	obj_to_crtc	fmacro	header	no	drm/include/drm/drm_crtc.h	1	gpl/drivers/gpu/drm/drm_lease.c
-main->gpl	pipe	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_display_limits.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	pipe_name	fmacro	header	no	i915/drivers/gpu/drm/i915/display/intel_display.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	to_intel_connector	fmacro	header	no	i915/drivers/gpu/drm/i915/display/intel_display_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_acpi.c
-main->gpl	to_intel_display	fmacro	header	no	i915/drivers/gpu/drm/i915/display/intel_display_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
-main->gpl	vlv_wm_values	tag	header	no	i915/drivers/gpu/drm/i915/display/intel_wm_types.h	1	gpl/drivers/gpu/drm/i915/display/intel_display_trace.h
