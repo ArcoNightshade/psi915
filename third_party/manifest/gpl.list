@@ -2,12 +2,13 @@
 # Format: <set><TAB><upstream path><TAB><reason>.  A path ending in "/" covers everything below it; the longest
 # matching entry wins.  "scope" lines name the upstream directories that must be fully classified.
 # Destination: gpl/<upstream path>.
-# Sets imported by default: core link hdr uapi extra aux.
+# Sets imported by default: core link hdr uapi extra aux inc.
 #   core   compiled for the Gen9 (KBL-R) target
 #   link   compiled only for link closure: code for non-Gen9 hardware (candidate for stub patches)
 #   hdr    header;  uapi  userspace ABI header
 #   extra  imported (requested subsystem or helper) but not compiled for the Gen9 target
 #   aux    non-compiled supporting source
+#   inc    C source #included by another file (imported, never compiled on its own)
 # Optional sets (import-linux.sh -s <set>): debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit
 #   edidfw auxdev cec replaced
 #   replaced: GPL original superseded by a BSD file in drm_bsd/ (imported only for reference with -s replaced)
@@ -28,7 +29,7 @@ cec	drivers/gpu/drm/display/drm_dp_cec.c	DP CEC tunnelling; CONFIG_DRM_DISPLAY_D
 hdr	drivers/gpu/drm/display/drm_dp_mst_topology_internal.h	display helper internal header [GPL-2.0-only]
 core	drivers/gpu/drm/display/drm_hdcp_helper.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC) [GPL-2.0]
 edidfw	drivers/gpu/drm/drm_edid_load.c	CONFIG_DRM_LOAD_EDID_FIRMWARE off [GPL-2.0-or-later]
-extra	drivers/gpu/drm/drm_gem_atomic_helper.c	drm_kms_helper member; no i915 user [GPL-2.0-or-later]
+replaced	drivers/gpu/drm/drm_gem_atomic_helper.c	replaced by the BSD clean-room drm_bsd/drivers/gpu/drm/drm_gem_atomic_helper.c (drm_gem_plane_helper_prepare_fb, used by drm_atomic_helper.c and i915) [GPL-2.0-or-later]
 core	drivers/gpu/drm/drm_gem_framebuffer_helper.c	DRM core / KMS helper [GPL-2.0-or-later]
 extra	drivers/gpu/drm/drm_gem_ttm_helper.c	TTM GEM helper; no i915 user [GPL-2.0-or-later]
 replaced	drivers/gpu/drm/drm_lease.c	replaced by the BSD clean-room drm_bsd/drivers/gpu/drm/drm_lease.c (drm_bsd/MANIFEST); was: lease ioctls are in the core ioctl table [GPL-2.0-or-later]
@@ -74,7 +75,7 @@ hdr	include/drm/drm_accel.h	DRM kernel header [GPL-2.0]
 hdr	include/drm/drm_bridge_connector.h	DRM kernel header [GPL-2.0+]
 hdr	include/drm/drm_fb_dma_helper.h	DRM kernel header [GPL-2.0]
 hdr	include/drm/drm_format_helper.h	DRM kernel header [GPL-2.0-or-later]
-hdr	include/drm/drm_gem_atomic_helper.h	DRM kernel header [GPL-2.0-or-later]
+replaced	include/drm/drm_gem_atomic_helper.h	replaced by drm_bsd/include/drm/drm_gem_atomic_helper.h; the upstream header pulls in the GPL drm_format_helper.h (R-G1) [GPL-2.0-or-later]
 hdr	include/drm/drm_gem_dma_helper.h	DRM kernel header [GPL-2.0]
 hdr	include/drm/drm_gem_shmem_helper.h	DRM kernel header [GPL-2.0]
 hdr	include/drm/drm_gem_ttm_helper.h	DRM kernel header [GPL-2.0-or-later]

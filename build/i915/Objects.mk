@@ -253,7 +253,6 @@ I915_LINK_SRCS = \
 	i915/drivers/gpu/drm/i915/gt/gen7_renderclear.c \
 	i915/drivers/gpu/drm/i915/gt/gen7_renderstate.c \
 	i915/drivers/gpu/drm/i915/gt/gen8_renderstate.c \
-	i915/drivers/gpu/drm/i915/gt/hsw_clear_kernel.c \
 	i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c \
 	i915/drivers/gpu/drm/i915/gt/intel_gsc.c \
 	i915/drivers/gpu/drm/i915/gt/intel_gt_ccs_mode.c \
@@ -261,7 +260,6 @@ I915_LINK_SRCS = \
 	i915/drivers/gpu/drm/i915/gt/intel_region_lmem.c \
 	i915/drivers/gpu/drm/i915/gt/intel_ring_submission.c \
 	i915/drivers/gpu/drm/i915/gt/intel_sa_media.c \
-	i915/drivers/gpu/drm/i915/gt/ivb_clear_kernel.c \
 	i915/drivers/gpu/drm/i915/gt/uc/intel_gsc_fw.c \
 	i915/drivers/gpu/drm/i915/gt/uc/intel_gsc_proxy.c \
 	i915/drivers/gpu/drm/i915/gt/uc/intel_gsc_uc.c \

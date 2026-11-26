@@ -2,12 +2,13 @@
 # Format: <set><TAB><upstream path><TAB><reason>.  A path ending in "/" covers everything below it; the longest
 # matching entry wins.  "scope" lines name the upstream directories that must be fully classified.
 # Destination: drm/<upstream path>.
-# Sets imported by default: core link hdr uapi extra aux.
+# Sets imported by default: core link hdr uapi extra aux inc.
 #   core   compiled for the Gen9 (KBL-R) target
 #   link   compiled only for link closure: code for non-Gen9 hardware (candidate for stub patches)
 #   hdr    header;  uapi  userspace ABI header
 #   extra  imported (requested subsystem or helper) but not compiled for the Gen9 target
 #   aux    non-compiled supporting source
+#   inc    C source #included by another file (imported, never compiled on its own)
 # Optional sets (import-linux.sh -s <set>): debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit
 #   edidfw auxdev cec replaced
 #   exclude never imported

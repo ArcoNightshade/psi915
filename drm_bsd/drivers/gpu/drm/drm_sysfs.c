@@ -37,6 +37,13 @@
 
 static drm_bsd_uevent_hook_t drm_bsd_uevent_hook;
 
+/*
+ * The "drm" device class (declared in drm_internal.h).  drm_privacy_screen.c puts its devices in it,
+ * and so do the minor and connector devices made here.  On illumos a class is only a tag: the KPI
+ * keeps no sysfs hierarchy.
+ */
+struct class *drm_class;
+
 void
 drm_bsd_set_uevent_hook(drm_bsd_uevent_hook_t hook)
 {
@@ -56,12 +63,22 @@ drm_bsd_uevent(struct drm_device *dev, enum drm_bsd_uevent ev, u32 conn, u32 pro
 int
 drm_sysfs_init(void)
 {
+	struct class *cls;
+
+	cls = class_create("drm");
+	if (IS_ERR(cls))
+		return (PTR_ERR(cls));
+	drm_class = cls;
 	return (0);
 }
 
 void
 drm_sysfs_destroy(void)
 {
+	if (drm_class == NULL)
+		return;
+	class_destroy(drm_class);
+	drm_class = NULL;
 }
 
 static void
@@ -94,6 +111,7 @@ drm_sysfs_minor_alloc(struct drm_minor *minor)
 		return (ERR_PTR(-ENOMEM));
 	device_initialize(kdev);
 	kdev->devt = MKDEV(DRM_MAJOR, minor->index);
+	kdev->class = drm_class;
 	kdev->parent = minor->dev->dev;
 	kdev->release = drm_bsd_kdev_release;
 	dev_set_drvdata(kdev, minor);
@@ -132,6 +150,7 @@ drm_sysfs_connector_add(struct drm_connector *connector)
 	if (kdev == NULL)
 		return (-ENOMEM);
 	device_initialize(kdev);
+	kdev->class = drm_class;
 	kdev->parent = dev->primary != NULL ? dev->primary->kdev : dev->dev;
 	kdev->release = drm_bsd_kdev_release;
 	dev_set_drvdata(kdev, connector);

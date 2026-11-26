@@ -248,6 +248,7 @@ directories come first on the include path.
 | drm_managed.c/.h | drm_managed.c/.h | full drmm_* interface; resources are released newest first at device release |
 | drm_sysfs.c/.h | drm_sysfs.c/.h | struct device per minor (card%d/renderD%d/accel%d) and per connector. Hotplug, property and lease events go to an optional hook (`drm_bsd_set_uevent_hook`) for an illumos sysevent. No sysfs attributes |
 | drm_lease.c/.h | drm_lease.c/.h | no leases are granted: CREATE_LEASE returns EOPNOTSUPP and REVOKE returns ENOENT. LIST_LESSEES returns 0. GET_LEASE returns every lease-required object for an owner. lease_held is always true |
+| drm_gem_atomic_helper.c/.h | drm_gem_atomic_helper.c/.h (GPL-2.0-or-later) | drm_gem_plane_helper_prepare_fb only. It waits for the write fences of the fb objects plus any explicit fence. Replaced so that the GPL drm_format_helper.h is no longer pulled in (docs/04 R-G1) |
 | drm_writeback.c/.h | drm_writeback.c/.h | stub: i915 has no writeback connectors. Job lifetime functions only; no connector init |
 | i915 display/intel_acpi.c | intel_acpi.c | no-ops (vga_switcheroo DSM, BIOS-data DSM, DIDL, ACPI fwnodes, acpi_video) |
 | video/cmdline.c | cmdline.c | per-output options set by the glue (`video_bsd_set_option`) instead of `video=` |
@@ -292,7 +293,7 @@ G2's 15 EXPORT_SYMBOLs are the list. Check 5 below enforces that drm/ never uses
    - drm_mipi_dsi.h: link-only DSI encoders and drm_mipi_dsi.c.
    - i915_hdcp_interface.h: HDCP 2.2 over MEI.
    - intel-gtt.h: Gen2-5 GGTT.
-   - drm_accel.h (drm_drv.c), drm_gem_atomic_helper.h, drm_of.h, drm_dp_mst_topology_internal.h.
+   - drm_accel.h (drm_drv.c), drm_of.h, drm_dp_mst_topology_internal.h.
    Each needs a BSD header in drm_bsd/ or a patch. Most of them disappear when the link-only files are
    stubbed.
 2. **dma-fence ABI.** G1 compiles against the KPI's BSD dma-fence/dma-resv/dma-buf/sync_file headers, which

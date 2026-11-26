@@ -15,7 +15,7 @@
 # Usage: scripts/import-linux.sh [-s set[,set]] [-S sets] [-P] [-n] [-c] [-m] [-l] [-R dir path...]
 #   -s  add optional sets (debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit edidfw auxdev cec
 #       replaced)
-#   -S  replace the default set list (core,link,hdr,uapi,extra,aux)
+#   -S  replace the default set list (core,link,hdr,uapi,extra,aux,inc; inc = #included .c files)
 #   -P  do not apply patches (pristine upstream; for making new patches)
 #   -n  dry run: print "dest set path" for the selection and exit
 #   -c  check: rebuild in a temporary directory and compare with the committed trees and IMPORT_FILES, then
@@ -32,7 +32,7 @@ export LC_ALL=C
 TOP=$(cd "$(dirname "$0")/.." && pwd)
 TP=$TOP/third_party
 TREES="drm i915 gpl"
-SETS=core,link,hdr,uapi,extra,aux
+SETS=core,link,hdr,uapi,extra,aux,inc
 ADD=; NOPATCH=0; DRY=0; CHECK=0; MONLY=0; LIST=0; REFOUT=
 while getopts s:S:PncmlR:h o; do
 	case $o in
