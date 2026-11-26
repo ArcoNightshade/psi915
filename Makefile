@@ -15,6 +15,7 @@
 
 UNAME_S		:= $(shell uname -s)
 DEBUG		= 0
+JOBS		?= $(shell nproc 2>/dev/null || echo 2)
 OBJS_DIR	= $(if $(filter 0,$(DEBUG)),obj64,debug64)
 
 .PHONY: all help test check check-kmod kmod install clean
@@ -25,7 +26,7 @@ help:
 	@sed -n '7,14p' Makefile | sed 's/^# \{0,1\}//'
 
 test:
-	$(MAKE) -C tests run
+	$(MAKE) -C tests -j$(JOBS) run
 
 check-kmod:
 	$(MAKE) -C tests check-kmod

@@ -10,7 +10,7 @@
 BUILDBASE	= ..
 
 MODULE		= linuxkpi
-MODDEPS		=
+MODDEPS		= misc/acpica misc/gfx_private
 
 include $(BUILDBASE)/Makefile.master
 include $(BUILDBASE)/Makefile.files
