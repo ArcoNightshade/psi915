@@ -287,6 +287,15 @@ The 11 syntax-check failures that were outside the KPI are fixed (import/drm_bsd
   and the linuxkpi export namespace. No blocking finding; three internal helpers renamed to lkpi_.
   Not covered: usr/src/common (absent from the reference tree), units that do not compile yet.
 
+- [x] Link closure reached zero unresolved symbols (374 objects) after the import fixes: added
+  intel_graphics_stolen_res (Gen9 BDSM/GGC decoding before probe, tested), intel_gmch_* (Gen2-5
+  unsupported), vmap purge notifiers.
+- [x] R-K7: device_iommu_mapped() reflects illumos immu translation of the GPU (immu_running,
+  immu_dvma_enable, immu_gfxdvma_enable; override linuxkpi_iommu_mapped), so intel_vtd_active()
+  and the Gen9 VT-d workarounds follow reality; docs/11 section 10.1 has the first-boot advice.
+- [x] Test robustness: rcu_list_stress readers always look up once; toy_probe_remove waits for the
+  fake backend's claimed-interrupt count (both failed only under heavy host load).
+
 KPI work still open (behaviour, not syntax):
 - [ ] User address-space features refused for now: i915 userptr (no VMAs visible), legacy
   I915_GEM_MMAP (vm_mmap), kernel SSE (SSE4.1 hidden), relay (GuC log), sysctl publishing.

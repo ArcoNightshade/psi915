@@ -594,3 +594,18 @@ void lkpi_plat_wrmsr(u32 msr, u64 val) { (void) msr; (void) val; }
 void lkpi_plat_wbinvd(void) { __atomic_thread_fence(__ATOMIC_SEQ_CST); }
 
 #endif /* LINUXKPI_USERLAND */
+
+/*
+ * The fake DMA backend always translates (fake IOMMU), so devices are
+ * IOMMU-mapped unless a test sets the override to 0.
+ */
+int linuxkpi_iommu_mapped = -1;
+
+bool
+lkpi_plat_dev_iommu_mapped(void *dip)
+{
+	(void) dip;
+	if (linuxkpi_iommu_mapped >= 0)
+		return (linuxkpi_iommu_mapped != 0);
+	return (true);
+}

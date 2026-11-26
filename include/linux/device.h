@@ -199,10 +199,10 @@ dev_to_node(const struct device *dev)
 #define	device_link_remove(c, s)	do { (void)(c); (void)(s); } while (0)
 #define	dev_get_platdata(dev)		((dev)->platform_data)
 /*
- * No VT-d translation is assumed for graphics (illumos immu is not
- * enabled for the GPU by default); i915 then uses its non-IOMMU paths.
+ * Whether the device's DMA is translated by an IOMMU (illumos immu; see
+ * lkpi_plat_dev_iommu_mapped). i915's intel_vtd_active() depends on it.
  */
-#define	device_iommu_mapped(dev)	((void)(dev), false)
+bool device_iommu_mapped(struct device *dev);
 #define	device_for_each_child(dev, data, fn)	\
 	((void)(dev), (void)(data), (void)(fn), 0)
 #define	bus_find_device_by_of_node(bus, np)	\

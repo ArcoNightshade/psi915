@@ -911,3 +911,29 @@ lkpi_plat_wbinvd(void)
 }
 
 #endif /* LINUXKPI_ILLUMOS_KERNEL */
+
+/*
+ * IOMMU (illumos immu, part of drv/rootnex: MODDEPS drv/rootnex). Display
+ * devices always get a unity (1:1) DVMA domain, so DMA addresses equal
+ * physical ones, but the DMAR unit still translates through page tables;
+ * Gen9 i915 needs its VT-d workarounds then (intel_vtd_active()).
+ * Translation is on when immu runs with DVMA enabled and graphics DVMA
+ * not excluded ("immu-gfxdvma-enable", "immu-dvma-enable", "immu-enable"
+ * boot properties or /etc/system). A graphics-only DMAR unit is not
+ * started when immu_gfxdvma_enable is false; a GPU behind a shared unit
+ * would still be translated then (not detected: use the override).
+ */
+extern boolean_t immu_running;
+extern boolean_t immu_dvma_enable;
+extern boolean_t immu_gfxdvma_enable;
+
+int linuxkpi_iommu_mapped = -1;
+
+bool
+lkpi_plat_dev_iommu_mapped(void *dip)
+{
+	(void) dip;
+	if (linuxkpi_iommu_mapped >= 0)
+		return (linuxkpi_iommu_mapped != 0);
+	return (immu_running && immu_dvma_enable && immu_gfxdvma_enable);
+}

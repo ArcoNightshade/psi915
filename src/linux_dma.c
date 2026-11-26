@@ -351,3 +351,12 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sgl,
 		if (sg->lkpi_dma != NULL)
 			lkpi_plat_dma_sync(sg->lkpi_dma, 0, sg->length, true);
 }
+
+/* IOMMU translation of the device's DMA (i915 intel_vtd_active()). */
+bool
+device_iommu_mapped(struct device *dev)
+{
+	void *dip = lkpi_dev_dip(dev);
+
+	return (dip != NULL && lkpi_plat_dev_iommu_mapped(dip));
+}

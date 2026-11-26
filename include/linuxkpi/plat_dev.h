@@ -124,6 +124,16 @@ void lkpi_plat_dma_unmap(struct lkpi_plat_dma *h);
 void lkpi_plat_dma_sync(struct lkpi_plat_dma *h, size_t off, size_t len,
     bool for_device);
 
+/*
+ * True if the device's DMA goes through IOMMU translation (illumos immu:
+ * rootnex running with DVMA on; display devices get a unity domain, which
+ * is still translated by the DMAR unit). The tunable
+ * linuxkpi_iommu_mapped (-1 auto, 0 no, 1 yes; /etc/system
+ * "set linuxkpi:linuxkpi_iommu_mapped = 1") overrides the detection.
+ */
+bool lkpi_plat_dev_iommu_mapped(void *dip);
+extern int linuxkpi_iommu_mapped;
+
 /* Physically contiguous, page-aligned kernel memory (struct page). */
 void *lkpi_plat_contig_alloc(size_t size, bool zero, bool cansleep,
     void **cookie);

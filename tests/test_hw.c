@@ -37,6 +37,7 @@
 #include <linuxkpi/subsys.h>
 #include <linux/shmem_fs.h>
 #include <linuxkpi/intel_gfx.h>
+#include <linuxkpi/plat_dev.h>
 
 #include "harness.h"
 
@@ -918,9 +919,23 @@ TEST(intel_stolen)
 	CHECK_EQ(intel_gmch_probe(NULL, NULL, NULL), 0);
 }
 
+TEST(iommu_mapped)
+{
+	struct device dev;
+
+	memset(&dev, 0, sizeof (dev));
+	CHECK(!device_iommu_mapped(&dev));	/* no dev_info_t */
+	dev.lkpi_dip = &dev;			/* any non-NULL handle */
+	CHECK(device_iommu_mapped(&dev));	/* fake IOMMU translates */
+	linuxkpi_iommu_mapped = 0;
+	CHECK(!device_iommu_mapped(&dev));
+	linuxkpi_iommu_mapped = -1;
+}
+
 LKPI_SUITE(hw)
 {
 	RUN(intel_stolen);
+	RUN(iommu_mapped);
 	RUN(shmem_cache);
 #ifndef LKPI_KTEST
 	CHECK_EQ(lkpi_workqueue_init(), 0);

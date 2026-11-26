@@ -210,3 +210,7 @@ gfxp_fb_ioctl
 gfxp_fb_open
 gfxp_fb_softc_alloc
 gfxp_fb_softc_free
+# illumos immu (drv/rootnex), device_iommu_mapped()
+immu_running
+immu_dvma_enable
+immu_gfxdvma_enable
