@@ -13,6 +13,7 @@
 #include <linux/kernel.h>
 #include <linux/kobject.h>
 #include <linux/device.h>
+#include <linux/sysctl.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/bug.h>
@@ -671,3 +672,43 @@ seq_lseek(struct lkpi_file *f, long long off, int whence)
 }
 
 const struct sysfs_ops kobj_sysfs_ops;
+
+/* sysctl: tables are accepted but not published (no /proc/sys). */
+const int lkpi_sysctl_vals[] = { 0, 1, 0x7fffffff };
+
+int
+proc_dointvec(const struct ctl_table *table, int write, void *buffer,
+    size_t *lenp, long long *ppos)
+{
+	(void) table;
+	(void) write;
+	(void) buffer;
+	(void) lenp;
+	(void) ppos;
+	return (-EOPNOTSUPP);
+}
+
+int
+proc_dointvec_minmax(const struct ctl_table *table, int write, void *buffer,
+    size_t *lenp, long long *ppos)
+{
+	return (proc_dointvec(table, write, buffer, lenp, ppos));
+}
+
+struct ctl_table_header *
+register_sysctl(const char *path, const struct ctl_table *table)
+{
+	struct ctl_table_header *h;
+
+	(void) path;
+	h = kzalloc(sizeof (*h), GFP_KERNEL);
+	if (h != NULL)
+		h->lkpi_table = table;
+	return (h);
+}
+
+void
+unregister_sysctl_table(struct ctl_table_header *h)
+{
+	kfree(h);
+}

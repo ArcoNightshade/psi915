@@ -12,6 +12,7 @@
 
 #include <linux/mm.h>
 #include <linux/string.h>
+#include <linux/uaccess.h>
 
 static inline void *kmap(struct page *p) { return (page_address(p)); }
 static inline void *kmap_atomic(struct page *p) { return (page_address(p)); }

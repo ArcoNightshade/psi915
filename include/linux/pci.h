@@ -62,6 +62,12 @@
 #define	DEVICE_COUNT_RESOURCE	7
 #define	PCI_NUM_RESOURCES	DEVICE_COUNT_RESOURCE
 #define	PCI_STD_RESOURCES	0
+/*
+ * Bus (bridge window) resources are not modelled: the loop body never
+ * runs (only the discrete-GPU LMEM BAR resize uses it).
+ */
+#define	pci_bus_for_each_resource(bus, res, i)				\
+	for ((void)(bus), (i) = 0, (res) = NULL; 0; )
 #define	PCI_STD_RESOURCE_END	5
 /*
  * Lowest address for new PCI memory allocations (x86 Linux:

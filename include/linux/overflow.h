@@ -49,6 +49,21 @@ __lkpi_is_negative(long long v, bool is_signed)
 	    ((typeof(*__lkpi_d))(*__lkpi_d >> __lkpi_ss) != __lkpi_a);	\
 })
 
+/*
+ * Constant-expression form of overflows_type() and castable_to_type():
+ * a constant n must fit in type t; a non-constant n must already have
+ * type t.
+ */
+#define	__overflows_type_constexpr(x, t) (				\
+	is_signed_type(typeof(x)) ?					\
+	    ((x) < 0 ? (is_signed_type(t) ?				\
+	    (long long)(x) < (long long)type_min(t) : 1) :		\
+	    (unsigned long long)(x) > (unsigned long long)type_max(t)) : \
+	    (unsigned long long)(x) > (unsigned long long)type_max(t))
+#define	castable_to_type(n, t)						\
+	__builtin_choose_expr(__is_constexpr(n),			\
+	    !__overflows_type_constexpr(n, t), __same_type(n, t))
+
 /* True if n does not fit in type t (or in the type of variable v). */
 #define	overflows_type(n, t) ({						\
 	typeof(t) __lkpi_ot;						\

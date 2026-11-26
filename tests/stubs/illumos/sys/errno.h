@@ -58,5 +58,6 @@
 #define	EMSGSIZE	97
 #define	ENOTCONN	134
 #define	ENOPKG	65
+#define	EADDRINUSE	125
 #define	EPROTO	71
 #endif

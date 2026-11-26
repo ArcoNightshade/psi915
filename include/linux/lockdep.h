@@ -116,6 +116,10 @@ lkpi_lock_not_held_unknown(const void *l)
 #define	lockdep_off()				do { } while (0)
 #define	lockdep_on()				do { } while (0)
 #define	SINGLE_DEPTH_NESTING			1
+#define	lock_acquire(...)			do { } while (0)
+#define	lock_release(...)			do { } while (0)
+#define	lock_acquire_shared(...)		do { } while (0)
+#define	lock_acquire_exclusive(...)		do { } while (0)
 /* No lockdep: the arguments (often &lock.dep_map) are never expanded. */
 #define	mutex_acquire(...)			do { } while (0)
 #define	mutex_acquire_nest(...)			do { } while (0)

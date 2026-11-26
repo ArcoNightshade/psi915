@@ -128,6 +128,7 @@ in a file hides later ones, so counts move in steps.
 | after hdmi.h, cache.h, seq/fs fixes | 46/370 | 25/69 | 4/7 | 5/8 | 5/184 | 6/100 |
 | after compiler_types.h, BITS_PER_LONG, pseudo_fs move, batch 4 | 80/370 | 53/69 | 4/7 | 6/8 | 9/184 | 7/100 |
 | after BUILD_BUG_ON as compiletime_assert, cleanup.h, batch 5 | 208/368 | 64/69 | 5/7 | 6/8 | 91/184 | 41/98 |
+| after batch 6 (pid, sysctl, writeback, radix iter, mipi_display, cmdline) | 235/368 | 65/69 | 6/7 | 6/8 | 106/184 | 51/98 |
 
 Done:
 - [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
@@ -167,6 +168,16 @@ Done:
   illumos pfn_t, DECLARE_FLEX_ARRAY, __init_waitqueue_head(wq, name, key), RB_DECLARE_CALLBACKS
   ends with ';' as in Linux, shrinker.h from mm.h, seq_file.h/interrupt.h from perf_event.h.
   The compile loop skips .c files that other units #include.
+- [x] Batch 6: linux/pid.h (struct pid table: get_task_pid/task_tgid/get_pid/put_pid), sysctl.h
+  (tables accepted, not published), writeback.h, address_space_operations (a_ops; shmem backend still
+  to do), radix_tree_for_each_slot over the XArray, castable_to_type, __diag_*, lockdep acquire/release
+  no-ops, irq_work node.llist, io_mapping prot as pgprot_t, ___wait_var_event, DEFINE_SIMPLE_ATTRIBUTE
+  / DEFINE_DEBUGFS_ATTRIBUTE, VMA_ITERATOR (no VMAs visible: i915 userptr refused), tsc_khz (CPUID
+  0x15/0x16), cpufreq_policy, FBINFO_STATE_*, vga_switcheroo_client_ops, fwnode_handle,
+  pci_bus_for_each_resource (no bus windows), PCIBIOS_MIN_MEM, PCI_STD_RESOURCES,
+  tasklet_unlock_spin_wait, container_of_const, video/cmdline.h, video/mipi_display.h (values checked
+  numerically against v6.14), illumos ENOTCONN/ENOPKG/EADDRINUSE in the stub errno.h; build
+  Makefile.lkpi force-includes compiler_types.h; the compile loop passes -DI915 for i915 units.
 - [x] docs/11 R-K1: core/postcore/arch/fs/rootfs_initcall and __exitcall in <linux/module.h>.
 - [x] docs/11 R-K3: LKPI_PCI_DRIVER_MODULE_OPS(name, desc, cbops, getinfo, attach, detach, init,
   exit); LKPI_PCI_DRIVER_MODULE now accepts a cb_ops address (NULL told apart by type).

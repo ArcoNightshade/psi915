@@ -64,6 +64,7 @@ struct poll_table_struct;
  */
 struct writeback_control;
 struct lkpi_page;
+struct address_space;
 
 /* Page-cache operations (shmem backing store; see docs/04). */
 struct address_space_operations {
@@ -346,5 +347,8 @@ void ihold(struct inode *ip);
 void inode_set_bytes(struct inode *ip, loff_t bytes);
 struct lkpi_file *alloc_file_pseudo(struct inode *ip, struct vfsmount *mnt,
     const char *name, int flags, const struct file_operations *fops);
+
+/* As in Linux, fs.h provides the dentry types. */
+#include <linux/dcache.h>
 
 #endif /* _LINUXKPI_LINUX_FS_H_ */

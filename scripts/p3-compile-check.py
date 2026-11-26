@@ -70,6 +70,8 @@ def includes(path):
             inc.append(r)
     inc.append(os.path.join(TOP, 'tests/stubs/illumos'))
     flags = []
+    if os.path.relpath(path, TOP).startswith(('i915/', 'drm_bsd/drivers/gpu/drm/i915')):
+        flags.append('-DI915')		# as the i915 kbuild Makefile
     for i in inc:
         flags += ['-I', i]
     # As kbuild: linux/kconfig.h (which includes generated/autoconf.h) and

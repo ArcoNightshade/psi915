@@ -35,6 +35,11 @@
 #ifndef noinline
 #define	noinline		__attribute__((__noinline__))
 #endif
+#define	__diag_push()
+#define	__diag_pop()
+#define	__diag_ignore_all(option, comment)
+#define	__diag_ignore(compiler, version, option, comment)
+
 #ifndef __deprecated
 #define	__deprecated
 #endif
