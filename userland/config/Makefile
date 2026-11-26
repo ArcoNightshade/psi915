@@ -5,7 +5,7 @@
 # Regenerate driver_aliases.gen9 from a Linux pciids.h (GNU make).
 #   make PCIIDS=/path/to/include/drm/intel/pciids.h
 REF	?= $(HOME)/ref
-PCIIDS	?= $(REF)/drm-kmod/include/drm/intel/pciids.h
+PCIIDS	?= $(if $(wildcard ../../i915/include/drm/intel/pciids.h),../../i915/include/drm/intel/pciids.h,$(REF)/drm-kmod/include/drm/intel/pciids.h)
 
 driver_aliases.gen9: gen-driver-aliases.sh $(PCIIDS)
 	{ echo "# driver_aliases(5) fragment: Gen9 Intel GPUs -> i915 (psi915)."; \

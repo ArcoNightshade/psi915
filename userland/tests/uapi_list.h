@@ -108,11 +108,6 @@ E(DRM_IOCTL_CONTROL, D_W, DRM_IOCTL_BASE, (0x14), sizeof(struct drm_control), "s
 #else
 A(DRM_IOCTL_CONTROL)
 #endif
-#ifdef DRM_IOCTL_GET_PCIINFO
-E(DRM_IOCTL_GET_PCIINFO, D_R, DRM_IOCTL_BASE, (0x15), sizeof(struct drm_pciinfo), "struct drm_pciinfo")
-#else
-A(DRM_IOCTL_GET_PCIINFO)
-#endif
 #ifdef DRM_IOCTL_ADD_MAP
 E(DRM_IOCTL_ADD_MAP, D_WR, DRM_IOCTL_BASE, (0x15), sizeof(struct drm_map), "struct drm_map")
 #else
