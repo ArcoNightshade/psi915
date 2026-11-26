@@ -1,0 +1,17 @@
+# minor_perm(5) fragment for the psi915 i915 driver. DESIGN, UNTESTED.
+# Applied by add_drv -m (or the IPS driver action perms=), not by hand.
+#
+# renderD*: render nodes expose no modesetting and no global buffer names
+#   (flink), so world access is the Linux norm (Mesa, Vulkan, compute open
+#   them directly). 0666.
+# card*: primary nodes can become DRM master and drive the display. Default
+#   root-only; the console user gets ownership at login via logindevperm
+#   (see logindevperm.psi915), which is illumos' answer to logind/udev seat
+#   ACLs. Xorg runs as root on both distributions and does not need more.
+#   Systems without a console login (headless compute) can loosen this.
+#
+# minor name patterns must match the names the kernel passes to
+# ddi_create_minor_node(): "card%d" and "renderD%d" (see
+# docs/09-userland-stack.md, "Device nodes").
+i915:card* 0600 root sys
+i915:renderD* 0666 root sys

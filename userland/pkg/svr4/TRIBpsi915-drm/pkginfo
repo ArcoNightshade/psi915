@@ -1,0 +1,8 @@
+PKG="TRIBpsi915-drm"
+NAME="psi915 LinuxKPI, DRM core and i915 driver (Intel Gen9)"
+VERSION="0.0.1"
+ARCH="i386"
+CATEGORY="system"
+BASEDIR="/"
+VENDOR="psi915"
+CLASSES="none"

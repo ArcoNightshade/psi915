@@ -1,0 +1,3 @@
+# mesa-demos patch series. No patches planned; kmscube and mesa-demos are expected
+# to build unmodified once libdrm/Mesa work (UNVERIFIED). Format: see
+# ../libdrm/series.

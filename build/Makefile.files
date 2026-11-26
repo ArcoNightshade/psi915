@@ -11,25 +11,38 @@
 #
 LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   plat_illumos.o \
-		   linux_printk.o \
-		   linux_slab.o \
-		   linux_lock.o \
+		   plat_illumos_dev.o \
+		   linux_acpi.o \
+		   linux_cpu.o \
+		   linux_device.o \
+		   linux_devres.o \
+		   linux_dma.o \
+		   linux_dmapool.o \
+		   linux_firmware.o \
+		   linux_idr.o \
+		   linux_io.o \
+		   linux_irq.o \
+		   linux_kstrtox.o \
+		   linux_kthread.o \
 		   linux_list_sort.o \
+		   linux_lock.o \
+		   linux_mempool.o \
+		   linux_moduleparam.o \
+		   linux_page.o \
+		   linux_pci.o \
+		   linux_printk.o \
 		   linux_rbtree.o \
 		   linux_rcu.o \
-		   linux_xarray.o \
-		   linux_idr.o \
+		   linux_scatterlist.o \
 		   linux_sched.o \
-		   linux_wait.o \
-		   linux_timer.o \
-		   linux_workqueue.o \
-		   linux_kthread.o \
-		   linux_kstrtox.o \
-		   linux_moduleparam.o \
-		   linux_ww_mutex.o \
+		   linux_slab.o \
 		   linux_sort.o \
-		   linux_mempool.o \
-		   linux_srcu.o
+		   linux_srcu.o \
+		   linux_timer.o \
+		   linux_wait.o \
+		   linux_workqueue.o \
+		   linux_ww_mutex.o \
+		   linux_xarray.o
 
 #
 #	lkpi_ktest: kernel test module (tests/kernel/ktest_main.c plus the

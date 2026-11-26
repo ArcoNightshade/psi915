@@ -36,7 +36,7 @@ typedef long long		hrtime_t;
 typedef int			pid_t;
 typedef unsigned long		dev_t;
 typedef unsigned long		pfn_t;
-typedef unsigned long long	offset_t;
+typedef long long		offset_t;
 typedef unsigned long long	paddr_t;
 
 #ifndef NULL

@@ -19,7 +19,7 @@
  *                            NULL (with a warning) for anything else
  *   vmap/vunmap              map pages into one contiguous kernel range
  *                            with a cache mode (illumos hat_devload)
- *   set_pages_*/set_memory_* change the kernel mapping's cache attribute
+ *   set_pages_xx, set_memory_xx change the kernel mapping's cache attribute
  *                            (<asm/set_memory.h>)
  *
  * Process-memory interfaces (vm_area_struct, get_user_pages, mmap) are

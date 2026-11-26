@@ -182,16 +182,18 @@ TEST(ratelimit_state)
 	CHECK(!__ratelimit(&zero));
 }
 
-struct device;
+#include <linux/device.h>
 
 TEST(dev_printk)
 {
+	struct device d = { .init_name = "dev0" };
+
 	begin();
 	dev_err((struct device *)NULL, "bad %d\n", 7);
 	CHECK(streq(last_msg, "(NULL device): bad 7\n"));
 	CHECK_EQ(last_level, LOGLEVEL_ERR);
-	dev_info((struct device *)&nmsgs, "hello\n");
-	CHECK(streq(last_msg, "(device): hello\n"));
+	dev_info(&d, "hello\n");
+	CHECK(streq(last_msg, "dev0: hello\n"));
 	CHECK_EQ(last_level, LOGLEVEL_INFO);
 	for (int i = 0; i < 3; i++)
 		dev_warn_once((struct device *)NULL, "w\n");	/* one site */

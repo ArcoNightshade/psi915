@@ -1,0 +1,4 @@
+P TRIBpsi915-drm	psi915 kernel driver
+P TRIBx11-lib-libpciaccess	libpciaccess
+P TRIBx11-lib-libxshmfence	libxshmfence
+P TRIBllvm	LLVM (llvmpipe, anv shader compiler deps)

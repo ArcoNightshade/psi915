@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# postinstall SKELETON for TRIBpsi915-drm. UNTESTED.
+# Registers the i915 driver with its Gen9 aliases and minor permissions.
+# Honours alternate roots ($PKG_INSTALL_ROOT, e.g. zap into a new BE).
+#
+# gfx-drm's i915 (if installed) owns the same driver name: refuse rather than
+# fight over /etc/name_to_major. The open naming decision is in
+# docs/09-userland-stack.md.
+
+ROOT=${PKG_INSTALL_ROOT:-/}
+DATA="$ROOT/usr/share/psi915"
+
+if grep '^i915 ' "$ROOT/etc/name_to_major" >/dev/null 2>&1 &&
+    [ ! -f "$ROOT/usr/kernel/drv/amd64/i915" ]; then
+	echo "TRIBpsi915-drm: another i915 driver is registered; remove it first" >&2
+	exit 1
+fi
+
+ALIASES=$(awk '$0 !~ /^#/ && NF == 2 { printf("%s ", $2) }' "$DATA/driver_aliases.gen9")
+PERMS='card* 0600 root sys,renderD* 0666 root sys'
+
+if [ "$ROOT" = / ]; then B=""; else B="-b $ROOT"; fi
+if grep '^i915 ' "$ROOT/etc/name_to_major" >/dev/null 2>&1; then
+	# reinstall/upgrade: refresh aliases and permissions
+	eval update_drv $B -a -i "'$ALIASES'" i915 2>/dev/null
+	update_drv $B -a -m "$PERMS" i915
+else
+	# -n: do not attach now; the console is still on vgatext until reboot.
+	eval add_drv $B -n -c display -m "'$PERMS'" -i "'$ALIASES'" i915 || exit 1
+fi
+
+# Console-user ownership of /dev/dri/card* (see logindevperm.psi915).
+if ! grep 'psi915' "$ROOT/etc/logindevperm" >/dev/null 2>&1; then
+	grep -v '^#' "$DATA/logindevperm.psi915" >> "$ROOT/etc/logindevperm"
+fi
+exit 0

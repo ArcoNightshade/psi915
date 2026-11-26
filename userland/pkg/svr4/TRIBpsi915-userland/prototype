@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# prototype(5) SKELETON for Tribblix. UNTESTED. Generate the file lines
+# from a staged install rather than by hand:
+#   userland/build.sh --destdir /var/tmp/psi915-proto all
+#   (cd /var/tmp/psi915-proto && find opt | pkgproto) >> prototype
+#   pkgmk -o -r /var/tmp/psi915-proto -d /var/tmp/spool -f prototype
+# Tribblix's own build/genpkg wrapper does the same from a pkginfo + depend
+# pair (believed, from tribblix/build); either route works.
+# Package names in depend are believed from tribblix/build, not checked
+# against the 0m41.1 catalog.
+i pkginfo
+i depend
+d none opt 0755 root sys
+d none opt/psi915 0755 root bin
