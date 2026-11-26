@@ -1,47 +1,72 @@
 # Licences of imported code
 
 psi915's own code (include/, src/, build/, tests/, scripts/, tools/) is BSD-2-Clause (top-level `LICENSE`).
-drm/ and i915/ are imported unmodified from drm-kmod (third_party/IMPORT_PIN) plus patches in
-third_party/patches/. Every imported file keeps its original licence header. The per-file licence, detected
-from the pristine file, is the fourth column of third_party/IMPORT_FILES (`scripts/import-linux.sh` writes it;
-SPDX tag when present, otherwise a text heuristic marked `(text)`). Detection is automated and has not been
-reviewed file by file; treat it as an index, not a legal determination.
 
-## Summary at the first import (922 files, default sets)
+drm/, i915/ and gpl/ come unmodified from upstream Linux v6.14 (third_party/IMPORT_PIN); all changes are
+patches in third_party/patches/. Every imported file keeps its original notice.
 
-| Licence (as detected) | Files | Notes |
-|-----------------------|-------|-------|
-| MIT / MIT(text) | 803 | Bulk of DRM core, display helpers, TTM, scheduler, i915. X11/Expat-style permission notice. |
-| HPND(text) | 34 | "Permission to use, copy, modify, distribute, and sell" notice (older DRM files: drm_crtc.c, drm_connector.c, ...). MIT-family, permissive. |
-| GPL-2.0 OR MIT, GPL-2.0-only OR MIT | 29 | Dual licensed; used under MIT. |
-| BSD(text), BSD-2-Clause, BSD-2-Clause-FreeBSD | 19 | drm-kmod/FreeBSD replacement files and shims. |
-| public-domain(text) | 12 | drm-kmod files marked "Public domain." These are rewrites, not Linux originals (e.g. drm_managed.c, intel_acpi.c, drm_writeback.h). |
-| NOASSERTION | 12 | No licence header: FreeBSD shim headers (drm_os_freebsd.h, i915_trace.h, ttm_sysctl_freebsd.h, ...) and a few headers whose notice starts after line 60. Need manual review. |
-| GPL-2.0, GPL-2.0-only, GPL-2.0-or-later, GPL(text), GPL-1.0+ WITH Linux-syscall-note | 15 | See below. |
+The fourth column of third_party/IMPORT_FILES records each pristine file's licence, which `scripts/import-linux.sh`
+detects from the SPDX tag. When a file has no tag it falls back to a text heuristic, marked `(text)`. Nobody has
+reviewed the detection file by file, so treat it as an index, not a legal determination.
 
-## GPL-only files (owner decision required)
+## Split by licence
+- **drm/ and i915/** hold MIT, HPND and dual-licensed (GPL-2.0 OR MIT) files only. Dual-licensed files are used
+  under MIT. The import script refuses to place a GPL-only file in these trees.
+- **gpl/** holds every GPL-only file: GPL-2.0, GPL-2.0-only or GPL-2.0-or-later with no MIT/BSD alternative, or a
+  .c file with no notice at all (the kernel's COPYING makes such files GPL-2.0).
+  - gpl/ is built later as a separate GPL-2.0 module. docs/08 section 5 describes the module boundary and the
+    symbols that cross it, and `tools/gpl-boundary.tsv` lists them.
+  - The owner decided on this split (docs/06). It is still open whether the split is legally sufficient on
+    illumos.
 
-These are GPL-licensed without an MIT alternative. They are in the imported driver trees, never in the KPI
-(include/, src/), which stays BSD-2-Clause and clean-room (docs/06 R8). Whether a GPL-2.0 file may ship in the
-same illumos kernel module as CDDL/BSD/MIT code is a licensing decision for the owner; FreeBSD ships the same
-files in drm-kmod as separate modules. Replacement options are listed per file.
+## Summary at the first import (944 files, default sets)
 
-| File | Set | Licence | Replacement option |
-|------|-----|---------|--------------------|
-| drm/drivers/dma-buf/sync_file.c | core | GPL-2.0-only | write BSD sync_file in the KPI (small; NetBSD drm2 has a BSD one: sys/external/bsd/drm2/linux/linux_sync_file.c) |
-| drm/drivers/dma-buf/dma-fence-unwrap.c | core | GPL-2.0-only | BSD rewrite (small) |
-| drm/drivers/gpu/drm/display/drm_hdcp_helper.c | core | GPL-2.0 | HDCP SRM/revocation helpers; could be stubbed if HDCP is deferred |
-| drm/drivers/gpu/drm/drm_writeback.c | core | GPL-2.0 | needed only for link closure (no writeback on i915 Gen9); a stub patch removes it |
-| i915/drivers/gpu/drm/i915/intel_uncore_trace.c | core | GPL-2.0 | tracepoint stub; trivially replaceable |
-| drm/drivers/gpu/drm/drm_panel_backlight_quirks.c | extra | GPL-2.0 | not built |
-| drm/drivers/gpu/drm/drm_gem_ttm_helper.c, drm/include/drm/drm_gem_ttm_helper.h, drm/include/drm/drm_format_helper.h | extra/hdr | GPL-2.0-or-later | not built |
-| drm/linuxkpi/gplv2/** (dma-buf.h, sync_file.h, dma-fence-unwrap.h, uapi sync_file.h) | kpi-ref | GPL | reference only; the KPI must not copy them |
+| Licence (as detected) | Files | Tree |
+|-----------------------|-------|------|
+| MIT, MIT(text) | 814 | drm/, i915/ |
+| HPND(text) ("Permission to use, copy, modify, distribute, and sell") | 34 | drm/ (older DRM core files) |
+| GPL-2.0 OR MIT, GPL-2.0-only OR MIT | 29 | drm/, i915/ (used under MIT) |
+| GPL-2.0, GPL-2.0-only, GPL-2.0-or-later, GPL-2.0+, GPL(text) | 63 | gpl/ |
+| NOASSERTION (no notice) | 4 | drm_trace_points.c (in gpl/); drm_device.h and drm_gem_framebuffer_helper.h (drm/); shaders/README (i915/) |
 
-drm-kmod's dma-buf.c, dma-fence.c, dma-fence-array.c and dma-fence-chain.c are BSD-2-Clause rewrites
-(Beckhoff Automation, 2022/2023), not the GPL-2.0-only Linux originals; dma-resv.c is MIT. Only
-dma-fence-unwrap.c and sync_file.c remain GPL-2.0-only.
+### GPL-only files compiled for Gen9 (gpl/, set core, 19 files)
+dma-buf: dma-buf.c, dma-fence.c, dma-fence-array.c, dma-fence-chain.c, dma-fence-unwrap.c, sync_file.c
+(GPL-2.0-only). DRM: drm_managed.c, drm_writeback.c, display/drm_hdcp_helper.c (GPL-2.0); drm_sysfs.c
+(GPL-2.0-only); drm_lease.c, drm_gem_framebuffer_helper.c (GPL-2.0-or-later); drm_trace_points.c (no notice).
+i915: display/intel_acpi.c, display/intel_display_trace.c, i915_trace_points.c, intel_uncore_trace.c (GPL-2.0).
+video: cmdline.c, nomodeset.c (GPL-2.0).
+
+The gpl/ tree also holds the GPL headers. Seven of them are included directly by MIT code in drm/ or i915/
+(tools/gpl-headers.tsv):
+- drm_managed.h (16 includers)
+- i915_trace.h (25)
+- intel_display_trace.h (8)
+- drm_mipi_dsi.h (6)
+- drm_writeback.h, i915_hdcp_interface.h, intel_uncore_trace.h (4 each)
+
+drm_lease.h, drm_sysfs.h, intel-gtt.h, drm_accel.h, drm_gem_atomic_helper.h, drm_of.h, drm_trace.h,
+drm_dp_mst_topology_internal.h and intel_ips.h have 1-3 includers each.
+
+## Open licence questions (owner decision)
+1. **MIT code compiled against GPL headers.** The headers listed above are compiled into MIT code. The trace
+   headers expand to nothing with CONFIG_TRACEPOINTS off, so a patch can replace their includes with stubs.
+   drm_managed.h, drm_mipi_dsi.h, drm_writeback.h, i915_hdcp_interface.h and intel-gtt.h declare APIs that the
+   MIT code calls. Each one needs one of three decisions: accept it as a GPL interface header, rewrite it
+   clean-room in BSD (they are small, mostly declarations), or remove its use with a patch.
+2. **Headers with no notice in drm/.** drm_device.h and drm_gem_framebuffer_helper.h are included almost
+   everywhere. Under the kernel's COPYING default they are GPL-2.0. They descend from MIT drmP.h, but that is
+   not verified.
+3. **Linux headers the KPI must supply.** tools/kpi-headers.tsv, column linux_licence, shows the licence of the
+   upstream copy of each missing Linux header. 95 of the 99 missing headers are GPL or carry no notice, so
+   include/ must write them clean-room (FreeBSD/NetBSD/OpenBSD BSD versions are references). Only
+   linux/cgroup_dmem.h, linux/vgaarb.h and linux/aperture.h (MIT) and linux/cec.h (dual BSD-3-Clause) could
+   be imported. This includes the dma-fence, dma-resv, dma-buf and sync_file headers. Their implementations
+   are in gpl/, so the BSD KPI headers must match the structure layouts that those GPL implementations
+   expect.
+4. **CDDL kernel loading a GPL-2.0 module, and symbol exports between it and the MIT modules.** Still open
+   (docs/06).
 
 ## Licence texts
-
-SPDX identifiers refer to the texts at https://spdx.org/licenses/ (MIT, HPND, BSD-2-Clause, GPL-2.0-only,
-GPL-2.0-or-later). Each imported file carries its own notice, which is authoritative.
+SPDX identifiers refer to https://spdx.org/licenses/ (MIT, HPND, BSD-2-Clause, GPL-2.0-only,
+GPL-2.0-or-later). Upstream's LICENSES/ directory and COPYING were not imported. Each file's own notice is
+authoritative.
