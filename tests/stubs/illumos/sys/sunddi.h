@@ -8,7 +8,6 @@ extern int ddi_copyin(const void *, void *, size_t, int);
 extern int ddi_copyout(const void *, void *, size_t, int);
 extern pid_t ddi_get_pid(void);
 typedef struct __dev_info *dev_info_t;
-typedef unsigned long dev_t;
 #define	DDI_DEV_T_ANY		((dev_t)-2)
 #define	DDI_DEV_T_NONE		((dev_t)-1)
 #define	DDI_PROP_DONTPASS	0x0001

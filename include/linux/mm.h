@@ -1,0 +1,157 @@
+/*
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2026 The psi915 Authors. All rights reserved.
+ * See the LICENSE file at the top of the source tree for the full text.
+ *
+ * Clean-room implementation of the Linux page-level memory API from its
+ * documented behaviour (src/linux_page.c):
+ *
+ *   alloc_pages(gfp, order)  physically contiguous, page-aligned memory
+ *                            (lkpi_plat_contig_alloc: kmem for order 0,
+ *                            ddi_dma_mem_alloc contiguous otherwise)
+ *   page_address/kmap*       the permanent kernel address (no highmem)
+ *   page_to_phys/pfn         CPU physical address (hat_getpfnum); for
+ *                            device DMA use the DMA API, which returns
+ *                            IOMMU-translated bus addresses
+ *   virt_to_page/pfn_to_page only for memory from alloc_pages() and
+ *                            __get_free_pages() (looked up in a table);
+ *                            NULL (with a warning) for anything else
+ *   vmap/vunmap              map pages into one contiguous kernel range
+ *                            with a cache mode (illumos hat_devload)
+ *   set_pages_*/set_memory_* change the kernel mapping's cache attribute
+ *                            (<asm/set_memory.h>)
+ *
+ * Process-memory interfaces (vm_area_struct, get_user_pages, mmap) are
+ * the DRM glue's (drmglue), not here.
+ */
+#ifndef _LINUXKPI_LINUX_MM_H_
+#define	_LINUXKPI_LINUX_MM_H_
+
+#include <linuxkpi/platform.h>
+#include <linux/compiler.h>
+#include <linux/types.h>
+#include <linux/kernel.h>
+#include <linux/gfp.h>
+#include <linux/mm_types.h>
+#include <linux/pgtable.h>
+#include <linux/slab.h>
+#include <linux/vmalloc.h>
+#include <linux/overflow.h>
+#include <linux/err.h>
+
+#define	MAX_PAGE_ORDER		10
+#define	MAX_ORDER		MAX_PAGE_ORDER
+#define	NR_PAGE_ORDERS		(MAX_PAGE_ORDER + 1)
+
+struct page *alloc_pages(gfp_t gfp, unsigned int order);
+void __free_pages(struct page *page, unsigned int order);
+unsigned long __get_free_pages(gfp_t gfp, unsigned int order);
+void free_pages(unsigned long addr, unsigned int order);
+struct page *lkpi_virt_to_page(const void *kva);
+struct page *lkpi_pfn_to_page(unsigned long pfn);
+void lkpi_page_release(struct page *head);
+unsigned long lkpi_totalram_pages(void);
+
+#define	alloc_page(gfp)			alloc_pages(gfp, 0)
+#define	alloc_pages_node(n, gfp, o)	alloc_pages(gfp, o)
+#define	__free_page(p)			__free_pages(p, 0)
+#define	__get_free_page(gfp)		__get_free_pages(gfp, 0)
+#define	get_zeroed_page(gfp)		__get_free_pages((gfp) | __GFP_ZERO, 0)
+#define	free_page(addr)			free_pages(addr, 0)
+#define	totalram_pages()		lkpi_totalram_pages()
+#define	nth_page(p, n)			((p) + (n))
+
+static inline struct page *
+compound_head(struct page *p)
+{
+	return (p->lkpi_head != NULL ? p->lkpi_head : p);
+}
+
+static inline void *
+page_address(const struct page *p)
+{
+	return (p->lkpi_kva);
+}
+
+#define	lowmem_page_address(p)		page_address(p)
+#define	virt_to_page(kva)		lkpi_virt_to_page(kva)
+#define	virt_to_head_page(kva)		compound_head(lkpi_virt_to_page(kva))
+#define	pfn_to_page(pfn)		lkpi_pfn_to_page(pfn)
+#define	page_to_pfn(p)			((unsigned long)((p)->lkpi_phys >> PAGE_SHIFT))
+#define	page_to_phys(p)			((p)->lkpi_phys)
+#define	pfn_valid(pfn)			(lkpi_pfn_to_page(pfn) != NULL)
+#define	PageHighMem(p)			(false)
+#define	PageReserved(p)			(false)
+#define	PageSlab(p)			(false)
+#define	PageCompound(p)			((p)->lkpi_head != NULL || (p)->lkpi_order > 0)
+#define	SetPageReserved(p)		do { (void)(p); } while (0)
+#define	ClearPageReserved(p)		do { (void)(p); } while (0)
+#define	SetPageDirty(p)			do { (void)(p); } while (0)
+#define	set_page_dirty(p)		((void)(p), 0)
+#define	set_page_dirty_lock(p)		((void)(p), 0)
+#define	mark_page_accessed(p)		do { (void)(p); } while (0)
+#define	page_private(p)			((p)->private)
+#define	set_page_private(p, v)		((p)->private = (v))
+#define	compound_order(p)		(compound_head(p)->lkpi_order)
+#define	page_size(p)			(PAGE_SIZE << compound_order(p))
+#define	page_to_nid(p)			(0)
+
+static inline int
+page_count(struct page *p)
+{
+	return (atomic_read(&compound_head(p)->_refcount));
+}
+
+#define	page_ref_count(p)		page_count(p)
+
+static inline void
+get_page(struct page *p)
+{
+	atomic_inc(&compound_head(p)->_refcount);
+}
+
+static inline void
+put_page(struct page *p)
+{
+	struct page *h = compound_head(p);
+
+	if (atomic_dec_and_test(&h->_refcount))
+		lkpi_page_release(h);
+}
+
+static inline bool
+get_page_unless_zero(struct page *p)
+{
+	return (atomic_inc_not_zero(&compound_head(p)->_refcount));
+}
+
+#define	folio_get(f)			get_page(&(f)->page)
+#define	folio_put(f)			put_page(&(f)->page)
+#define	folio_address(f)		page_address(&(f)->page)
+
+void *vmap(struct page **pages, unsigned int count, unsigned long flags,
+    pgprot_t prot);
+void vunmap(const void *addr);
+void *vmap_pfn(unsigned long *pfns, unsigned int count, pgprot_t prot);
+#define	VM_MAP			0x00000004UL
+#define	VM_IOREMAP		0x00000001UL
+#define	VM_MAP_PUT_PAGES	0x00000200UL
+
+static inline unsigned int
+get_order(unsigned long size)
+{
+	unsigned int order = 0;
+
+	size = (size - 1) >> PAGE_SHIFT;
+	while (size != 0) {
+		order++;
+		size >>= 1;
+	}
+	return (order);
+}
+
+#define	si_meminfo(i)			do { (void)(i); } while (0)
+#define	cond_resched_lockless()		do { } while (0)
+
+#endif /* _LINUXKPI_LINUX_MM_H_ */
