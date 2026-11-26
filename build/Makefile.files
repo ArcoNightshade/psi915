@@ -30,10 +30,12 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_lock.o \
 		   linux_mempool.o \
 		   linux_moduleparam.o \
+		   linux_notifier.o \
 		   linux_page.o \
 		   linux_pci.o \
 		   linux_pci_ddi.o \
 		   linux_printk.o \
+		   linux_random.o \
 		   linux_rbtree.o \
 		   linux_rcu.o \
 		   linux_scatterlist.o \

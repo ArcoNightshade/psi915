@@ -376,6 +376,20 @@ lkpi_plat_cpu_id(void)
 }
 
 static inline void
+lkpi_plat_random(void *buf, size_t len)
+{
+	FILE *f = fopen("/dev/urandom", "rb");
+	size_t n = 0;
+
+	if (f != NULL) {
+		n = fread(buf, 1, len, f);
+		fclose(f);
+	}
+	for (; n < len; n++)	/* no /dev/urandom: clock-derived filler */
+		((unsigned char *)buf)[n] = (unsigned char)(clock() ^ (n * 131));
+}
+
+static inline void
 lkpi_plat_yield(void)
 {
 	(void) sched_yield();
@@ -582,7 +596,12 @@ lkpi_plat_log(int level, const char *msg)
 #define	LKPI_PLAT_LOG_ADDS_NEWLINE(level)				\
 	((level) == LKPI_PLAT_LOG_WARN || (level) == LKPI_PLAT_LOG_NOTE)
 
-#define	lkpi_plat_vsnprintf(buf, len, fmt, ap)	vsnprintf(buf, len, fmt, ap)
+/* A function, so a later Linux vsnprintf macro cannot capture it. */
+static inline int
+lkpi_plat_vsnprintf(char *buf, size_t len, const char *fmt, va_list ap)
+{
+	return ((int)vsnprintf(buf, len, fmt, ap));
+}
 
 static inline void __attribute__((__noreturn__))
 lkpi_plat_panic(const char *msg)

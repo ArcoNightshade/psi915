@@ -56,6 +56,10 @@
 #define	__rcu
 #define	__percpu
 #define	__bitwise
+#define	__counted_by(m)
+#define	__nonstring
+#define	__randomize_layout
+#define	__no_randomize_layout
 #define	__must_hold(x)
 #define	__acquires(x)
 #define	__releases(x)

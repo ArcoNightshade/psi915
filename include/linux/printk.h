@@ -17,9 +17,9 @@
  *   KERN_DEBUG                cmn_err(CE_CONT, "!")   log only
  *   no level, KERN_CONT       cmn_err(CE_CONT)        console + log
  *
- * Userland builds write to stderr. Formatting is done by the environment's
- * vsnprintf, so the Linux %p extensions (%pe, %pK, %pS, %ph, ...) are NOT
- * interpreted: they print the pointer followed by the extension letters.
+ * Userland builds write to stderr. Formatting is done by lkpi_vsnprintf()
+ * (<linux/sprintf.h>), which handles the common Linux %p extensions
+ * (%pV, %pe, %ph, %pa, %p4cc, %pR) and prints other ones as a pointer.
  *
  * Messages at or above the level in linuxkpi_loglevel (default 8: all)
  * are dropped. pr_debug()/pr_devel() compile to nothing unless DEBUG is
@@ -187,5 +187,12 @@ printk_skip_level(const char *buf)
  * a pointer to mdb/DTrace instead (kernel) or nothing (userland).
  */
 void dump_stack(void);
+
+struct va_format {
+	const char	*fmt;
+	va_list		*va;
+};
+
+#include <linux/sprintf.h>
 
 #endif /* _LINUXKPI_LINUX_PRINTK_H_ */
