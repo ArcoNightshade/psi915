@@ -12,6 +12,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/mutex.h>
 #include <linux/atomic.h>
@@ -340,6 +341,9 @@ race_zapper(void *arg)
 					atomic_inc(&race_bad);
 		mutex_unlock(&obj.lock);
 	}
+	/* Loaded hosts: let the faulters run at least once before stopping. */
+	for (n = 0; atomic_read(&obj.faults) == 0 && n < 2000; n++)
+		msleep(1);
 	race_stop = 1;
 }
 

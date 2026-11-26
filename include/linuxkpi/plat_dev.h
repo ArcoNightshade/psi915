@@ -120,6 +120,14 @@ int lkpi_plat_dma_alloc_coherent(void *dip, u64 mask, size_t size,
 void lkpi_plat_dma_free_coherent(struct lkpi_plat_dma *h);
 int lkpi_plat_dma_map(void *dip, u64 mask, void *kva, size_t size, int dir,
     u64 *bus, struct lkpi_plat_dma **h);
+/*
+ * Bind npages separately allocated pages (kernel VA kvas[i], physical
+ * address phys[i]) as one DMA object of size bytes starting at offset
+ * off in the first page: one bus-contiguous segment, or an error.
+ */
+int lkpi_plat_dma_map_pages(void *dip, u64 mask, void *const *kvas,
+    const u64 *phys, size_t npages, unsigned int off, size_t size, int dir,
+    u64 *bus, struct lkpi_plat_dma **h);
 void lkpi_plat_dma_unmap(struct lkpi_plat_dma *h);
 void lkpi_plat_dma_sync(struct lkpi_plat_dma *h, size_t off, size_t len,
     bool for_device);

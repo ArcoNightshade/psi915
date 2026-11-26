@@ -616,4 +616,13 @@ lkpi_plat_panic(const char *msg)
 	abort();
 }
 
+/* Installed physical memory in pages (sizing limits). */
+static inline unsigned long
+lkpi_plat_physpages(void)
+{
+	long n = sysconf(_SC_PHYS_PAGES);
+
+	return (n > 0 ? (unsigned long)n : 262144UL);
+}
+
 #endif /* _LINUXKPI_PLATFORM_USERLAND_H_ */

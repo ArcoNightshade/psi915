@@ -274,23 +274,115 @@ dma_sync_single_for_device(struct device *dev, dma_addr_t addr, size_t size,
 		lkpi_dma_sync_single(dev, addr, size, true);
 }
 
+/*
+ * dma_map_sg: bind each entry by its PAGES, not by sg_virt().
+ *
+ * An entry may cover several pages that are physically consecutive but
+ * were allocated separately (alloc_page() each; sg_alloc_table_from_pages
+ * and i915 merge them), so their kernel VAs are unrelated: binding the VA
+ * range [sg_virt(sg), +length) would hand the device foreign memory
+ * (docs/12 M1). The entry is walked by PFN: when its pages are also
+ * VA-contiguous (one allocation, or memory without struct pages such as
+ * kmalloc buffers) the VA range is bound; otherwise the page list is
+ * bound with lkpi_plat_dma_map_pages() (illumos: a B_SHADOW buf whose
+ * page_t list gives each page's PFN). Either way one handle and one bus
+ * segment per entry.
+ */
+struct lkpi_sg_dma {
+	struct lkpi_plat_dma	*h;
+	unsigned int		len;
+};
+
+static void
+lkpi_sg_dma_free(struct lkpi_sg_dma *d)
+{
+	lkpi_plat_dma_unmap(d->h);
+	kfree(d);
+}
+
+static void
+lkpi_sg_dma_sync(struct lkpi_sg_dma *d, bool for_device)
+{
+	lkpi_plat_dma_sync(d->h, 0, d->len, for_device);
+}
+
+static struct lkpi_sg_dma *
+lkpi_sg_dma_map(struct device *dev, struct scatterlist *sg, int dir,
+    u64 *busp)
+{
+	void *dip = lkpi_dev_dip(dev);
+	u64 mask = dma_get_mask(dev);
+	phys_addr_t phys = sg_phys(sg);
+	unsigned int off = (unsigned int)(phys & (PAGE_SIZE - 1));
+	size_t npg = (off + sg->length + PAGE_SIZE - 1) >> PAGE_SHIFT, i;
+	struct lkpi_sg_dma *d;
+	void **kvas = NULL;
+	u64 *pas = NULL;
+	bool contig = true;
+	int r;
+
+	d = kzalloc(sizeof (*d), GFP_KERNEL);
+	if (d == NULL)
+		return (NULL);
+	d->len = sg->length;
+	if (npg > 1) {
+		kvas = kmalloc_array(npg, sizeof (*kvas), GFP_KERNEL);
+		pas = kmalloc_array(npg, sizeof (*pas), GFP_KERNEL);
+		if (kvas == NULL || pas == NULL)
+			goto fail;
+		for (i = 0; i < npg; i++) {
+			u64 pa = (phys & ~(u64)(PAGE_SIZE - 1)) + i * PAGE_SIZE;
+			struct page *pg = pfn_to_page((unsigned long)
+			    (pa >> PAGE_SHIFT));
+
+			if (pg == NULL) {
+				/* No struct page (kmalloc): VA-contiguous. */
+				contig = true;
+				break;
+			}
+			kvas[i] = page_address(pg);
+			pas[i] = pa;
+			if (i > 0 && (char *)kvas[i] != (char *)kvas[0] +
+			    i * PAGE_SIZE)
+				contig = false;
+		}
+	}
+	if (contig)
+		r = lkpi_plat_dma_map(dip, mask, sg_virt(sg), sg->length, dir,
+		    busp, &d->h);
+	else
+		r = lkpi_plat_dma_map_pages(dip, mask, kvas, pas, npg, off,
+		    sg->length, dir, busp, &d->h);
+	kfree(kvas);
+	kfree(pas);
+	if (r != 0) {
+		kfree(d);
+		return (NULL);
+	}
+	return (d);
+fail:
+	kfree(kvas);
+	kfree(pas);
+	kfree(d);
+	return (NULL);
+}
+
 int
 dma_map_sg_attrs(struct device *dev, struct scatterlist *sgl, int nents,
     enum dma_data_direction dir, unsigned long attrs)
 {
 	struct scatterlist *sg;
-	u64 bus;
+	u64 bus = 0;
 	int i, j;
 
 	(void) attrs;
 	for_each_sg(sgl, sg, nents, i) {
-		if (lkpi_plat_dma_map(lkpi_dev_dip(dev), dma_get_mask(dev),
-		    sg_virt(sg), sg->length, lkpi_dma_dir(dir), &bus,
-		    &sg->lkpi_dma) != 0) {
+		sg->lkpi_dma = lkpi_sg_dma_map(dev, sg, lkpi_dma_dir(dir), &bus);
+		if (sg->lkpi_dma == NULL) {
 			struct scatterlist *s2;
 
 			for_each_sg(sgl, s2, i, j) {
-				lkpi_plat_dma_unmap(s2->lkpi_dma);
+				lkpi_sg_dma_free(s2->lkpi_dma);
 				s2->lkpi_dma = NULL;
 			}
 			return (0);
@@ -314,8 +406,8 @@ dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sgl, int nents,
 		if (sg->lkpi_dma == NULL)
 			continue;
 		if (dir != DMA_TO_DEVICE)
-			lkpi_plat_dma_sync(sg->lkpi_dma, 0, sg->length, false);
-		lkpi_plat_dma_unmap(sg->lkpi_dma);
+			lkpi_sg_dma_sync(sg->lkpi_dma, false);
+		lkpi_sg_dma_free(sg->lkpi_dma);
 		sg->lkpi_dma = NULL;
 		sg->dma_address = 0;
 		sg->dma_length = 0;
@@ -334,7 +426,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sgl, int nents,
 		return;
 	for_each_sg(sgl, sg, nents, i)
 		if (sg->lkpi_dma != NULL)
-			lkpi_plat_dma_sync(sg->lkpi_dma, 0, sg->length, false);
+			lkpi_sg_dma_sync(sg->lkpi_dma, false);
 }
 
 void
@@ -349,7 +441,7 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sgl,
 		return;
 	for_each_sg(sgl, sg, nents, i)
 		if (sg->lkpi_dma != NULL)
-			lkpi_plat_dma_sync(sg->lkpi_dma, 0, sg->length, true);
+			lkpi_sg_dma_sync(sg->lkpi_dma, true);
 }
 
 /* IOMMU translation of the device's DMA (i915 intel_vtd_active()). */

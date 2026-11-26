@@ -50,7 +50,12 @@
 #define	ARCH_SLAB_MINALIGN	8
 #define	KMALLOC_MAX_SIZE	(1UL << 22)
 #define	KMALLOC_MAX_CACHE_SIZE	KMALLOC_MAX_SIZE
-#define	LKPI_KVMALLOC_MAX	(1UL << 34)
+/*
+ * kvmalloc/vmalloc limit: 16 GiB, and never more than a quarter of
+ * physical memory (requests above fail at once, docs/12 M2).
+ */
+size_t lkpi_kvmalloc_max(void);
+#define	LKPI_KVMALLOC_MAX	lkpi_kvmalloc_max()
 
 /* Live kmalloc-family allocations (for leak checks in tests). */
 extern atomic_long_t lkpi_kmalloc_live;

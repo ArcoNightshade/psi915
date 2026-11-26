@@ -29,6 +29,15 @@ struct lkpi_kmalloc_hdr {
 
 atomic_long_t lkpi_kmalloc_live;
 
+size_t
+lkpi_kvmalloc_max(void)
+{
+	size_t lim = (size_t)1 << 34;
+	size_t q = (size_t)lkpi_plat_physpages() / 4 * 4096;
+
+	return (q != 0 && q < lim ? q : lim);
+}
+
 static void *
 lkpi_alloc_hdr(size_t size, gfp_t gfp, size_t limit)
 {
@@ -45,9 +54,9 @@ lkpi_alloc_hdr(size_t size, gfp_t gfp, size_t limit)
 		return (NULL);
 	}
 	if (gfp & __GFP_ZERO)
-		h = lkpi_plat_zalloc(total, lkpi_gfp_to_plat(gfp));
+		h = lkpi_plat_zalloc(total, lkpi_gfp_to_plat_size(gfp, total));
 	else
-		h = lkpi_plat_alloc(total, lkpi_gfp_to_plat(gfp));
+		h = lkpi_plat_alloc(total, lkpi_gfp_to_plat_size(gfp, total));
 	if (h == NULL)
 		return (NULL);
 	h->size = size;

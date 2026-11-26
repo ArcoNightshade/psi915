@@ -214,3 +214,8 @@ gfxp_fb_softc_free
 immu_running
 immu_dvma_enable
 immu_gfxdvma_enable
+# M1: page-list DMA binding
+ddi_dma_buf_bind_handle
+getrbuf
+freerbuf
+page_numtopp_nolock
