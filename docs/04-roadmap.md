@@ -130,6 +130,14 @@ in a file hides later ones, so counts move in steps.
 | after BUILD_BUG_ON as compiletime_assert, cleanup.h, batch 5 | 208/368 | 64/69 | 5/7 | 6/8 | 91/184 | 41/98 |
 | after batch 6 (pid, sysctl, writeback, radix iter, mipi_display, cmdline) | 235/368 | 65/69 | 6/7 | 6/8 | 106/184 | 51/98 |
 
+Module build syntax-check (`scripts/build-gfx.sh syntax-check HOST_STUBS=1`, docs/11; stub
+illumos headers, so it measures KPI header coverage only; per-module pass counts):
+
+| Date / state | linuxkpi_gpl_g1 | linuxkpi_drm | linuxkpi_gpl_g2 | i915 | total |
+|--------------|-----------------|--------------|-----------------|------|-------|
+| docs/11 snapshot (merge 9cfcdba) | 17/18 | 48/77 | 3/3 | 16/287 | 84/385 |
+| after batch 6, compiler_types.h, -DI915 in build/i915 | 17/18 | 73/77 | 3/3 | 259/287 | 352/385 |
+
 Done:
 - [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
   kdev_t in include/linux/fs.h (+poll.h, kdev_t.h, file.h, anon_inodes.h); vm_area_struct, vm_fault,

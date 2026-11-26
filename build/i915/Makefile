@@ -39,5 +39,8 @@ MODULE_INC	= -I$(SRCBASE)/drm_bsd/drivers/gpu/drm/i915 \
 # kbuild: subdir-ccflags-y += -I$(src); display/ for drm_bsd's intel_acpi.c.
 MODULE_INC_LATE	= -I$(SRCBASE)/i915/drivers/gpu/drm/i915 \
 		  -I$(SRCBASE)/i915/drivers/gpu/drm/i915/display
+# kbuild: subdir-ccflags-y += -DI915 (i915 vs xe display build, e.g.
+# i9xx_wm.h only declares its functions for I915).
+MODULE_DEFS	= -DI915
 
 include ../drm/Makefile.lkpi

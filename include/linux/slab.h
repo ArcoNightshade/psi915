@@ -154,8 +154,7 @@ typedef unsigned int slab_flags_t;
 #define	SLAB_TEMPORARY		SLAB_RECLAIM_ACCOUNT
 #define	SLAB_MEM_SPREAD		((slab_flags_t)0)
 
-#define	L1_CACHE_BYTES		64
-#define	SMP_CACHE_BYTES		L1_CACHE_BYTES
+#include <linux/cache.h>	/* L1_CACHE_BYTES, SMP_CACHE_BYTES */
 
 struct kmem_cache;
 
