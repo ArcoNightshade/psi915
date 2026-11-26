@@ -1,0 +1,41 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# IPS manifest SKELETON: the private userland stack in /opt/psi915
+# (libdrm, Mesa iris/anv/llvmpipe, kmscube, Xorg modesetting+glamor,
+# mesa-demos). UNTESTED.
+#
+# File actions are generated from a staged install, not written by hand:
+#   userland/build.sh --destdir /var/tmp/psi915-proto all
+#   pkgsend generate /var/tmp/psi915-proto | pkgfmt > files.p5m
+#   pkgmogrify -DPKGVERS=0.0.1 psi915-userland.p5m files.p5m | pkgfmt > out.p5m
+#   pkgdepend generate -md /var/tmp/psi915-proto out.p5m > out.dep
+#   pkgdepend resolve -m out.dep
+# Upstream licences: MIT (libdrm, Mesa core, kmscube, Xorg), plus each
+# component's COPYING; add one license action per component.
+#
+set name=pkg.fmri value=pkg:/x11/psi915/userland@$(PKGVERS)
+set name=pkg.summary value="DRM userland for psi915: libdrm, Mesa, Xorg, kmscube"
+set name=pkg.description \
+    value="Private (/opt/psi915) libdrm, Mesa iris/anv, Xorg modesetting with glamor and DRI3, kmscube"
+set name=info.classification value=org.opensolaris.category.2008:System/X11
+set name=variant.arch value=i386
+# Does not replace x11/library/libdrm or x11/library/mesa: everything is
+# under /opt/psi915 and found through RUNPATH.
+depend type=require fmri=pkg:/driver/graphics/psi915
+depend type=require fmri=pkg:/x11/library/libpciaccess
+depend type=require fmri=pkg:/x11/library/libxshmfence
+dir path=opt/psi915
+dir path=opt/psi915/bin
+dir path=opt/psi915/lib
+dir path=opt/psi915/lib/dri
+dir path=opt/psi915/lib/xorg
+dir path=opt/psi915/lib/xorg/modules
+dir path=opt/psi915/share
+dir path=opt/psi915/share/vulkan/icd.d
+# Vulkan loader looks in /usr/share/vulkan/icd.d and /etc/vulkan/icd.d by
+# default; expose anv's ICD there (or set VK_ICD_FILENAMES).
+link path=etc/vulkan/icd.d/intel_icd.x86_64.json \
+    target=../../../opt/psi915/share/vulkan/icd.d/intel_icd.x86_64.json
+# @FILES@  (generated, see above)

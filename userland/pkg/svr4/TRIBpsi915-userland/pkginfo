@@ -1,0 +1,8 @@
+PKG="TRIBpsi915-userland"
+NAME="psi915 DRM userland in /opt/psi915: libdrm, Mesa, Xorg, kmscube"
+VERSION="0.0.1"
+ARCH="i386"
+CATEGORY="application"
+BASEDIR="/"
+VENDOR="psi915"
+CLASSES="none"

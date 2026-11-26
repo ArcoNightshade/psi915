@@ -1,0 +1,62 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# IPS manifest SKELETON: psi915 kernel modules + device configuration.
+# UNTESTED; not yet built by any script. Paths of the kernel modules follow
+# build/install.manifest (owned by the kernel track); keep the two in sync.
+#
+# Render with pkgmogrify/pkgfmt, e.g.:
+#   pkgmogrify -DARCH64=amd64 -DPKGVERS=0.0.1 driver-graphics-psi915.p5m.gen
+#   pkgsend publish -s <repo> -d <proto> ...
+# The alias list is generated: insert the output of
+#   userland/config/gen-driver-aliases.sh -f ips i915/include/drm/intel/pciids.h
+# at the @ALIASES@ marker (93 Gen9 IDs; pci8086,5917 is the KBL-R target).
+#
+set name=pkg.fmri value=pkg:/driver/graphics/psi915@$(PKGVERS)
+set name=pkg.summary value="Linux i915 DRM/KMS driver for Intel Gen9 GPUs (psi915)"
+set name=pkg.description \
+    value="LinuxKPI compatibility layer, Linux DRM core and i915 driver for illumos"
+set name=info.classification value=org.opensolaris.category.2008:Drivers/Display
+set name=variant.arch value=i386
+set name=org.opensolaris.noincorp value=true
+#
+# gfx-drm's driver/graphics/drm also defines "driver name=i915" (Gen2..Gen7.5
+# IDs) and a "ddi_display:drm" link module. Two drivers cannot share a name,
+# so the packages are mutually exclusive until one is renamed (open decision,
+# docs/09-userland-stack.md).
+depend type=exclude fmri=pkg:/driver/graphics/drm
+#
+# Modules live under /usr/kernel like build/install.manifest's linuxkpi
+# (usr/kernel/misc/amd64/linuxkpi); i915 under usr/kernel/drv.
+dir path=usr/kernel group=sys
+dir path=usr/kernel/drv group=sys
+dir path=usr/kernel/drv/$(ARCH64) group=sys
+dir path=usr/kernel/misc group=sys
+dir path=usr/kernel/misc/$(ARCH64) group=sys
+dir path=usr/lib/firmware group=sys
+dir path=usr/lib/firmware/i915 group=sys
+dir path=usr/lib/devfsadm group=sys
+dir path=usr/lib/devfsadm/linkmod group=sys
+file path=usr/kernel/misc/$(ARCH64)/linuxkpi group=sys mode=0755
+file path=usr/kernel/misc/$(ARCH64)/linuxkpi_drm group=sys mode=0755
+file path=usr/kernel/drv/$(ARCH64)/i915 group=sys mode=0755 \
+    reboot-needed=true
+file path=usr/kernel/drv/i915.conf group=sys mode=0644 preserve=true
+# /dev/dri/card%d, /dev/dri/renderD%d (design option B; option A is a
+# devlink.tab line, unsuitable for packaging because it edits a system file).
+file path=usr/lib/devfsadm/linkmod/SUNW_psi915_drm_link.so group=sys mode=0755
+# Firmware in /usr/lib/firmware (docs/02 item 11): DMC for KBL; GuC/HuC are
+# optional on Gen9. Redistributable,
+# not modifiable: better in its own package, system/firmware/i915-gen9.
+# file path=usr/lib/firmware/i915/kbl_dmc_ver1_04.bin group=sys mode=0444
+#
+# minor node permissions: see userland/config/minor_perm.psi915
+driver name=i915 class=display \
+    perms="card* 0600 root sys" \
+    perms="renderD* 0666 root sys" \
+@ALIASES@
+license LICENSE license=BSD-2-Clause
+# GPL-2.0-only parts (gpl/): licence file path to be decided with the kernel
+# track (docs/06, docs/08).
+# license <gpl licence file> license=GPLv2

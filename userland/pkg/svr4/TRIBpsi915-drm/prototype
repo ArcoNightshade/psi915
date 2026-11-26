@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# prototype(5) SKELETON for Tribblix (SVR4 package, installed with zap).
+# UNTESTED. Kernel module lines should come from
+# `scripts/install.sh -f svr4` (kernel track) once i915/linuxkpi_drm exist;
+# the lines below show the intended layout. Paths are relative to a staging
+# root passed to pkgmk -r.
+i pkginfo
+i depend
+i postinstall
+i preremove
+d none usr 0755 root sys
+d none usr/kernel 0755 root sys
+d none usr/kernel/misc 0755 root sys
+d none usr/kernel/misc/amd64 0755 root sys
+d none usr/kernel/drv 0755 root sys
+d none usr/kernel/drv/amd64 0755 root sys
+f none usr/kernel/misc/amd64/linuxkpi 0755 root sys
+f none usr/kernel/misc/amd64/linuxkpi_drm 0755 root sys
+f none usr/kernel/drv/amd64/i915 0755 root sys
+f none usr/kernel/drv/i915.conf 0644 root sys
+d none usr/lib 0755 root bin
+d none usr/lib/devfsadm 0755 root sys
+d none usr/lib/devfsadm/linkmod 0755 root sys
+f none usr/lib/devfsadm/linkmod/SUNW_psi915_drm_link.so 0755 root sys
+d none usr/lib/firmware 0755 root sys
+d none usr/lib/firmware/i915 0755 root sys
+d none usr/share 0755 root sys
+d none usr/share/psi915 0755 root sys
+f none usr/share/psi915/driver_aliases.gen9 0644 root sys
+f none usr/share/psi915/minor_perm.psi915 0644 root sys
+f none usr/share/psi915/logindevperm.psi915 0644 root sys

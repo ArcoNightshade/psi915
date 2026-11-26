@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# preremove SKELETON for TRIBpsi915-drm. UNTESTED.
+ROOT=${PKG_INSTALL_ROOT:-/}
+if [ "$ROOT" = / ]; then B=""; else B="-b $ROOT"; fi
+grep '^i915 ' "$ROOT/etc/name_to_major" >/dev/null 2>&1 && rem_drv $B i915
+if [ -f "$ROOT/etc/logindevperm" ]; then
+	grep -v 'psi915' "$ROOT/etc/logindevperm" > "$ROOT/etc/logindevperm.psi915.$$" &&
+	    cat "$ROOT/etc/logindevperm.psi915.$$" > "$ROOT/etc/logindevperm"
+	rm -f "$ROOT/etc/logindevperm.psi915.$$"
+fi
+exit 0
