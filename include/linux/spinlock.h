@@ -49,6 +49,8 @@ typedef struct spinlock {
 } spinlock_t;
 
 typedef spinlock_t raw_spinlock_t;
+/* `struct raw_spinlock` (used by DRM) is the same type. */
+#define	raw_spinlock	spinlock
 
 #define	__SPIN_LOCK_UNLOCKED(name)					\
 	{ .m = LKPI_PLAT_MUTEX_INITIALIZER, .owner = NULL }

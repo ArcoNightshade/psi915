@@ -192,3 +192,5 @@ ddi_get_driver_private
 ddi_get_instance
 ddi_report_dev
 getminor
+# P3 KPI
+random_get_pseudo_bytes

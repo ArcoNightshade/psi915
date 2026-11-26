@@ -25,6 +25,18 @@
 #include <linux/slab.h>
 #include <linux/err.h>
 
+#include <linux/notifier.h>
+#include <linux/llist.h>
+#include <linux/average.h>
+#include <linux/ctype.h>
+#include <linux/random.h>
+#include <linux/radix-tree.h>
+#include <linux/iosys-map.h>
+#include <linux/string_helpers.h>
+#include <linux/nospec.h>
+#include <linux/circ_buf.h>
+#include <linux/kconfig.h>
+
 #include "harness.h"
 
 TEST(uaccess)
@@ -620,6 +632,119 @@ TEST(srcu)
 	cleanup_srcu_struct(&srcu_dom);
 }
 
+static int nb_order[4], nb_n;
+
+static int
+nb_fn(struct notifier_block *nb, unsigned long action, void *data)
+{
+	(void) data;
+	nb_order[nb_n++] = nb->priority;
+	return (action == 7 && nb->priority == 5 ? NOTIFY_STOP : NOTIFY_OK);
+}
+
+struct lnode {
+	int			v;
+	struct llist_node	ln;
+};
+
+DECLARE_EWMA(test, 4, 8)
+
+#define	LKPI_TEST_OPT_ON	1
+
+TEST(p3_helpers)
+{
+	BLOCKING_NOTIFIER_HEAD(bh);
+	struct atomic_notifier_head ah;
+	struct notifier_block a = { nb_fn, NULL, 1 }, b = { nb_fn, NULL, 5 },
+	    c = { nb_fn, NULL, 3 };
+	LLIST_HEAD(lh);
+	struct lnode n[3], *pos, *tmp;
+	struct llist_node *all;
+	struct ewma_test e;
+	DEFINE_XARRAY(rt);
+	u32 regs[4] = { 0 };
+	struct iosys_map m = IOSYS_MAP_INIT_VADDR(regs);
+	int i, sum;
+
+	CHECK_EQ(blocking_notifier_chain_register(&bh, &a), 0);
+	CHECK_EQ(blocking_notifier_chain_register(&bh, &b), 0);
+	CHECK_EQ(blocking_notifier_chain_register(&bh, &c), 0);
+	CHECK_EQ(blocking_notifier_chain_register(&bh, &c), -EEXIST);
+	nb_n = 0;
+	CHECK_EQ(blocking_notifier_call_chain(&bh, 1, NULL), NOTIFY_OK);
+	CHECK_EQ(nb_n, 3);
+	CHECK_EQ(nb_order[0], 5);
+	CHECK_EQ(nb_order[2], 1);
+	nb_n = 0;
+	CHECK_EQ(blocking_notifier_call_chain(&bh, 7, NULL), NOTIFY_STOP);
+	CHECK_EQ(nb_n, 1);
+	CHECK_EQ(blocking_notifier_chain_unregister(&bh, &b), 0);
+	CHECK_EQ(blocking_notifier_chain_unregister(&bh, &b), -ENOENT);
+	ATOMIC_INIT_NOTIFIER_HEAD(&ah);
+	CHECK_EQ(atomic_notifier_chain_register(&ah, &a), 0);
+	nb_n = 0;
+	(void) atomic_notifier_call_chain(&ah, 0, NULL);
+	CHECK_EQ(nb_n, 1);
+	CHECK_EQ(atomic_notifier_chain_unregister(&ah, &a), 0);
+	CHECK_EQ(notifier_to_errno(notifier_from_errno(-EINVAL)), -EINVAL);
+
+	for (i = 0; i < 3; i++) {
+		n[i].v = i;
+		CHECK_EQ(llist_add(&n[i].ln, &lh), i == 0);
+	}
+	all = llist_del_all(&lh);
+	CHECK(llist_empty(&lh));
+	sum = 0;
+	llist_for_each_entry_safe(pos, tmp, all, ln)
+		sum = sum * 10 + pos->v;
+	CHECK_EQ(sum, 210);		/* newest first */
+	all = llist_reverse_order(all);
+	CHECK(llist_entry(all, struct lnode, ln)->v == 0);
+
+	ewma_test_init(&e);
+	ewma_test_add(&e, 100);
+	CHECK_EQ(ewma_test_read(&e), 100);
+	for (i = 0; i < 50; i++)
+		ewma_test_add(&e, 20);
+	CHECK(ewma_test_read(&e) >= 20 && ewma_test_read(&e) < 25);
+
+	CHECK(isdigit('7') && !isdigit('a') && isxdigit('F') && isspace('\t'));
+	CHECK_EQ(tolower('Q'), 'q');
+	CHECK_EQ(toupper('q'), 'Q');
+	CHECK(get_random_u32_below(10) < 10);
+	(void) get_random_u64();
+
+	CHECK_EQ(radix_tree_insert(&rt, 5, &e), 0);
+	CHECK(radix_tree_lookup(&rt, 5) == &e);
+	CHECK(radix_tree_delete(&rt, 5) == &e);
+	xa_destroy(&rt);
+
+	iosys_map_wr(&m, 4, u32, 0xabcd);
+	CHECK_EQ(regs[1], 0xabcd);
+	CHECK_EQ(iosys_map_rd(&m, 4, u32), 0xabcd);
+	iosys_map_memset(&m, 8, 0xff, 4);
+	CHECK_EQ(regs[2], 0xffffffff);
+	iosys_map_incr(&m, 4);
+	CHECK_EQ(iosys_map_rd(&m, 0, u32), 0xabcd);
+	CHECK(iosys_map_is_set(&m));
+	iosys_map_clear(&m);
+	CHECK(iosys_map_is_null(&m));
+
+	CHECK(strcmp(str_yes_no(true), "yes") == 0);
+	CHECK(strcmp(str_enabled_disabled(false), "disabled") == 0);
+	CHECK_EQ(array_index_nospec(3, 5), 3);
+	CHECK_EQ(array_index_nospec(7, 5), 0);
+	CHECK_EQ(CIRC_CNT(5, 2, 8), 3);
+	CHECK_EQ(CIRC_SPACE(5, 2, 8), 4);
+	CHECK_EQ(IS_ENABLED(LKPI_TEST_OPT_ON), 1);
+	CHECK_EQ(IS_ENABLED(LKPI_TEST_OPT_OFF), 0);
+#if IS_ENABLED(LKPI_TEST_OPT_ON)
+	CHECK(1);
+#else
+	CHECK(0);
+#endif
+}
+
 LKPI_SUITE(misc)
 {
 	RUN(uaccess);
@@ -632,4 +757,5 @@ LKPI_SUITE(misc)
 	RUN(xarray_marks);
 	RUN(mempool);
 	RUN(srcu);
+	RUN(p3_helpers);
 }

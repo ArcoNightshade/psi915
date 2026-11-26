@@ -60,9 +60,8 @@ def includes(path):
     flags = []
     for i in inc:
         flags += ['-I', i]
-    ac = os.path.join(TOP, 'drm/include/generated/autoconf.h')
-    if os.path.exists(ac):
-        flags += ['-include', ac]
+    # As kbuild: linux/kconfig.h (which includes generated/autoconf.h).
+    flags += ['-include', os.path.join(TOP, 'include/linux/kconfig.h')]
     return flags
 
 
@@ -72,7 +71,8 @@ ERR_RE = re.compile(r'^(?P<file>[^:]+):(?P<line>\d+):(?:\d+:)? (?:fatal )?error:
 def check(path, timeout):
     cmd = ['gcc'] + KFLAGS + includes(path) + [path]
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                           env=dict(os.environ, LC_ALL='C'))
     except subprocess.TimeoutExpired:
         return ('timeout', [], '')
     errs = []
@@ -130,7 +130,7 @@ def main():
                 m = re.search(r"([\w./-]+\.h): No such file", msg)
                 if m:
                     missing_hdr[m.group(1)] += 1
-                m = re.search(r"'(\w+)' undeclared|implicit declaration of function '(\w+)'|unknown type name '(\w+)'|storage size of '\w+' isn't known|invalid use of undefined type '([\w ]+)'", msg)
+                m = re.search(r"'(\w+)' undeclared|implicit declaration of function '(\w+)'|unknown type name '(\w+)'|storage size of '(\w+)' isn't known|invalid use of undefined type '([\w ]+)'", msg)
                 if m:
                     undeclared[next(g for g in m.groups() if g)] += 1
                 if i == 0:

@@ -63,6 +63,9 @@
 #define	non_block_start()	do { } while (0)
 #define	non_block_end()		do { } while (0)
 
+#define	_THIS_IP_	({ __label__ __here; __here: (unsigned long)&&__here; })
+#define	_RET_IP_	((unsigned long)__builtin_return_address(0))
+
 #define	upper_32_bits(n)	((u32)(((n) >> 16) >> 16))
 #define	lower_32_bits(n)	((u32)((n) & 0xffffffff))
 

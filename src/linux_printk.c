@@ -103,7 +103,7 @@ lkpi_vprintk_lp(const char *levelstr, const char *prefix, const char *fmt,
 		off = n;
 	}
 	buf[off] = '\0';
-	n = (size_t)lkpi_plat_vsnprintf(buf + off, sizeof (buf) - off, fmt, ap);
+	n = (size_t)lkpi_vsnprintf(buf + off, sizeof (buf) - off, fmt, ap);
 	if (off + n >= sizeof (buf)) {
 		/* Truncated: mark it, keeping a trailing newline. */
 		memcpy(buf + sizeof (buf) - 5, "...\n", 5);
@@ -223,3 +223,377 @@ lkpi_panic(const char *fmt, ...)
 	lkpi_plat_panic(buf);
 }
 #endif
+
+/*
+ * Linux printf format extensions (see <linux/sprintf.h>). Conversions are
+ * parsed one at a time; ordinary ones are formatted by the platform
+ * vsnprintf with their own argument, the %p extensions here:
+ *
+ *   %pV          struct va_format: nested format and va_list
+ *   %pe          error pointer: "-<errno>" (no symbolic names)
+ *   %ph[CDN]     up to 64 bytes in hex (with precision/width as length)
+ *   %pa[p|d]     phys_addr_t / dma_addr_t by reference
+ *   %p4cc        DRM fourcc code by reference
+ *   %pR, %pr     struct resource
+ *   %pS/%ps/%pB/%pK/%px/%pF/%pf and bare %p   the pointer value in hex
+ *
+ * Other %p<letter> extensions print the pointer and consume the letters
+ * Linux would (alphanumerics after the p).
+ */
+#include <linux/ioport.h>
+#include <linux/slab.h>
+
+static int
+lkpi_raw_snprintf(char *buf, size_t size, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+
+	va_start(ap, fmt);
+	n = lkpi_plat_vsnprintf(buf, size, fmt, ap);
+	va_end(ap);
+	return (n);
+}
+
+struct lkpi_fmtbuf {
+	char	*buf;
+	size_t	size;
+	size_t	len;	/* would-be length */
+};
+
+static void
+lkpi_fb_put(struct lkpi_fmtbuf *b, const char *s, size_t n)
+{
+	size_t room;
+
+	if (b->len < b->size) {
+		room = b->size - b->len - 1;
+		memcpy(b->buf + b->len, s, n < room ? n : room);
+		b->buf[b->len + (n < room ? n : room)] = '\0';
+	}
+	b->len += n;
+}
+
+static void
+lkpi_fb_printf(struct lkpi_fmtbuf *b, const char *fmt, ...)
+{
+	char tmp[128];
+	va_list ap;
+	int n;
+
+	va_start(ap, fmt);
+	n = lkpi_plat_vsnprintf(tmp, sizeof (tmp), fmt, ap);
+	va_end(ap);
+	if (n > 0)
+		lkpi_fb_put(b, tmp, (size_t)n < sizeof (tmp) ? (size_t)n :
+		    sizeof (tmp) - 1);
+}
+
+static void lkpi_vformat(struct lkpi_fmtbuf *b, const char *fmt, va_list *ap);
+
+static const char *
+lkpi_fmt_pointer(struct lkpi_fmtbuf *b, const char *f, void *p, int prec)
+{
+	static const char hex[] = "0123456789abcdef";
+
+	switch (*f) {
+	case 'V': {
+		struct va_format *vaf = p;
+		va_list aq;
+
+		va_copy(aq, *vaf->va);
+		lkpi_vformat(b, vaf->fmt, &aq);
+		va_end(aq);
+		return (f + 1);
+	}
+	case 'e':
+		lkpi_fb_printf(b, "%ld", (long)(intptr_t)p);
+		return (f + 1);
+	case 'h': {
+		char sep = ' ';
+		int n = prec > 0 ? prec : 1, i;
+		const unsigned char *d = p;
+
+		f++;
+		if (*f == 'C' || *f == 'D' || *f == 'N') {
+			sep = *f == 'C' ? ':' : (*f == 'D' ? '-' : '\0');
+			f++;
+		}
+		if (n > 64)
+			n = 64;
+		for (i = 0; i < n; i++) {
+			char x[3] = { hex[d[i] >> 4], hex[d[i] & 15], sep };
+
+			lkpi_fb_put(b, x, (i + 1 < n && sep != '\0') ? 3 : 2);
+		}
+		return (f);
+	}
+	case 'a':
+		f++;
+		if (*f == 'd') {
+			lkpi_fb_printf(b, "0x%016llx",
+			    (unsigned long long)*(dma_addr_t *)p);
+			return (f + 1);
+		}
+		if (*f == 'p')
+			f++;
+		lkpi_fb_printf(b, "0x%016llx",
+		    (unsigned long long)*(phys_addr_t *)p);
+		return (f);
+	case '4':
+		if (f[1] == 'c' && f[2] == 'c') {
+			u32 v = *(u32 *)p;
+			char s[5];
+			int i;
+
+			for (i = 0; i < 4; i++) {
+				char c = (char)((v >> (i * 8)) & 0x7f);
+
+				s[i] = c >= 32 && c < 127 ? c : '.';
+			}
+			s[4] = '\0';
+			lkpi_fb_printf(b, "%s %s-endian (0x%08x)", s,
+			    (v & (1U << 31)) ? "big" : "little", v);
+			return (f + 3);
+		}
+		break;
+	case 'R':
+	case 'r': {
+		struct resource *r = p;
+
+		lkpi_fb_printf(b, "[mem %#010llx-%#010llx]",
+		    (unsigned long long)r->start, (unsigned long long)r->end);
+		return (f + 1);
+	}
+	default:
+		break;
+	}
+	lkpi_fb_printf(b, "%p", p);
+	while ((*f >= 'a' && *f <= 'z') || (*f >= 'A' && *f <= 'Z') ||
+	    (*f >= '0' && *f <= '9'))
+		f++;
+	return (f);
+}
+
+static void
+lkpi_vformat(struct lkpi_fmtbuf *b, const char *fmt, va_list *ap)
+{
+	const char *f = fmt, *start;
+	char spec[32];
+	int lng, prec;
+
+	while (*f != '\0') {
+		if (*f != '%') {
+			start = f;
+			while (*f != '\0' && *f != '%')
+				f++;
+			lkpi_fb_put(b, start, (size_t)(f - start));
+			continue;
+		}
+		start = f++;
+		if (*f == '%') {
+			lkpi_fb_put(b, "%", 1);
+			f++;
+			continue;
+		}
+		/* flags, width, precision */
+		while (*f == '-' || *f == '+' || *f == ' ' || *f == '#' ||
+		    *f == '0')
+			f++;
+		{
+			int width = -1;
+
+			if (*f == '*') {
+				width = va_arg(*ap, int);
+				f++;
+			} else if (*f >= '0' && *f <= '9') {
+				width = 0;
+				while (*f >= '0' && *f <= '9')
+					width = width * 10 + (*f++ - '0');
+			}
+			prec = -1;
+			if (*f == '.') {
+				f++;
+				if (*f == '*') {
+					prec = va_arg(*ap, int);
+					f++;
+				} else {
+					prec = 0;
+					while (*f >= '0' && *f <= '9')
+						prec = prec * 10 + (*f++ - '0');
+				}
+			}
+			/* length */
+			lng = 0;
+			while (*f == 'l' || *f == 'h' || *f == 'z' || *f == 'j' ||
+			    *f == 't' || *f == 'L' || *f == 'q') {
+				if (*f == 'h')
+					lng = lng == -1 ? -2 : -1;
+				else if (*f == 'l' || *f == 'z' || *f == 'j' ||
+				    *f == 't')
+					lng++;
+				else
+					lng = 2;
+				f++;
+			}
+			if (*f == 'p') {
+				void *p = va_arg(*ap, void *);
+
+				if (prec < 0 && width > 0)
+					prec = width;
+				f = lkpi_fmt_pointer(b, f + 1, p, prec);
+				continue;
+			}
+			if (*f == '\0')
+				break;
+			/* Rebuild the spec without '*' (values consumed). */
+			{
+				size_t n = 0;
+				const char *s;
+
+				for (s = start; s <= f && n + 12 < sizeof (spec); s++) {
+					if (*s == '*') {
+						n += (size_t)lkpi_raw_snprintf(spec + n,
+						    sizeof (spec) - n, "%d",
+						    s > start && s[-1] == '.' ? prec :
+						    width);
+						continue;
+					}
+					spec[n++] = *s;
+				}
+				spec[n] = '\0';
+			}
+		}
+		switch (*f) {
+		case 'd': case 'i': case 'u': case 'x': case 'X': case 'o':
+		case 'c':
+			if (lng >= 2)
+				lkpi_fb_printf(b, spec, va_arg(*ap, long long));
+			else if (lng == 1)
+				lkpi_fb_printf(b, spec, va_arg(*ap, long));
+			else
+				lkpi_fb_printf(b, spec, va_arg(*ap, int));
+			break;
+		case 's': {
+			const char *s = va_arg(*ap, const char *);
+			char big[512];
+			int n;
+
+			if (spec[1] == 's') {	/* plain %s: no length limit */
+				if (s == NULL)
+					s = "(null)";
+				lkpi_fb_put(b, s, strlen(s));
+				break;
+			}
+			n = lkpi_raw_snprintf(big, sizeof (big), spec,
+			    s != NULL ? s : "(null)");
+
+			lkpi_fb_put(b, big, n < 0 ? 0 : ((size_t)n < sizeof (big) ?
+			    (size_t)n : sizeof (big) - 1));
+			break;
+		}
+		case 'n':
+			(void) va_arg(*ap, void *);
+			break;
+		default:
+			/* Floating point is not used in the kernel. */
+			lkpi_fb_put(b, start, (size_t)(f + 1 - start));
+			break;
+		}
+		f++;
+	}
+}
+
+int
+lkpi_vsnprintf(char *buf, size_t size, const char *fmt, va_list ap)
+{
+	struct lkpi_fmtbuf b = { buf, size, 0 };
+	va_list aq;
+
+	if (size > 0)
+		buf[0] = '\0';
+	va_copy(aq, ap);
+	lkpi_vformat(&b, fmt, &aq);
+	va_end(aq);
+	return ((int)b.len);
+}
+
+int
+lkpi_snprintf(char *buf, size_t size, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+
+	va_start(ap, fmt);
+	n = lkpi_vsnprintf(buf, size, fmt, ap);
+	va_end(ap);
+	return (n);
+}
+
+int
+lkpi_vscnprintf(char *buf, size_t size, const char *fmt, va_list ap)
+{
+	int n = lkpi_vsnprintf(buf, size, fmt, ap);
+
+	if (size == 0)
+		return (0);
+	return ((size_t)n < size ? n : (int)size - 1);
+}
+
+int
+lkpi_scnprintf(char *buf, size_t size, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+
+	va_start(ap, fmt);
+	n = lkpi_vscnprintf(buf, size, fmt, ap);
+	va_end(ap);
+	return (n);
+}
+
+int
+lkpi_sprintf(char *buf, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+
+	va_start(ap, fmt);
+	n = lkpi_vsnprintf(buf, (size_t)INT_MAX, fmt, ap);
+	va_end(ap);
+	return (n);
+}
+
+char *
+kvasprintf(gfp_t gfp, const char *fmt, va_list ap)
+{
+	va_list aq;
+	char *p;
+	int n;
+
+	va_copy(aq, ap);
+	n = lkpi_vsnprintf(NULL, 0, fmt, aq);
+	va_end(aq);
+	p = kmalloc((size_t)n + 1, gfp);
+	if (p != NULL)
+		(void) lkpi_vsnprintf(p, (size_t)n + 1, fmt, ap);
+	return (p);
+}
+
+char *
+kasprintf(gfp_t gfp, const char *fmt, ...)
+{
+	va_list ap;
+	char *p;
+
+	va_start(ap, fmt);
+	p = kvasprintf(gfp, fmt, ap);
+	va_end(ap);
+	return (p);
+}
+
+const char *
+kvasprintf_const(gfp_t gfp, const char *fmt, va_list ap)
+{
+	return (kvasprintf(gfp, fmt, ap));
+}

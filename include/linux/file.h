@@ -11,4 +11,10 @@
 
 #include <linux/fs.h>
 
+/* Descriptor table operations; implemented by drmglue (src/anonfile.c). */
+int get_unused_fd_flags(unsigned int flags);
+void put_unused_fd(unsigned int fd);
+void fd_install(unsigned int fd, struct lkpi_file *f);
+struct lkpi_file *fget(unsigned int fd);
+
 #endif /* _LINUXKPI_LINUX_FILE_H_ */

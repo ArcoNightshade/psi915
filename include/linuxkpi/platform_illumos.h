@@ -41,6 +41,7 @@
 #include <sys/ddi.h>
 #include <sys/sunddi.h>
 #include <sys/file.h>
+#include <sys/random.h>
 
 #define	lkpi_assert(x)		ASSERT(x)
 
@@ -288,6 +289,13 @@ lkpi_plat_cpu_id(void)
 	return ((unsigned int)CPU->cpu_seqid);
 }
 
+/* Random bytes (random_get_pseudo_bytes(9F); never fails once booted). */
+static inline void
+lkpi_plat_random(void *buf, size_t len)
+{
+	(void) random_get_pseudo_bytes(buf, len);
+}
+
 /* Give up the CPU to other runnable threads. */
 static inline void
 lkpi_plat_yield(void)
@@ -473,7 +481,12 @@ lkpi_plat_log(int level, const char *msg)
 #define	LKPI_PLAT_LOG_ADDS_NEWLINE(level)				\
 	((level) == LKPI_PLAT_LOG_WARN || (level) == LKPI_PLAT_LOG_NOTE)
 
-#define	lkpi_plat_vsnprintf(buf, len, fmt, ap)	vsnprintf(buf, len, fmt, ap)
+/* A function, so a later Linux vsnprintf macro cannot capture it. */
+static inline int
+lkpi_plat_vsnprintf(char *buf, size_t len, const char *fmt, va_list ap)
+{
+	return ((int)vsnprintf(buf, len, fmt, ap));
+}
 
 static inline void __attribute__((__noreturn__))
 lkpi_plat_panic(const char *msg)

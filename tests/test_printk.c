@@ -18,6 +18,7 @@
 #include <linux/errno.h>
 #include <linux/jiffies.h>
 #include <linux/ratelimit.h>
+#include <linux/slab.h>
 
 #include "harness.h"
 
@@ -306,6 +307,56 @@ TEST(jiffies)
 	CHECK(get_jiffies_64() >= j0);
 }
 
+static int
+vaf_fmt(char *buf, size_t n, const char *fmt, ...)
+{
+	struct va_format vaf;
+	va_list ap;
+	int r;
+
+	va_start(ap, fmt);
+	vaf.fmt = fmt;
+	vaf.va = &ap;
+	r = snprintf(buf, n, "[%pV]", &vaf);
+	va_end(ap);
+	return (r);
+}
+
+TEST(linux_formats)
+{
+	char b[128];
+	u8 bytes[4] = { 0xde, 0xad, 0xbe, 0xef };
+	phys_addr_t pa = 0x1234;
+	u32 fourcc = 0x34325258;	/* "XR24" */
+
+	CHECK_EQ(snprintf(b, sizeof (b), "%d %5s|%-3u|%llx %*d %.*s", -3, "ab",
+	    7U, 0xabcULL, 4, 9, 2, "xyz"), 24);
+	CHECK(strcmp(b, "-3    ab|7  |abc    9 xy") == 0);
+	CHECK_EQ(vaf_fmt(b, sizeof (b), "%s=%d", "x", 5), 5);
+	CHECK(strcmp(b, "[x=5]") == 0);
+	{
+		int e = 0;
+
+		(void) snprintf(b, sizeof (b), "%pe", ERR_PTR(-ENOMEM));
+		CHECK_EQ(kstrtoint(b, 10, &e), 0);
+		CHECK_EQ(e, -ENOMEM);
+	}
+	(void) snprintf(b, sizeof (b), "%4ph|%*phN", bytes, 2, bytes);
+	CHECK(strcmp(b, "de ad be ef|dead") == 0);
+	(void) snprintf(b, sizeof (b), "%pa", &pa);
+	CHECK(strcmp(b, "0x0000000000001234") == 0);
+	(void) snprintf(b, sizeof (b), "%p4cc", &fourcc);
+	CHECK(strncmp(b, "XR24 little-endian", 18) == 0);
+	CHECK_EQ(scnprintf(b, 4, "%s", "abcdef"), 3);
+	CHECK_EQ(snprintf(NULL, 0, "%d%%", 100), 4);
+	{
+		char *k = kasprintf(GFP_KERNEL, "n%03d", 7);
+
+		CHECK(k != NULL && strcmp(k, "n007") == 0);
+		kfree(k);
+	}
+}
+
 LKPI_SUITE(printk)
 {
 	RUN(levels);
@@ -318,4 +369,5 @@ LKPI_SUITE(printk)
 	RUN(bug_survivable);
 	RUN(err_ptr);
 	RUN(jiffies);
+	RUN(linux_formats);
 }
