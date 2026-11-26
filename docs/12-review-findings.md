@@ -26,6 +26,10 @@ Confidence: how sure the reviewer is that the failure happens as described on il
 | C2 | low | cache | `set_memory_*`/`set_pages_*` are no-ops although `kmem_override_cache_attrs()` exists | high |
 | L4 | low | sched | `task_tgid()`/`task_pid()` create unreferenced `struct pid` entries; pointer validity differs from Linux | high (leak), low (impact) |
 | M4 | low | memory | `kmalloc` gives 16-byte, not natural, alignment for power-of-two sizes | high (fact), low (no consumer found) |
+| L5 | medium | locking | `mutex_lock_interruptible/_killable` never interrupt: processes unkillable behind a hung holder | high (documented limitation) |
+| I1 | low | IRQ | `synchronize_irq` can miss a handler that entered but has not yet incremented `active` | medium |
+| S1 | low | module graph | KPI function `free_pages` collides with genunix global variable `free_pages` (vm_page.c) | high (fact), low (impact) |
+| A1 | low | attach | console-only fallback after a failed probe may leave the GGTT/plane reprogrammed (invisible console) | low |
 
 Checked and found correct (no finding): see "Verified OK" at the end.
 
@@ -103,6 +107,18 @@ and drops a reference; and a pointer obtained from `task_tgid()` is freed as soo
 task's lifetime). DRM's current uses (`drm_file_alloc`, `drm_file_update_pid`) take a reference
 immediately, so no use-after-free was found; the leak is bounded by distinct pids. Fix: give the
 task_struct its own reference (taken at `lkpi_task_alloc`, dropped at free) and return that.
+
+### L5 (medium) Interruptible/killable mutex acquisition cannot be interrupted
+
+File: `include/linux/mutex.h:13-15, 103-112`. Documented, but the consequence is worth stating:
+i915 and DRM take `mutex_lock_interruptible()` on locks that are held across long GPU waits or
+reset handling (e.g. `ggtt->vm.mutex` in eviction/binding paths, `drm_device` master/modeset
+locks, `dev->struct_mutex`-like client locks). If the holder is stuck (GPU hang before reset
+completes, or the L1 livelock), every other thread queueing on the mutex is in an uninterruptible
+`mutex_enter`: `kill -9` does not work and the process cannot exit until the holder returns. Fix:
+implement `mutex_lock_interruptible/_killable` as a sleep on a condition variable (owner field +
+`cv_wait_sig`, as `lkpi_ww_lock_common` already does for ww mutexes), keeping `mutex_lock` on the
+kmutex fast path; with the L1 fix applied to the signal test.
 
 ### Area 1, verified OK
 
@@ -264,6 +280,81 @@ per-VMA softlock count and make zaps wait. segdev_unmap already refuses unmap wh
   skipped.
 - The fault path copies window translations to the user under `lv->lock`, so a zap cannot unload the
   window between "present" and `devmap_load` (no PFN_INVALID loads).
+- drmglue anonymous files: `ufalloc` + `setf(fd, NULL)` is the correct illumos reserve/unreserve
+  pair for `get_unused_fd_flags`/`put_unused_fd`; `falloc(vp, flag, &fp, NULL)` returns with
+  `f_tlock` held and the code drops it. Not verified: which reference the new `file_t` consumes
+  (falloc does not `VN_HOLD`); the KPI side (`fd_install` in drmglue/src/file.c) must hand over one
+  vnode hold per fd, otherwise a dma-buf fd passed over a socket and closed twice would free the
+  vnode early. Reviewer did not finish tracing this; marked for the drmglue owner.
 - `lkpi_errno_to_user` maps `ERESTARTSYS` and the other >=512 Linux-only codes.
 - illumos `_IOC` size field is 8 bits; `lkpi_ioc_translate` recovers sizes >= 256 from the driver
   table and checks the low byte.
+
+## Area 5: attach/detach, interrupts
+
+### I1 (low) `synchronize_irq` race window
+
+File: `src/linux_irq.c:77-94, 172-182`. `synchronize_irq` waits for `d->active == 0`, but the
+counter is incremented inside the handler, so a handler that the hardware already dispatched (the
+interrupt thread is running `lkpi_intr_handler` in `plat_illumos_dev.c` but has not reached the
+`atomic_inc`) is not waited for. i915 uses `intel_synchronize_irq()` after masking interrupts in
+`intel_irq_suspend()`/runtime-PM disable and then powers the device down; the late handler reads
+`GEN8_MASTER_IRQ` of a powered-down device. i915 checks `intel_irqs_enabled()` first, so the
+practical effect is a spurious `IRQ_NONE`, not corruption. `free_irq` is safe because
+`ddi_intr_disable`/`ddi_intr_remove_handler` wait for running handlers (`rem_avintr` ->
+`wait_till_seen`). Fix: also call `ddi_intr_disable`+`ddi_intr_enable` (or keep the handler entry
+count in the illumos wrapper before calling into the KPI) when strict synchronisation is needed;
+low priority.
+
+### A1 (low) Console-only fallback after a partially successful probe
+
+File: `drivers/i915_glue/i915_ddi.c` (`psi915_attach`, fallback branch). The fallback keeps tem on
+the firmware framebuffer, but `i915_driver_probe` may already have reset/cleared the GGTT outside the
+initial-plane reservation, sanitised the display, or disabled the primary plane before failing
+(e.g. firmware load or GuC/DMC errors are late in probe). tem then draws into an aperture range whose
+PTEs point at scratch, or into a plane that is off: no crash, but the "probe failure must not leave
+the system without a console" requirement (docs/11 section 2) is not guaranteed. Suggest: on
+fallback, log loudly to the serial console and document that a probe failure after
+`i915_ggtt_init_hw` loses the framebuffer console; or keep `psi915_nomodeset` as the recovery path.
+
+### Area 5, verified OK
+
+- `_init` runs the Linux module init before `mod_install` and undoes it on failure; `_fini` runs
+  `mod_remove` first. `pci_register_driver` only records the driver (no probe of foreign dips).
+- `DDI_SUSPEND` rolls the Linux side back with `DDI_RESUME` when `gfxp_fb_detach` fails; detach
+  refuses while the console or any DRM node is open; the panic callback is removed before the softc
+  is freed.
+- The IRQ path refuses vectors above LOCK_LEVEL; MSI on KBL-R is below it.
+
+## Area 6: module graph and symbol collisions
+
+### S1 (low) `free_pages` is also a genunix global
+
+Method: `nm -g --defined-only` of the 56 objects built by `make -C tests check-kmod` (linuxkpi with
+drmglue, 776 global symbols) compared with every function defined at line start in
+`ref/illumos/usr/src/uts/**/*.c` and the global variables of common/os, common/vm, i86pc/os.
+Overlaps: `_init/_info/_fini` (expected), `cancel_work`, `get_device`, `i2c_transfer` (all static
+or in unrelated sun4u/IB/RSM modules: no conflict), and `free_pages`: KPI function
+(`src/linux_page.c:118`) versus `int free_pages = 1;` in genunix (`uts/common/vm/vm_page.c:2834`).
+
+krtld (`kobj_lookup_all`, common/krtld/kobj.c) resolves a module's undefined symbols through its
+own DT_NEEDED list before the primary modules, and i915/drm list `misc/linuxkpi` directly, so the
+calls bind to the KPI function. Consequences are diagnostic: `mdb -k`'s `free_pages` and DTrace
+`fbt::free_pages:` name the genunix variable / both; any future module that uses `free_pages`
+without listing linuxkpi first would call into a data object (panic). Fix: rename to
+`lkpi_free_pages` with `#define free_pages lkpi_free_pages` in `<linux/gfp.h>`, the scheme already
+used for `kmem_cache_*` and `mutex_init`. Not checked: the imported drm/i915 objects (they do not
+link yet); the same comparison should be rerun on `build/*/obj64/objs` once they compile
+(`scripts/kpi-linkcheck.sh` is the place).
+
+## Not verified / limits of this review
+
+- Nothing was compiled against real illumos headers or run on illumos; all illumos behaviour above
+  is from reading `ref/illumos/usr/src/uts` (f71cb08e8c53).
+- Not reviewed in depth: `src/linux_xarray.c`, `linux_idr.c`, `linux_devres.c`, `linux_device.c`,
+  `linux_pci.c` (beyond driver registration), `linux_i2c.c`, `linux_firmware.c`, drmglue `file.c`,
+  `anonfile.c`, `pseudofs.c`, `vmoff.c`, `i915_drm_glue.c`, `build/` makefiles, SRCU.
+- The workqueue cap (L3) has no concrete 17-deep i915 chain; the D1 scenario was not traced to a
+  specific userland program.
+- `segdev_faultpage` behaviour for a window page that is not loaded (PFN_INVALID) was not read; the
+  code avoids that state under `lv->lock`, which the reviewer did verify.
