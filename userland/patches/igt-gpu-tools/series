@@ -1,0 +1,17 @@
+# igt-gpu-tools patch series. All entries PLANNED (commented out).
+# Goal: build lib/ and an allowlist of tests (gem_exec_basic, gem_exec_fence,
+# gem_ctx_*, gem_mmap_offset, kms_flip, kms_atomic, kms_addfb_basic,
+# prime_self_import, prime_vgem off, syncobj_basic, syncobj_wait,
+# syncobj_timeline) with Linux-only pieces stubbed.
+#
+# 0001-meson-optional-linux-deps.patch
+#   Make libudev, libkmod, libprocps/libproc2 and libdw optional (believed
+#   mandatory in igt 1.2x meson.build).
+# 0002-compat-shim.patch
+#   lib/igt_illumos.c: device discovery via /dev/dri + libdevinfo instead of
+#   udev (lib/igt_device_scan.c); module load/unload via modload/modunload
+#   (or skip); igt_debugfs/igt_sysfs return "not available" so tests that
+#   need them skip instead of fail.
+# 0003-no-proc-self.patch
+#   /proc/self/* readers (fd counts, mountinfo) via illumos /proc (procfs
+#   layout differs) or skip.

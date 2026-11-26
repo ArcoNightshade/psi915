@@ -1,0 +1,22 @@
+# xorg-server patch series. All entries PLANNED (commented out).
+#
+# Source of candidates: oi-userland components/x11/xorg-server/patches
+# (40 patches against 1.19.7; snapshot 2026-11-24). Forward-port only what
+# a modesetting + glamor desktop needs; the Sun/Trusted Extensions, DMX,
+# sparc and dtlogin patches are out of scope.
+#
+# 0001-sun-paths.patch            from OI 02-sun-paths.patch (review)
+# 0002-vt.patch                   from OI 19-vt.patch: illumos VT switching
+#                                 (vt(4I), /dev/vt/N); needed so Xorg can
+#                                 drmDropMaster/drmSetMaster on VT switch
+# 0003-amd64-loader-path.patch    from OI 09-amd64-loader-path.patch (review;
+#                                 may be moot with -Dmodule_dir)
+# 0004-modesetting-pci-probe.patch
+#   hw/xfree86/drivers/modesetting: confirm the non-udev PCI probe path
+#   (ms_pci_probe -> drmOpen by bus id) is compiled on SunOS and that
+#   glamor's DRI3 paths do not assume Linux (believed portable: OpenBSD and
+#   FreeBSD use the same driver).
+# 0005-os-support-solaris-drm.patch
+#   hw/xfree86/os-support/solaris: keep vgatext/illumosfb console handoff
+#   from fighting KMS (do not KDSETMODE the console framebuffer while the
+#   DRM driver owns the display).

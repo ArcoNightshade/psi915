@@ -1,0 +1,8 @@
+# logindevperm(5) fragment: give the console user /dev/dri/card* while
+# logged in on the console (ttymon/gdm/lightdm console logins). DESIGN,
+# UNTESTED. Format: console-device  mode  device-list (colon separated,
+# shell-style patterns are believed supported for the device paths; check
+# logindevperm(5) on the target before relying on the glob).
+#
+# Without this, kmscube/modetest must run as root.
+/dev/console	0600	/dev/dri/card[0-9]*	# psi915 DRM primary nodes

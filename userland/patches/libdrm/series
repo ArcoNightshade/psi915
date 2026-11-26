@@ -1,0 +1,29 @@
+# libdrm patch series (quilt format, applied with patch -p1 by build.sh).
+# Active entries: "<file> [extra patch args]". Lines starting with '#' are
+# comments. Every entry below is PLANNED: no patch file exists yet, so all are
+# commented out. Write each against the pinned version in versions.conf.
+#
+# Precedent: illumos/gfx-drm usr/src/common/libdrm/patches (libdrm 2.4.75,
+# 2017) and lib/libdrm/common/sun_devinfo.c. Check first what upstream libdrm
+# already carries for __sun before porting any of it (UNVERIFIED: the
+# upstream state could not be inspected offline).
+#
+# 0001-illumos-drm-major.patch
+#   drmNodeIsDRM()/drmGetMinorType(): do not compare against a fixed
+#   DRM_MAJOR. On illumos the major is per driver (/etc/name_to_major), so
+#   identify DRM nodes by the minor node type "ddi_display:drm" (libdevinfo)
+#   or by realpath() under /devices matching a /dev/dri/ link.
+# 0002-illumos-minor-mask.patch
+#   Mask clone bits out of minor(st_rdev) wherever libdrm derives the node
+#   type or index from the minor number (drmGetMinorType, drmGetNodeType-
+#   FromFd, drmGetMinorNameForFD, drmGetDeviceNameFromFd2), if the kernel
+#   uses clone minors (see docs/09-userland-stack.md, "Per-open state").
+#   Mask value must match the kernel (proposed: minor & 0xff).
+# 0003-illumos-get-device.patch
+#   drmGetDevice2()/drmGetDevices2()/drmParseSubsystemType()/
+#   drmParsePciBusInfo()/drmParsePciDeviceInfo(): libdevinfo walk instead of
+#   /sys/dev/char/M:m/device (port of gfx-drm sun_devinfo.c ideas; clean
+#   rewrite needed, gfx-drm file is MIT-licensed per its header: check).
+# 0004-illumos-no-mknod.patch
+#   drmOpenDevice(): never mknod/chown under /dev (devfsadm owns /dev/dri).
+#   gfx-drm carried the same change.

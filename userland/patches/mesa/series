@@ -1,0 +1,35 @@
+# Mesa patch series. All entries PLANNED (commented out); see libdrm/series
+# for the format. Base: versions.conf pin.
+#
+# Precedent: oi-userland components/x11/mesa/patches (27 patches for Mesa
+# 21.3.9, several from pkgsrc/NetBSD: libsync.h needs <sys/ioccom.h>,
+# u_thread.h/u_process.c/disk_cache_os.c portability, TLS) and Tribblix
+# patches/mesa (13.0.6). Re-check each against the pinned Mesa; many are
+# believed upstream by now (UNVERIFIED).
+#
+# 0001-util-libsync-ioccom.patch
+#   src/util/libsync.h: include <sys/ioccom.h> on __sun for _IOWR (same as the
+#   NetBSD patch OI carries). SYNC_IOC_MERGE then uses the native encoding,
+#   which the kernel sync_file glue must decode ('>' type, nr 3, 48 bytes).
+# 0002-drm-uapi-linux-types.patch
+#   Mesa's include/drm-uapi/*.h (sync_file.h, dma-buf.h, i915_drm.h) are
+#   kernel uAPI copies; some include <linux/types.h>/<linux/ioctl.h>. The
+#   native files add /opt/psi915/include/psi915-compat (installed by build.sh
+#   from userland/compat/include), so no patch should be needed; patch only
+#   if a configure check misreads the shim as "this is Linux".
+# 0003-os-same-file-description.patch
+#   src/util/os_file.c: os_same_file_description() uses kcmp() on Linux. On
+#   illumos return "unknown" (believed already the non-Linux fallback);
+#   confirm screen/device dedup in the loader still works with clone minors.
+# 0004-loader-render-node-minor.patch
+#   src/loader: render node discovery uses drmGetDevices2() + node paths, so
+#   it depends on the libdrm patches; only patch if loader has Linux-only
+#   sysfs fallbacks left.
+# 0005-anv-memfd.patch
+#   anv/util anon files: memfd_create() is absent from illumos libc (libc
+#   mapfile checked 2026-11-24); confirm util/anon_file.c falls back to
+#   mkostemp() in $XDG_RUNTIME_DIR or /tmp (believed).
+# 0006-intel-dmabuf-sync-file.patch
+#   Only if DMA_BUF_IOCTL_EXPORT_SYNC_FILE/IMPORT_SYNC_FILE are not provided
+#   by the kernel: make Mesa's implicit-sync path fall back cleanly (it probes
+#   with an ioctl and tolerates ENOTTY on older Linux, believed).

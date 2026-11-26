@@ -1,0 +1,13 @@
+# devlink.tab(5) fragment: /dev/dri links for DRM minor nodes. DESIGN,
+# UNTESTED. Option A of the two link designs in docs/09-userland-stack.md
+# ("Device nodes"); option B is a devfsadm link module (gfx-drm precedent,
+# SUNW_drm_link_i386.so, which already links every "ddi_display:drm" minor
+# named [a-z]+D?[0-9]+ as /dev/dri/<minor-name>).
+#
+# Fields are separated by ONE TAB. \M0 is the whole minor name, so minor
+# "card0" -> /dev/dri/card0 and minor "renderD128" -> /dev/dri/renderD128.
+# The escape semantics are from memory of devlink.tab(5): verify on target.
+#
+# Only one of option A or B may be active; if driver/graphics/drm (gfx-drm)
+# is installed its link module already handles this node type.
+type=ddi_display:drm	dri/\M0
