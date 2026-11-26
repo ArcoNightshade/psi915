@@ -35,3 +35,8 @@
 GPL-2.0-only Linux files needed by the Gen9 build (sync_file.c, dma-fence-unwrap.c, drm_hdcp_helper.c, drm_writeback.c,
 intel_uncore_trace.c, and any found by later audits) ship as a separate GPL-2.0 module/package, not linked into BSD-2 KPI code.
 Open: confirm the module boundary is legally workable on illumos (CDDL kernel + GPL module) and that exported symbols are the only coupling.
+
+## Decision: import source (owner, 2026-11-26)
+Import DRM core and i915 from upstream Linux v6.14 (github.com/torvalds/linux, tag v6.14, object 35ff3b0f4596) instead of drm-kmod.
+Reason: drm-kmod carries FreeBSD `#else` branches (131 files) and BSD rewrites of dma-buf/dma-fence. Upstream gives pristine Linux plus our own patch series.
+drm-kmod and OpenBSD stay as reference for porting patterns. LINUXKPI_VERSION to be revised to match 6.14.
