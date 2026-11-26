@@ -2,8 +2,6 @@
 header	licence	main_includers	files
 gpl/drivers/gpu/drm/display/drm_dp_mst_topology_internal.h	GPL-2.0-only	1	drm/drivers/gpu/drm/display/drm_dp_mst_topology.c
 gpl/include/drm/drm_accel.h	GPL-2.0	1	drm/drivers/gpu/drm/drm_drv.c
-gpl/include/drm/drm_gem_atomic_helper.h	GPL-2.0-or-later	2	drm/drivers/gpu/drm/drm_atomic_helper.c i915/drivers/gpu/drm/i915/display/intel_atomic_plane.c
 gpl/include/drm/drm_mipi_dsi.h	GPL-2.0-only	6	drm/drivers/gpu/drm/drm_mipi_dsi.c i915/drivers/gpu/drm/i915/display/icl_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi.c i915/drivers/gpu/drm/i915/display/intel_dsi.h i915/drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.c i915/drivers/gpu/drm/i915/display/vlv_dsi.c
 gpl/include/drm/drm_of.h	GPL-2.0	1	drm/drivers/gpu/drm/drm_bridge.c
 gpl/include/drm/intel/i915_hdcp_interface.h	(GPL-2.0+)	4	i915/drivers/gpu/drm/i915/display/intel_display_types.h i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc.c i915/drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c i915/drivers/gpu/drm/i915/display/intel_hdcp_shim.h
-gpl/include/drm/intel/intel-gtt.h	GPL-2.0	3	i915/drivers/gpu/drm/i915/gt/intel_ggtt.c i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c i915/drivers/gpu/drm/i915/gt/intel_gt.c
