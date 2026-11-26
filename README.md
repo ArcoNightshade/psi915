@@ -3,11 +3,13 @@
 A LinuxKPI (Linux kernel programming interface compatibility layer) for illumos / OpenIndiana,
 with the Intel i915 DRM driver as the first consumer. Licence: BSD-2-Clause (see `LICENSE`).
 
-Status: P1 (KPI core) in progress. The `linuxkpi` misc kmod now carries atomics, bit and math helpers,
-logging/WARN/BUG, kmalloc/kmem_cache, locks (spinlock, mutex, rwsem, seqlock, completion, lockdep-lite),
-list_sort, rbtree, RCU, xarray/idr/ida, all unit-tested in userland; a kernel test module (`lkpi_ktest`)
-runs the same tests in the kernel. Nothing has been built or loaded on illumos yet; see "Verification
-status" below, `docs/03-kpi-gap-analysis.md` (per-area status) and `docs/04-roadmap.md`.
+Status: P1 (KPI core) and P2 (hardware plumbing) are implemented and unit-tested in userland; nothing
+has been built or loaded on illumos yet. The `linuxkpi` misc kmod carries atomics, locks (incl. ww_mutex),
+memory, RCU/SRCU, `current`/scheduling/wait queues, workqueues/timers/kthreads, uaccess, module params,
+xarray/idr, the device model and devres, the PCI/IRQ/MMIO/DMA/page layers over the illumos DDI,
+firmware loading, ACPI/DMI, I2C and CPU cache helpers. `lkpi_toy` (QEMU edu device driver) is the P2 exit
+artifact; `lkpi_ktest` runs the unit tests in the kernel. See "Verification status" below,
+`docs/03-kpi-gap-analysis.md` (per-area status) and `docs/04-roadmap.md`.
 
 | Doc | Contents |
 |-----|----------|
@@ -36,7 +38,7 @@ third_party/       placeholder for pinned upstream imports (P3+)
 
 ## Quick start on any host (Linux or illumos userland)
 ```
-make test         # 12 unit-test suites (gcc; also clang and ASan/UBSan if present)
+make test         # 17 unit-test suites (gcc; also clang and ASan/UBSan if present)
 make check-kmod   # compile src/ and the kernel test module against stub illumos headers, check symbols
 ```
 `make check-kmod` only proves the sources type-check against hand-written stubs. It is not a kernel build.
@@ -53,7 +55,8 @@ Prerequisites (64-bit x86 only):
 
 Build:
 ```
-gmake kmod                 # non-DEBUG: build/linuxkpi/obj64/linuxkpi, build/lkpi_ktest/obj64/lkpi_ktest
+gmake kmod                 # non-DEBUG: build/linuxkpi/obj64/linuxkpi, build/lkpi_ktest/obj64/lkpi_ktest,
+                           #   build/lkpi_toy/obj64/lkpi_toy
 gmake kmod DEBUG=1         # DEBUG (ASSERTs on): build/*/debug64/...
 ```
 Knobs (pass on the gmake command line, see `build/Makefile.master`):
@@ -70,7 +73,8 @@ gmake install DESTDIR=/var/tmp/proto   # staging root
 scripts/install.sh -f ips              # IPS (p5m) actions for the same layout
 scripts/install.sh -f svr4             # SVR4 prototype(5) lines (Tribblix)
 ```
-`linuxkpi` is a misc module, so there is no `add_drv` step and no `.conf` file. Load test (P0 exit criterion):
+`linuxkpi` is a misc module, so there is no `add_drv` step and no `.conf` file. It depends on
+`misc/acpica` and `misc/gfx_private` (both part of illumos). Load test (P0 exit criterion):
 ```
 modload /usr/kernel/misc/amd64/linuxkpi   # console: "linuxkpi 0.0.2-p1 loaded (LINUXKPI_VERSION 61400)"
 modinfo | grep -i linuxkpi
@@ -81,12 +85,20 @@ Test in a separate boot environment (`beadm create`) with serial console or kmdb
 Kernel unit tests (P1 exit test; untested): on a DEBUG kernel with `set kmem_flags=0xf` in /etc/system,
 after installing linuxkpi:
 ```
-modload build/lkpi_ktest/debug64/lkpi_ktest   # log: "lkpi_ktest: 12 suites, 0 failed"; EIO if any fails
+modload build/lkpi_ktest/debug64/lkpi_ktest   # log: "lkpi_ktest: 15 suites, 0 failed"; EIO if any fails
 modunload -i <id>
 mdb -k   # ::findleaks, ::kmem_verify
 ```
 `lkpi_ktest` is never installed. Set `linuxkpi:linuxkpi_bug_panic = 1` in /etc/system to make Linux
 `BUG()` panic (default: log and continue).
+
+Toy PCI driver (P2 exit test; untested): in a QEMU VM started with `-device edu`, after installing linuxkpi:
+```
+cp build/lkpi_toy/obj64/lkpi_toy /usr/kernel/drv/amd64/
+add_drv -i '"pci1234,11e8"' lkpi_toy
+# console: "0000:00:..: edu 0x10000ed: live 1 irq 1 fact 3628800 (1) dma 1 pool 1, 5 interrupts"
+rem_drv lkpi_toy
+```
 
 ## Verification status
 | Item | Linux container | illumos |
@@ -96,6 +108,10 @@ mdb -k   # ::findleaks, ::kmem_verify
 | Unit tests: kmalloc/kvmalloc/kmem_cache/overflow/string | passing (gcc, clang, ASan/UBSan) | not run |
 | Unit tests: spinlock/mutex/rwsem/rwlock/seqlock/completion/lockdep-lite (pthread shims) | passing (gcc, clang, ASan/UBSan) | not run |
 | Unit tests: list_sort, rbtree, RCU/rculist/kfree_rcu, xarray/idr/ida | passing (gcc, clang, ASan/UBSan) | not run |
+| Unit tests: sched/current/wait queues/delays, timers/workqueues/kthreads, uaccess/params/ww_mutex/semaphore/kstrto/sort/xarray marks/mempool/SRCU | passing (gcc, clang, ASan/UBSan) | not run |
+| Unit tests: device model/devres, PCI over fake devices, IRQ/tasklets, DMA/sg/dma_pool over a fake IOMMU, pages/ioremap, firmware, DMI, I2C bit-bang | passing (gcc, clang, ASan/UBSan) | n/a (fake devices) |
+| toy_edu driver against a simulated edu device (tests/test_toy.c) | passing (gcc, clang, ASan/UBSan) | not run (needs QEMU edu) |
+| illumos hardware backend, driver glue, lkpi_toy kmod | compile against stub headers only | not built |
 | Kernel sources and lkpi_ktest compile with kernel flags; undefined symbols in allowlist | against stub headers only | not built |
 | lkpi_ktest in kernel under kmem_flags=0xf | n/a | not done |
 | Kmod link (`ld -ztype=kmod`), CTF, modload/modunload | n/a | not done |

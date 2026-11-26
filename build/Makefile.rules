@@ -18,3 +18,8 @@ $(OBJS_DIR)/%.o: $(SRCBASE)/tests/%.c | $(OBJS_DIR)
 $(OBJS_DIR)/%.o: $(SRCBASE)/tests/kernel/%.c | $(OBJS_DIR)
 	$(COMPILE.c) -o $@ $<
 	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)
+
+# Toy PCI driver.
+$(OBJS_DIR)/%.o: $(SRCBASE)/drivers/toy/%.c | $(OBJS_DIR)
+	$(COMPILE.c) -o $@ $<
+	$(if $(CTFCONVERT),$(CTFCONVERT) $(CTFCVTFLAGS) $@)

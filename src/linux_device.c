@@ -576,3 +576,51 @@ sysfs_emit_at(char *buf, int at, const char *fmt, ...)
 	va_end(ap);
 	return (n < 4096 - at ? n : 4095 - at);
 }
+
+/* seq_file output into a caller buffer (see <linux/seq_file.h>). */
+#include <linux/seq_file.h>
+
+void
+seq_write(struct seq_file *m, const void *data, size_t len)
+{
+	size_t room;
+	bool over = false;
+
+	if (m->size == 0 || m->count >= m->size)
+		return;
+	room = m->size - m->count - 1;
+	if (len > room) {
+		len = room;
+		over = true;
+	}
+	memcpy(m->buf + m->count, data, len);
+	m->buf[m->count + len] = '\0';
+	m->count = over ? m->size : m->count + len;
+}
+
+void
+seq_puts(struct seq_file *m, const char *s)
+{
+	seq_write(m, s, strlen(s));
+}
+
+void
+seq_putc(struct seq_file *m, char c)
+{
+	seq_write(m, &c, 1);
+}
+
+void
+seq_printf(struct seq_file *m, const char *fmt, ...)
+{
+	char tmp[256];
+	va_list ap;
+	int n;
+
+	va_start(ap, fmt);
+	n = lkpi_plat_vsnprintf(tmp, sizeof (tmp), fmt, ap);
+	va_end(ap);
+	if (n > 0)
+		seq_write(m, tmp, (size_t)n < sizeof (tmp) ? (size_t)n :
+		    sizeof (tmp) - 1);
+}

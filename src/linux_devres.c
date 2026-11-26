@@ -31,7 +31,7 @@ struct lkpi_devres {
 	void			*group_id;
 	int			kind;
 	size_t			size;
-	unsigned long long	data[] __aligned(16);
+	unsigned long long	data[];	/* 8-byte aligned (kmalloc) */
 };
 
 static inline struct lkpi_devres *

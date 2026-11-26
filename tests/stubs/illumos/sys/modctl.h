@@ -13,6 +13,13 @@ struct modlmisc {
 	char		*misc_linkinfo;
 };
 
+struct dev_ops;
+struct modldrv {
+	struct mod_ops	*drv_modops;
+	char		*drv_linkinfo;
+	struct dev_ops	*drv_dev_ops;
+};
+
 struct modlinkage {
 	int		ml_rev;
 	void		*ml_linkage[7];

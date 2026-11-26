@@ -12,7 +12,7 @@
  * output via cmn_err; see tests/harness.h). _init runs every suite in
  * order and logs a summary:
  *
- *   lkpi_ktest: 12 suites, 0 failed
+ *   lkpi_ktest: 15 suites, 0 failed
  *
  * If any suite fails, _init returns EIO so the module does not stay
  * loaded; otherwise unload it with modunload. Intended to run on a DEBUG

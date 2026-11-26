@@ -35,7 +35,7 @@ HDRS		= harness.h $(wildcard $(INCLUDE)/linux/*.h $(INCLUDE)/linuxkpi/*.h \
 # KPI sources linked into every test program (userland configuration).
 LIB_SRCS	= $(wildcard $(SRC)/linux_*.c) $(SRC)/plat_userland.c $(SRC)/plat_userland_dev.c
 
-TESTS		= test_list test_kref test_kernel test_atomic test_bitops test_printk test_slab test_locks test_list_sort test_rbtree test_rcu test_xarray test_sched test_workqueue test_misc
+TESTS		= test_list test_kref test_kernel test_atomic test_bitops test_printk test_slab test_locks test_list_sort test_rbtree test_rcu test_xarray test_sched test_workqueue test_misc test_hw test_toy
 
 # Kernel-mode compile check: kernel flags from build/Makefile.master minus
 # -msave-args (illumos-patched gcc only).
@@ -66,14 +66,18 @@ all: run
 $(OUT):
 	mkdir -p $@
 
-$(OUT)/%.gcc: %.c $(HDRS) $(LIB_SRCS) | $(OUT)
-	$(CC) $(TEST_CFLAGS) -o $@ $< $(LIB_SRCS)
+# Extra sources linked into particular tests.
+EXTRA_test_toy	= $(TOP)/drivers/toy/toy_edu.c
+EXTRA_SRCS	= $(EXTRA_test_toy) $(wildcard $(TOP)/drivers/toy/*.h)
 
-$(OUT)/%.san: %.c $(HDRS) $(LIB_SRCS) | $(OUT)
-	$(CC) $(TEST_CFLAGS) $(SAN_FLAGS) -o $@ $< $(LIB_SRCS)
+$(OUT)/%.gcc: %.c $(HDRS) $(LIB_SRCS) $(EXTRA_SRCS) | $(OUT)
+	$(CC) $(TEST_CFLAGS) -o $@ $< $(LIB_SRCS) $(EXTRA_$*)
 
-$(OUT)/%.clang: %.c $(HDRS) $(LIB_SRCS) | $(OUT)
-	$(CLANG) $(TEST_CFLAGS) -o $@ $< $(LIB_SRCS)
+$(OUT)/%.san: %.c $(HDRS) $(LIB_SRCS) $(EXTRA_SRCS) | $(OUT)
+	$(CC) $(TEST_CFLAGS) $(SAN_FLAGS) -o $@ $< $(LIB_SRCS) $(EXTRA_$*)
+
+$(OUT)/%.clang: %.c $(HDRS) $(LIB_SRCS) $(EXTRA_SRCS) | $(OUT)
+	$(CLANG) $(TEST_CFLAGS) -o $@ $< $(LIB_SRCS) $(EXTRA_$*)
 
 # ASan/UBSan need compiler runtime support; skip the variant if it cannot link.
 SAN_OK		:= $(shell echo 'int main(void){return 0;}' | \
@@ -100,7 +104,15 @@ $(OUT)/ktest_%.o: %.c $(HDRS) FORCE | $(OUT)
 	@echo "CC (stub illumos kernel headers, LKPI_KTEST) $<"
 	@$(CC) $(KMOD_CFLAGS) $(KMOD_EXTRA) -DLKPI_KTEST -I. -c -o $@ $<
 
-check-kmod: $(KMOD_OBJS) $(KTEST_OBJS) | $(OUT)
+# Toy PCI driver kmod (build/lkpi_toy): driver plus illumos glue.
+TOY_SRCS	= $(TOP)/drivers/toy/toy_edu.c $(TOP)/drivers/toy/toy_ddi.c
+TOY_OBJS	= $(TOY_SRCS:$(TOP)/drivers/toy/%.c=$(OUT)/toy_%.o)
+
+$(OUT)/toy_%.o: $(TOP)/drivers/toy/%.c $(HDRS) FORCE | $(OUT)
+	@echo "CC (stub illumos kernel headers) $<"
+	@$(CC) $(KMOD_CFLAGS) $(KMOD_EXTRA) -c -o $@ $<
+
+check-kmod: $(KMOD_OBJS) $(KTEST_OBJS) $(TOY_OBJS) | $(OUT)
 	@echo "CC (stub illumos kernel headers) kmod_headers_check.c"
 	@$(CC) $(KMOD_CFLAGS) $(KMOD_EXTRA) -c -o $(OUT)/kmod_headers_check.o kmod_headers_check.c
 	@got=$$(nm -g --defined-only $(OUT)/kmod_linuxkpi_mod.o | \
@@ -134,6 +146,17 @@ check-kmod: $(KMOD_OBJS) $(KTEST_OBJS) | $(OUT)
 		echo "$$bad"; exit 1; \
 	fi; \
 	echo "lkpi_ktest objects: $(words $(KTEST_OBJS)), all symbols resolvable"
+	@nm -g --defined-only $(TOY_OBJS) | awk 'NF==3 {print $$3}' | \
+		cat - $(OUT)/kmod_defined.txt $(OUT)/kmod_allowed.txt | sort -u \
+		> $(OUT)/toy_resolvable.txt; \
+	bad=$$(nm -u $(TOY_OBJS) | awk 'NF==2 {print $$2}' | sort -u | \
+		comm -23 - $(OUT)/toy_resolvable.txt); \
+	if [ -n "$$bad" ]; then \
+		echo "lkpi_toy references symbols neither in linuxkpi nor in $(KMOD_ALLOWED):"; \
+		echo "$$bad"; exit 1; \
+	fi; \
+	got=$$(nm -g --defined-only $(TOY_OBJS) | awk '$$3 ~ /^_(init|fini|info)$$/ {print $$3}' | sort | tr '\n' ' '); \
+	echo "lkpi_toy objects: $(words $(TOY_OBJS)), module entry points: $$got"
 	@echo "check-kmod: OK (stub headers only; this is NOT an illumos build)"
 
 clean:

@@ -19,6 +19,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_dma.o \
 		   linux_dmapool.o \
 		   linux_firmware.o \
+		   linux_i2c.o \
 		   linux_idr.o \
 		   linux_io.o \
 		   linux_irq.o \
@@ -30,6 +31,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_moduleparam.o \
 		   linux_page.o \
 		   linux_pci.o \
+		   linux_pci_ddi.o \
 		   linux_printk.o \
 		   linux_rbtree.o \
 		   linux_rcu.o \
@@ -64,3 +66,9 @@ LKPI_KTEST_OBJS	+= ktest_main.o \
 		   test_sched.o \
 		   test_workqueue.o \
 		   test_misc.o
+
+#
+#	lkpi_toy: toy_edu PCI driver (drivers/toy), P2 exit artifact
+#
+LKPI_TOY_OBJS	+= toy_edu.o \
+		   toy_ddi.o

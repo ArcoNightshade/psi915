@@ -48,4 +48,5 @@
 #define	EINPROGRESS	150
 #define	ECANCELED	47
 #define	ENAMETOOLONG	78
+#define	EPROTO	71
 #endif

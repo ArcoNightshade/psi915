@@ -180,3 +180,15 @@ vmem_alloc
 vmem_free
 wrmsr
 strstr
+# driver glue (src/linux_pci_ddi.c, <linuxkpi/ddi.h>)
+mod_driverops
+nodev
+nulldev
+nochpoll
+ddi_prop_op
+ddi_quiesce_not_supported
+ddi_set_driver_private
+ddi_get_driver_private
+ddi_get_instance
+ddi_report_dev
+getminor

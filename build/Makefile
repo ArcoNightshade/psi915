@@ -7,7 +7,7 @@
 #   gmake DEBUG=1    DEBUG (debug64)
 #
 
-SUBDIRS		= linuxkpi lkpi_ktest
+SUBDIRS		= linuxkpi lkpi_ktest lkpi_toy
 
 .PHONY: all install clean clobber $(SUBDIRS)
 

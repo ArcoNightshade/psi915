@@ -623,6 +623,7 @@ bool
 flush_delayed_work(struct delayed_work *dw)
 {
 	struct work_struct *w = &dw->work;
+	bool queued = false;
 
 	lkpi_plat_mutex_enter(&lkpi_wq_lock);
 	if ((w->lkpi_state & (LKPI_WORK_PENDING | LKPI_WORK_TIMER)) ==
@@ -630,9 +631,11 @@ flush_delayed_work(struct delayed_work *dw)
 		(void) del_timer(&dw->timer);
 		w->lkpi_state &= ~LKPI_WORK_TIMER;
 		lkpi_work_enqueue(dw->wq, w);
+		queued = true;
 	}
 	lkpi_plat_mutex_exit(&lkpi_wq_lock);
-	return (flush_work(w));
+	/* The pending instance is now queued; wait for it (it may be done). */
+	return (flush_work(w) || queued);
 }
 
 bool

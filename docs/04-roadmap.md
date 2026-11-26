@@ -35,7 +35,7 @@ Known gaps carried into P1: `kref_put_lock`/`kref_put_mutex` (need locks), `list
 - KPI unit tests (ktest or userland harness for pure-logic parts).
 - Exit: test module exercising each subsystem passes under DEBUG kernel (`kmem_flags`, `lockstat`).
 
-### P1 status (2026-11-24, first slice)
+### P1 status (2026-11-26, complete in the dev container)
 Done in the Linux dev container; nothing here has been built or loaded on illumos. Per-area detail in
 doc 03 "Implementation status".
 
@@ -56,10 +56,13 @@ doc 03 "Implementation status".
 - [x] Kernel test module scaffold `lkpi_ktest` (tests/kernel, build/lkpi_ktest) running the same suites.
 - [ ] Build `linuxkpi` and `lkpi_ktest` on OpenIndiana and Tribblix; run lkpi_ktest under a DEBUG
   kernel with `kmem_flags=0xf`, then `::findleaks`, and with lockstat (owner). This is the P1 exit test.
-- [ ] Remaining P1 areas: wait queues and `current`/task shim, schedule/msleep/usleep_range,
-  workqueue/delayed_work, timer_list/hrtimer, kthread, ktime, uaccess (copy_*_user via ddi_copyin/out),
-  module parameters (driver.conf / /etc/system), ww_mutex, semaphore, kstrto*/sort/bsearch/hash,
-  xarray marks, devres (with struct device in P2).
+- [x] Second slice: platform primitives (hires clock and waits, TSD, signal checks, copyin/out,
+  detached threads); task_struct/`current`, schedule/wake_up, wait queues and wait_event*, delays,
+  ktime; timer_list/hrtimer (timer thread); workqueues (own worker pools), delayed/rcu work,
+  kthread and kthread_worker; uaccess; module params and module_init glue; ww_mutex, semaphore;
+  kstrto*, sort, bsearch, hash, hashtable; xarray marks; mempool; SRCU. Suites sched, workqueue,
+  misc (userland and lkpi_ktest).
+- [x] devres arrived with struct device in P2.
 
 Known limitations carried forward: mutex_lock_interruptible never returns -EINTR; kmalloc does not give
 natural alignment for power-of-two sizes; HZ is not a compile-time constant; RCU readers pay an atomic
@@ -69,6 +72,35 @@ recursive while a writer waits; printk does not interpret Linux %p extensions.
 ## P2 Hardware plumbing (6-8 wk)
 - pci_dev/DDI binding, MMIO/WC mapping, MSI, DMA/sg_table/IOMMU, firmware loader, ACPI/DMI, i2c, cpu/cache ops.
 - Exit: toy PCI driver (hello-BAR + IRQ + DMA) built unmodified-style against KPI.
+
+### P2 status (2026-11-26, complete in the dev container)
+Everything below is untested on illumos: the illumos backend (src/plat_illumos_dev.c,
+src/linux_pci_ddi.c) is only compiled against stub headers. Detail in doc 03.
+
+- [x] Backend interface `<linuxkpi/plat_dev.h>`: illumos implementation over pci_config(9F),
+  ddi_regs_map_setup(9F), ddi_intr(9F), ddi_dma(9F), gfx_private, hat_devload, kobj file reads,
+  ksmbios, ACPICA, ddi_log_sysevent, rdmsr; userland implementation with fake PCI devices, a fake
+  IOMMU and simulated interrupts (`<linuxkpi/fakedev.h>`).
+- [x] Device model (kobject, device, class, devres, uevent -> sysevent), pm/pm_runtime.
+- [x] pci_dev wrapper, capabilities, BAR mapping, enumeration, driver registry and
+  attach/detach/suspend/resume glue (`<linuxkpi/ddi.h>`, LKPI_PCI_DRIVER_MODULE).
+- [x] IRQs (MSI-X/MSI/INTx, threaded, devm), tasklets, irq_work.
+- [x] MMIO accessors, ioremap/_wc/_cache, memremap, io_mapping.
+- [x] DMA API, sg_table, dma_pool; struct page allocator, vmap, virt_to_page.
+- [x] request_firmware, ACPI handles/_DSM, DMI matching, I2C core + i2c-algo-bit, CPUID/clflush/MSR,
+  debugfs/procfs/sysfs stubs, seq_file.
+- [x] Exit artifact: `drivers/toy/toy_edu.c`, a Linux-style driver for QEMU's edu device
+  (BAR0 identification/liveness, software and factorial interrupts, coherent + streaming + pool
+  DMA round trip). It passes in userland against a simulated edu device (`tests/test_toy.c`) and
+  builds as the `lkpi_toy` kmod (`build/lkpi_toy`, stub-header check only).
+- [ ] Owner: build linuxkpi and lkpi_toy on OpenIndiana, boot a QEMU VM with `-device edu`,
+  `add_drv -i '"pci1234,11e8"' lkpi_toy`, expect the console line
+  "edu 0x10000ed: live 1 irq 1 fact 3628800 (1) dma 1 pool 1". This is the P2 exit test.
+- [ ] Owner: run lkpi_ktest (now 15 suites) under kmem_flags=0xf.
+
+Known P2 limitations: set_pages_*/set_memory_* cannot change cache attributes (memory stays WB);
+wbinvd_on_all_cpus flushes only the calling CPU; DMA mappings must be bus-contiguous (no swiotlb);
+no bridge topology; runtime PM always-on; interrupt vectors above LOCK_LEVEL refused.
 
 ## P3 DRM core (8-12 wk)
 - Import drm core at pinned Linux; dma-fence/dma-resv/dma-buf (+fd), GEM, vma_manager, mm, atomic KMS, EDID, DP/HDMI helpers, syncobj, scheduler, ttm; cb_ops ioctl/mmap/poll glue; /dev/dri nodes (card, render).
