@@ -227,4 +227,47 @@ bitmap_free(const unsigned long *bitmap)
 	kfree(bitmap);
 }
 
+/* dst = src >> shift over nbits bits (bits shifted in are zero). */
+static inline void
+bitmap_shift_right(unsigned long *dst, const unsigned long *src,
+    unsigned int shift, unsigned int nbits)
+{
+	unsigned int i;
+
+	for (i = 0; i < nbits; i++) {
+		if (i + shift < nbits && test_bit(i + shift, src))
+			__set_bit(i, dst);
+		else
+			__clear_bit(i, dst);
+	}
+}
+
+/*
+ * Region allocator: a free, 2^order-aligned run of 2^order bits is
+ * marked used and its first bit returned, or -ENOMEM.
+ */
+static inline int
+bitmap_find_free_region(unsigned long *map, unsigned int bits, int order)
+{
+	unsigned int len = 1U << order, pos, i;
+
+	for (pos = 0; pos + len <= bits; pos += len) {
+		for (i = 0; i < len; i++) {
+			if (test_bit(pos + i, map))
+				break;
+		}
+		if (i == len) {
+			bitmap_set(map, pos, len);
+			return ((int)pos);
+		}
+	}
+	return (-ENOMEM);
+}
+
+static inline void
+bitmap_release_region(unsigned long *map, unsigned int pos, int order)
+{
+	bitmap_clear(map, pos, 1U << order);
+}
+
 #endif /* _LINUXKPI_LINUX_BITMAP_H_ */

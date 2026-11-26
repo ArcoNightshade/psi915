@@ -31,6 +31,7 @@
 #include <linux/typecheck.h>
 #include <linux/jump_label.h>
 #include <linux/byteorder.h>
+#include <linux/stringify.h>
 #include <asm/processor.h>	/* cpu_relax() */
 
 /* ptr if cond (a constant), else NULL: usable in static initialisers. */

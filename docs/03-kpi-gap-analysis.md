@@ -31,7 +31,7 @@ Difficulty: L low, M medium, H high. Ref = where to look first.
 | Compiler | statement exprs, typeof, `__attribute__`, `static_assert`, `_Generic`, `-std=gnu11`, kconfig macros | illumos builds with gcc: set gnu11/gnu17; generate `autoconf.h` | L | drm-kmod kconfig.mk |
 | TTM/scheduler | ttm, drm_sched, hmm | imported unchanged; sit atop KPI | M | drm-kmod |
 
-## Implementation status (2026-11-26, P1 complete, P2 complete)
+## Implementation status (2026-11-26, P1 complete, P2 complete, P3 KPI in progress)
 Done = implemented, unit-tested in userland (gcc, clang, ASan/UBSan; `make check`) and compile-checked
 in the illumos kernel configuration against hand-written stub headers. NOTHING below has been built
 or run on illumos: every kernel-side mapping (DDI calls, TSD, callouts, sysevents, ...) is untested
@@ -49,7 +49,7 @@ there. Hardware-facing pieces (P2) are tested in userland against fake devices
 | Sleeping/scheduling | done | task_struct/`current` (TSD, freed at thread exit), set_current_state/schedule/schedule_timeout/wake_up_process, signals (ISSIG for lwp threads; TASK_KILLABLE polls SIGKILL in 10 ms slices), wait queues and the whole wait_event* family, wait_var_event/wait_on_bit, msleep/usleep_range/fsleep on the hires callout, udelay | no preemption control (preempt_disable is a barrier), no freezer |
 | Workqueue/timers | done | workqueues on KPI worker pools (grow on demand, non-reentrant, flush/cancel semantics, ordered, delayed, rcu_work, system_* queues), timer_list and hrtimer on one timer thread (rbtree of deadlines), kthread (create/run/stop/park), kthread_worker over ordered wq, ktime/timespec64 | not over taskq(9F) (cannot cancel entries; see workqueue.h); callbacks run in thread context, not softirq |
 | RCU | done | epoch RCU, call_rcu, kfree_rcu, rculist, SRCU (two-counter) | call_srcu; readers above LOCK_LEVEL |
-| Completions/events | done | completion, kobject (kref, names, paths), uevent -> sysevent (EC_linuxkpi/ESC_uevent) | notifier chains |
+| Completions/events | done | completion, kobject (kref, names, paths), uevent -> sysevent (EC_linuxkpi/ESC_uevent), notifier chains (atomic, blocking, raw) | |
 | Device model | done (P2) | struct device/bus_type/device_driver/class/device_type, get/put_device, device_create/destroy, dev_pm_ops, pm_runtime stubs | sysfs (no-op), runtime PM (always active) |
 | PCI | done (P2) | pci_dev over dev_info_t ("reg"/"assigned-addresses"), config space, capability and extended-capability walks, pcie_capability_*, enable/master, BAR iomap UC/WC (DDI_MERGING_OK_ACC), pcim_*, ROM, enumeration (pci_get_device/class/domain_bus_and_slot via ddi_walk_devs), driver registry, probe/remove/PM, attach/detach glue (`<linuxkpi/ddi.h>`) | no bridge topology (pci_upstream_bridge = NULL), no I/O BARs via iomap, VGA arbitration stubbed, domain always 0 |
 | Interrupts | done (P2) | MSI-X/MSI/INTx via ddi_intr, request_irq/threaded/devm, disable/enable/synchronize, tasklets, irq_work, iblock cookie export | vectors above LOCK_LEVEL refused; one handler per vector |
@@ -59,8 +59,9 @@ there. Hardware-facing pieces (P2) are tested in userland against fake devices
 | ACPI/DMI | done (P2) | ACPI_HANDLE (acpica_get_handle), acpi_get_handle/evaluate_object/has_method/_DSM, DMI matching over ksmbios | ACPI video/backlight/lid/notifiers are stubs |
 | Platform | done (P2) | I2C core (adapters, transfer, client, smbus byte/block) and i2c-algo-bit (clock stretching, retries, RECV_LEN) | gpio/regulator/clk |
 | CPU/arch | done (P2) | CPUID features (boot_cpu_has, X86_FEATURE_*), boot_cpu_data, clflush_cache_range (CLFLUSHOPT), rdmsr/wrmsr, smp_processor_id | wbinvd_on_all_cpus flushes the calling CPU only |
-| Logging/debug | partial | printk/dev_*, WARN/BUG, ratelimit, debugfs/procfs (stubs returning "absent"), seq_file into buffers | %p extensions, dynamic_debug, tracepoints |
-| Misc | done | idr, ida, xarray (+marks), uaccess (ddi_copyin/out with FKIOCTL mode), module params (driver.conf via explicit table), module_init/exit wrappers | xas_* advanced API |
+| Logging/debug | partial | printk/dev_* (with %pV %pe %ph %pa %p4cc %pR), print_hex_dump, WARN/BUG, ratelimit, debugfs/procfs (stubs returning "absent"), seq_file into buffers | dynamic_debug, tracepoints (no-ops) |
+| Misc | done | idr, ida, xarray (+marks), uaccess (ddi_copyin/out with FKIOCTL mode), module params (driver.conf via explicit table; descriptors module-qualified with LKPI_MODNAME), module_init/exit and all initcall levels, struct pid table | xas_* advanced API (no user in the imported tree) |
+| P3 headers | in progress | the headers and helpers the imported DRM/i915 v6.14 code needs to compile: dma-fence/dma-resv/dma-buf/sync_file (BSD, v6.14 layouts), file/inode/dentry/pseudo-fs and mm/VMA types (moved from drmglue), cleanup.h, jump_label, notifier, shrinker, sysctl, pid, string helpers with sscanf, unaligned, hex dumps, Linux printf extensions, many stubs for absent subsystems (OF, pinctrl, relay, CEC, sysrq, vga_switcheroo, cpufreq); drmglue is linked into linuxkpi. Module syntax-check (stub headers): 364/375 units | shmem backing store, user address-space features (userptr, legacy GEM mmap), kernel SSE, link-time closure check; see docs/04 P3 checklist |
 
 ### Name and layout clashes with illumos (handled)
 - Struct tags: `<linuxkpi/platform.h>` renames `mutex`, `page`, `file`, `module`, `cred` and `pid` to

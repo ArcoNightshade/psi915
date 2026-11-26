@@ -138,4 +138,6 @@ void devm_iounmap(struct device *dev, void __iomem *addr);
 #define	devm_arch_phys_wc_add(d, b, s)		(0)
 #define	devm_arch_io_reserve_memtype_wc(d, b, s) (0)
 
+#define	IOMEM_ERR_PTR(err)	((void __iomem *)ERR_PTR(err))
+
 #endif /* _LINUXKPI_LINUX_IO_H_ */

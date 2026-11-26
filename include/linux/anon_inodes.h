@@ -14,5 +14,8 @@
 
 struct lkpi_file *anon_inode_getfile(const char *name,
     const struct file_operations *fops, void *priv, int flags);
+/* A new descriptor for an anonymous file (drmglue/src/anonfile.c). */
+int anon_inode_getfd(const char *name, const struct file_operations *fops,
+    void *priv, int flags);
 
 #endif /* _LINUXKPI_INCLUDE_LINUX_ANON_INODES_H_ */

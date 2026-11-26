@@ -25,6 +25,7 @@
 #include <drmglue/glue.h>
 #include "sim_backend.h"
 
+#include <linux/anon_inodes.h>
 #include "harness.h"
 
 static int anon_released;
@@ -131,6 +132,19 @@ TEST(install_twice_one_vnode)
 	CHECK_EQ(sim_close(fd2), 0);
 	CHECK_EQ(anon_released, 1);
 	CHECK_EQ(sim_live_vnodes, vn);
+}
+
+/* anon_inode_getfd (KPI): file plus descriptor; close releases. */
+TEST(anon_getfd)
+{
+	int fd;
+
+	anon_released = 0;
+	fd = anon_inode_getfd("t", &anon_fops, NULL, O_RDWR);
+	CHECK(fd >= 0);
+	CHECK_EQ(anon_released, 0);
+	CHECK_EQ(sim_close(fd), 0);
+	CHECK_EQ(anon_released, 1);
 }
 
 TEST(reserve_cancel)
@@ -345,6 +359,7 @@ LKPI_SUITE(drmglue_anonfile)
 	RUN(kernel_ref_outlives_fd);
 	RUN(scm_rights_transfer);
 	RUN(install_twice_one_vnode);
+	RUN(anon_getfd);
 	RUN(reserve_cancel);
 	RUN(install_close_race);
 	RUN(pseudo_file_lifecycle);

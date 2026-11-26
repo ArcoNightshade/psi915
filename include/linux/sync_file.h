@@ -15,6 +15,7 @@
 
 #include <linux/types.h>
 #include <linux/fs.h>
+#include <linux/file.h>
 #include <linux/wait.h>
 #include <linux/list.h>
 #include <linux/dma-fence.h>

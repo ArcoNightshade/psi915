@@ -10,6 +10,8 @@
 #define	_LINUXKPI_INCLUDE_LINUX_FB_H_
 
 #include <linux/types.h>
+#include <linux/fs.h>
+#include <linux/seq_file.h>
 
 struct fb_info;
 #define	FBINFO_STATE_RUNNING	0

@@ -8,7 +8,10 @@ has been built or loaded on illumos yet. The `linuxkpi` misc kmod carries atomic
 memory, RCU/SRCU, `current`/scheduling/wait queues, workqueues/timers/kthreads, uaccess, module params,
 xarray/idr, the device model and devres, the PCI/IRQ/MMIO/DMA/page layers over the illumos DDI,
 firmware loading, ACPI/DMI, I2C and CPU cache helpers. `lkpi_toy` (QEMU edu device driver) is the P2 exit
-artifact; `lkpi_ktest` runs the unit tests in the kernel. See "Verification status" below,
+artifact; `lkpi_ktest` runs the unit tests in the kernel. P3 (KPI for the imported DRM/i915 v6.14
+code) is in progress: drmglue is linked into `linuxkpi`, and 364 of the 375 translation units of the
+module set pass the syntax-check against stub illumos headers (`scripts/build-gfx.sh syntax-check
+HOST_STUBS=1`; the rest wait on other owners, docs/04). See "Verification status" below,
 `docs/03-kpi-gap-analysis.md` (per-area status) and `docs/04-roadmap.md`.
 
 | Doc | Contents |
@@ -112,6 +115,8 @@ rem_drv lkpi_toy
 | Unit tests: device model/devres, PCI over fake devices, IRQ/tasklets, DMA/sg/dma_pool over a fake IOMMU, pages/ioremap, firmware, DMI, I2C bit-bang | passing (gcc, clang, ASan/UBSan) | n/a (fake devices) |
 | toy_edu driver against a simulated edu device (tests/test_toy.c) | passing (gcc, clang, ASan/UBSan) | not run (needs QEMU edu) |
 | illumos hardware backend, driver glue, lkpi_toy kmod | compile against stub headers only | not built |
+| Unit tests: P3 helpers (cleanup/CLASS, static keys, strscpy/sscanf/string helpers, uuid, unaligned, hex dump, x86_match_cpu, bitmap regions, module-qualified params, anon_inode_getfd) | passing (gcc, clang, ASan/UBSan) | not run |
+| Imported DRM/i915 module set: -fsyntax-only with HOST_STUBS (364/375 units) | against stub headers only | not built |
 | Kernel sources and lkpi_ktest compile with kernel flags; undefined symbols in allowlist | against stub headers only | not built |
 | lkpi_ktest in kernel under kmem_flags=0xf | n/a | not done |
 | Kmod link (`ld -ztype=kmod`), CTF, modload/modunload | n/a | not done |

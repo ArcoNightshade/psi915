@@ -401,8 +401,32 @@ TEST(minmax_limits)
 	CHECK_EQ(U16_MAX, 0xffff);
 }
 
+TEST(bitmap_regions)
+{
+	DECLARE_BITMAP(m, 64);
+	DECLARE_BITMAP(d, 64);
+	int r;
+
+	bitmap_zero(m, 64);
+	CHECK_EQ(bitmap_find_free_region(m, 64, 2), 0);
+	CHECK_EQ(bitmap_find_free_region(m, 64, 3), 8);
+	CHECK_EQ(bitmap_find_free_region(m, 64, 2), 4);
+	CHECK_EQ(bitmap_weight(m, 64), 16);
+	bitmap_release_region(m, 8, 3);
+	CHECK_EQ(bitmap_weight(m, 64), 8);
+	r = bitmap_find_free_region(m, 64, 6);
+	CHECK_EQ(r, -ENOMEM);
+	bitmap_zero(m, 64);
+	__set_bit(5, m);
+	__set_bit(63, m);
+	bitmap_shift_right(d, m, 4, 64);
+	CHECK(test_bit(1, d) && test_bit(59, d));
+	CHECK_EQ(bitmap_weight(d, 64), 2);
+}
+
 LKPI_SUITE(bitops)
 {
+	RUN(bitmap_regions);
 	RUN(bits);
 	RUN(ffs_fls);
 	RUN(hweight_rotate);

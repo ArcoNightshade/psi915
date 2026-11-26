@@ -27,4 +27,8 @@ enum gpiod_flags {
 #define	gpiod_set_value_cansleep(g, v)	do { (void)(g); } while (0)
 #define	gpiod_set_value(g, v)		do { (void)(g); } while (0)
 
+#define	devm_gpiod_get(d, n, f)		gpiod_get(d, n, f)
+#define	devm_gpiod_get_index(d, n, i, f)	gpiod_get_index(d, n, i, f)
+#define	devm_gpiod_get_optional(d, n, f)	((struct gpio_desc *)NULL)
+
 #endif /* _LINUXKPI_INCLUDE_LINUX_GPIO_CONSUMER_H_ */

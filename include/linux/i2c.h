@@ -21,6 +21,7 @@
 #include <linux/device.h>
 #include <linux/mutex.h>
 #include <linux/errno.h>
+#include <linux/acpi.h>	/* acpi_handle, as in Linux */
 
 #define	I2C_M_RD		0x0001
 #define	I2C_M_TEN		0x0010
@@ -217,5 +218,8 @@ void i2c_put_adapter(struct i2c_adapter *adap);
 
 /* ACPI I2C resources: no ACPI resource parsing; never found. */
 #define	i2c_acpi_get_i2c_resource(ares, i2c)	((void)(ares), (void)(i2c), false)
+
+#define	i2c_acpi_find_adapter_by_handle(h)	\
+	((void)(h), (struct i2c_adapter *)NULL)
 
 #endif /* _LINUXKPI_LINUX_I2C_H_ */

@@ -303,4 +303,7 @@ strndup_user(const char __user *s, long n)
 	return (p);
 }
 
+#define	__copy_from_user_inatomic_nocache(to, from, n)			\
+	__copy_from_user_inatomic((to), (from), (n))
+
 #endif /* _LINUXKPI_LINUX_UACCESS_H_ */

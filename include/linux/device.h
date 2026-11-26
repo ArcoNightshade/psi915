@@ -195,6 +195,18 @@ dev_to_node(const struct device *dev)
 #define	device_set_pm_not_required(dev)	do { (void)(dev); } while (0)
 #define	device_link_add(c, s, f)	((void *)NULL)
 #define	device_link_del(l)		do { (void)(l); } while (0)
+#define	device_set_node(d, f)		do { (void)(d); (void)(f); } while (0)
+#define	device_link_remove(c, s)	do { (void)(c); (void)(s); } while (0)
+#define	dev_get_platdata(dev)		((dev)->platform_data)
+/*
+ * No VT-d translation is assumed for graphics (illumos immu is not
+ * enabled for the GPU by default); i915 then uses its non-IOMMU paths.
+ */
+#define	device_iommu_mapped(dev)	((void)(dev), false)
+#define	device_for_each_child(dev, data, fn)	\
+	((void)(dev), (void)(data), (void)(fn), 0)
+#define	bus_find_device_by_of_node(bus, np)	\
+	((void)(bus), (void)(np), (struct device *)NULL)
 #define	dev_pm_set_driver_flags(dev, f)	do { (void)(dev); } while (0)
 #define	device_create_file(dev, a)	((void)(dev), (void)(a), 0)
 #define	device_remove_file(dev, a)	do { (void)(dev); (void)(a); } while (0)

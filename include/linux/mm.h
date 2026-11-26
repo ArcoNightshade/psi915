@@ -236,6 +236,26 @@ si_meminfo(struct sysinfo *si)
 #define	ClearPageReclaim(p)		do { (void)(p); } while (0)
 #define	page_mapped(p)			((void)(p), false)
 #define	want_init_on_free()		(false)
+#define	clear_page(addr)		memset((addr), 0, PAGE_SIZE)
+#define	copy_page(to, from)		memcpy((to), (from), PAGE_SIZE)
+#define	copy_highpage(to, from)						\
+	memcpy(page_address(to), page_address(from), PAGE_SIZE)
+#define	folio_file_page(f, index)	((void)(index), &(f)->page)
+/* No user address space is visible (see vma_find()). */
+#define	find_vma(mm, addr)		((void)(mm), (void)(addr), \
+					    (struct vm_area_struct *)NULL)
+#define	fault_flag_allow_retry_first(fl)	((void)(fl), false)
+
+/*
+ * Page cache lookups of shmem files. The shmem backend (GEM backing
+ * store) has no page cache yet: nothing is found, so write-back of
+ * purgeable objects does nothing (docs/04, shmem backend pending).
+ */
+#define	find_lock_page(mapping, index)	\
+	((void)(mapping), (void)(index), (struct page *)NULL)
+#define	unlock_page(p)			do { (void)(p); } while (0)
+#define	lock_page(p)			do { (void)(p); } while (0)
+#define	clear_page_dirty_for_io(p)	((void)(p), false)
 #define	want_init_on_alloc(f)		((void)(f), false)
 
 /* Copy-on-write private mapping (VM_MAYWRITE without VM_SHARED). */

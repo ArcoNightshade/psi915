@@ -654,8 +654,8 @@ seq_release(struct inode *inode, struct lkpi_file *f)
 	return (0);
 }
 
-long
-seq_read(struct lkpi_file *f, char __user *buf, size_t size, long long *ppos)
+ssize_t
+seq_read(struct lkpi_file *f, char __user *buf, size_t size, loff_t *ppos)
 {
 	(void) f;
 	(void) buf;
@@ -664,8 +664,8 @@ seq_read(struct lkpi_file *f, char __user *buf, size_t size, long long *ppos)
 	return (-ENODEV);
 }
 
-long long
-seq_lseek(struct lkpi_file *f, long long off, int whence)
+loff_t
+seq_lseek(struct lkpi_file *f, loff_t off, int whence)
 {
 	(void) f;
 	(void) off;

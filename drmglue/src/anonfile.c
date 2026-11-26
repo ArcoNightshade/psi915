@@ -34,6 +34,8 @@
 #include <linux/spinlock.h>
 #include <linux/sched.h>
 #include <drmglue/lkpi_fs.h>
+#include <linux/file.h>
+#include <linux/anon_inodes.h>
 #include <drmglue/backend.h>
 #include <drmglue/glue.h>
 #include <drmglue/anonfile.h>
@@ -71,6 +73,26 @@ anon_inode_getfile(const char *name, const struct file_operations *fops,
 	f->f_lkpi_own_inode = ip;
 	f->private_data = priv;
 	return (f);
+}
+
+/* anon_inode_getfile() installed in a new descriptor (KPI R1/R3). */
+int
+anon_inode_getfd(const char *name, const struct file_operations *fops,
+    void *priv, int flags)
+{
+	struct lkpi_file *f;
+	int fd;
+
+	fd = get_unused_fd_flags((unsigned int)flags);
+	if (fd < 0)
+		return (fd);
+	f = anon_inode_getfile(name, fops, priv, flags);
+	if (IS_ERR(f)) {
+		put_unused_fd((unsigned int)fd);
+		return ((int)PTR_ERR(f));
+	}
+	fd_install((unsigned int)fd, f);
+	return (fd);
 }
 
 /*

@@ -100,4 +100,7 @@ backlight_is_blank(const struct backlight_device *bd)
 	return (bd->props.power != BACKLIGHT_POWER_ON);
 }
 
+#define	backlight_enable(bd)		((void)(bd), 0)
+#define	backlight_disable(bd)		((void)(bd), 0)
+
 #endif /* _LINUXKPI_LINUX_BACKLIGHT_H_ */

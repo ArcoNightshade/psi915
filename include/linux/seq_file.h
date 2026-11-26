@@ -15,6 +15,7 @@
 #include <linux/types.h>
 #include <linux/compiler.h>
 #include <linux/string.h>
+#include <linux/fs.h>
 
 struct lkpi_file;
 struct inode;
@@ -50,10 +51,23 @@ lkpi_seq_init(struct seq_file *m, char *buf, size_t size)
 		buf[0] = '\0';
 }
 
-/* No file is created; keep the show function referenced. */
+/*
+ * As in Linux: name##_fops opening a single_open() seq file on
+ * inode->i_private. There is no debugfs, so these files are never
+ * created; single_open() fails with -ENODEV if one were opened.
+ */
 #define	DEFINE_SHOW_ATTRIBUTE(name)					\
-	static inline void *__maybe_unused name##_lkpi_show_ref(void)	\
-	{ return ((void *)(uintptr_t)name##_show); }
+static int								\
+name##_open(struct inode *inode, struct lkpi_file *file)		\
+{									\
+	return (single_open(file, name##_show, inode->i_private));	\
+}									\
+static const struct file_operations name##_fops = {			\
+	.open = name##_open,						\
+	.read = seq_read,						\
+	.llseek = seq_lseek,						\
+	.release = single_release,					\
+}
 #define	DEFINE_SEQ_ATTRIBUTE(name)					\
 	static inline void *__maybe_unused name##_lkpi_ops_ref(void)	\
 	{ return ((void *)&name##_sops); }
@@ -62,9 +76,9 @@ int single_open(struct lkpi_file *f, int (*show)(struct seq_file *, void *),
     void *data);
 int single_release(struct inode *inode, struct lkpi_file *f);
 int seq_release(struct inode *inode, struct lkpi_file *f);
-long seq_read(struct lkpi_file *f, char __user *buf, size_t size,
-    long long *ppos);
-long long seq_lseek(struct lkpi_file *f, long long off, int whence);
+ssize_t seq_read(struct lkpi_file *f, char __user *buf, size_t size,
+    loff_t *ppos);
+loff_t seq_lseek(struct lkpi_file *f, loff_t off, int whence);
 
 #define	single_open_size(f, show, d, sz)	((void)(sz), single_open(f, show, d))
 

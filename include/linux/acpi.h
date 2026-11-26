@@ -21,6 +21,8 @@
 #include <linux/errno.h>
 #include <linux/uuid.h>
 #include <linux/mod_devicetable.h>
+#include <linux/kernel.h>
+#include <linux/list.h>
 
 struct device;
 struct notifier_block;
@@ -88,6 +90,44 @@ struct acpi_buffer {
 acpi_handle lkpi_acpi_handle(struct device *dev);
 #define	ACPI_HANDLE(dev)	lkpi_acpi_handle(dev)
 #define	ACPI_COMPANION(dev)	((struct acpi_device *)NULL)
+/*
+ * ACPI resource descriptors (only the I2C serial bus shape; never
+ * produced, since acpi_dev_get_resources() fails).
+ */
+struct acpi_resource_source {
+	u8		index;
+	u16		string_length;
+	char		*string_ptr;
+};
+
+struct acpi_resource_i2c_serialbus {
+	u8				revision_id;
+	u8				type;
+	u8				producer_consumer;
+	u8				slave_mode;
+	u16				type_specific_flags;
+	u8				type_revision_id;
+	u16				vendor_length;
+	struct acpi_resource_source	resource_source;
+	u8				*vendor_data;
+	u8				access_mode;
+	u16				slave_address;
+	u32				connection_speed;
+};
+
+struct acpi_resource {
+	u32	type;
+	u32	length;
+	union {
+		struct acpi_resource_i2c_serialbus	i2c_serial_bus;
+	} data;
+};
+
+/* No acpi_device objects (ACPI_COMPANION is always NULL). */
+#define	acpi_device_handle(adev)	((void)(adev), (acpi_handle)NULL)
+#define	acpi_dev_get_resources(adev, list, fn, data)	\
+	((void)(adev), (void)(list), (void)(fn), (void)(data), -ENODEV)
+#define	acpi_dev_free_resource_list(list)	do { (void)(list); } while (0)
 #define	ACPI_FREE(p)		lkpi_acpi_free(p)
 void lkpi_acpi_free(void *p);
 

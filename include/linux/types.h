@@ -105,4 +105,15 @@ struct callback_head {
 
 typedef void (*rcu_callback_t)(struct rcu_head *head);
 
+#ifndef U64_C
+#define	S8_C(x)		x
+#define	U8_C(x)		x ## U
+#define	S16_C(x)	x
+#define	U16_C(x)	x ## U
+#define	S32_C(x)	x
+#define	U32_C(x)	x ## U
+#define	S64_C(x)	x ## LL
+#define	U64_C(x)	x ## ULL
+#endif
+
 #endif /* _LINUXKPI_LINUX_TYPES_H_ */

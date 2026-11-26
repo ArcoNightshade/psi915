@@ -97,4 +97,6 @@ void lkpi_bug(const char *file, int line, const char *func);
 #define	LOCKDEP_NOW_UNRELIABLE	1
 #define	add_taint(flag, lockdep_ok)	do { } while (0)
 
+#define	WARN_RATELIMIT(cond, ...)	WARN_ONCE(cond, __VA_ARGS__)
+
 #endif /* _LINUXKPI_LINUX_BUG_H_ */

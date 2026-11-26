@@ -63,4 +63,14 @@ is_vmalloc_addr(const void *p)
 	return (false);
 }
 
+/*
+ * vmalloc memory comes from the slab allocator and has no struct page
+ * unless it was allocated as pages: lkpi_virt_to_page() warns and
+ * returns NULL for it.
+ */
+struct page;
+struct page *lkpi_virt_to_page(const void *kva);
+#define	vmalloc_to_page(a)	lkpi_virt_to_page(a)
+#define	is_vmalloc_addr(a)	((void)(a), false)
+
 #endif /* _LINUXKPI_LINUX_VMALLOC_H_ */

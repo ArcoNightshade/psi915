@@ -9,6 +9,8 @@
 #ifndef _LINUXKPI_INCLUDE_VIDEO_VGA_H_
 #define	_LINUXKPI_INCLUDE_VIDEO_VGA_H_
 
+#include <asm/io.h>	/* outb/inb, as Linux <video/vga.h> */
+
 #define	VGA_FB_PHYS_BASE	0xA0000
 #define	VGA_FB_PHYS_SIZE	65536
 #define	VGA_MIS_W	0x3C2

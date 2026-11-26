@@ -328,6 +328,9 @@ static const struct file_operations __fops = {				\
 	((void)(maj), (void)(name), (void)(fops), 0)
 #define	unregister_chrdev(maj, name)	do { (void)(maj); } while (0)
 
+/* Calls the file's mmap (dma-buf mmap forwarding). */
+#define	call_mmap(file, vma)	((file)->f_op->mmap((file), (vma)))
+
 /* f_op reference helpers (no module reference counts). */
 #define	fops_get(f)		(f)
 #define	fops_put(f)		do { (void)(f); } while (0)
@@ -341,6 +344,9 @@ struct file_system_type;
 int simple_pin_fs(struct file_system_type *type, struct vfsmount **mount,
     int *count);
 void simple_release_fs(struct vfsmount **mount, int *count);
+
+#define	MAX_NON_LFS		((1UL << 31) - 1)
+#define	MAX_LFS_FILESIZE	((loff_t)LLONG_MAX)
 
 #ifndef SEEK_SET
 #define	SEEK_SET	0

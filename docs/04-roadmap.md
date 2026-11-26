@@ -139,6 +139,7 @@ illumos headers, so it measures KPI header coverage only; per-module pass counts
 | after batch 6, compiler_types.h, -DI915 in build/i915 | 17/18 | 73/77 | 3/3 | 259/287 | 352/385 |
 | after batch 7, drmglue in linuxkpi (R-K2: g1 loses 10 drmglue TUs) | 8/8 | 75/77 | 3/3 | 270/287 | 356/375 |
 | after batch 8 (string helpers, sscanf, uuid, unaligned, of/mmap_lock stubs) | 8/8 | 76/77 | 3/3 | 273/287 | 360/375 |
+| after batch 9 (bitmap regions, anon_inode_getfd, DEFINE_SHOW_ATTRIBUTE, compiler_types.h without platform.h) | 8/8 | 76/77 | 3/3 | 277/287 | 364/375 |
 
 Done:
 - [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
@@ -217,13 +218,36 @@ Done:
 - [x] docs/11 R-K3: LKPI_PCI_DRIVER_MODULE_OPS(name, desc, cbops, getinfo, attach, detach, init,
   exit); LKPI_PCI_DRIVER_MODULE now accepts a cb_ops address (NULL told apart by type).
 
-Next (from tests/out/p3/summary.txt):
-- [ ] Import requests (third_party, not KPI): include/drm/intel/i915_hdcp_interface.h (blocks 96
-  i915 units), intel-gtt.h, drm_mipi_dsi.h, drm_gem_atomic_helper.h, video/cmdline.h,
-  drm_dp_mst_topology_internal.h.
-- [ ] shmem file implementation (GEM backing store) in drmglue/KPI.
-- [ ] Remaining undeclared names in summary.txt (handle_simple_irq, PIDTYPE_PID, WB_SYNC_NONE,
-  SWAP_CLUSTER_MAX, EREMOTE, EBADSLT, ...), then fix-ups once units compile further.
+- [x] Batch 9: bitmap_shift_right, bitmap_find_free_region/release_region (tested), anon_inode_getfd
+  (drmglue anonfile.c, tested), DEFINE_SHOW_ATTRIBUTE producing real name_fops, MAX_LFS_FILESIZE,
+  acpi_resource (I2C serial bus), acpi_device_handle/acpi_dev_get_resources stubs,
+  i2c_acpi_find_adapter_by_handle, vmalloc_to_page, find_lock_page/unlock_page/clear_page_dirty_for_io
+  (no page cache yet), copy_highpage/clear_page, call_mmap, device_iommu_mapped (false),
+  device_for_each_child, dev_get_platdata, backlight_enable/disable, devm_gpiod_get_index, U64_C,
+  IOMEM_ERR_PTR, WARN_RATELIMIT, acpi.h from i2c.h, file.h from sync_file.h. compiler_types.h no
+  longer pulls in platform.h (it broke the illumos-first include rule of glue files such as
+  i915_ddi.c under the force-include).
+
+Remaining syntax-check failures (11 of 375) are outside the KPI; requests:
+- [ ] Import (third_party/drm_bsd, R-G1): drm/drm_format_helper.h is not on the allow list
+  (drm_atomic_helper.c, intel_atomic_plane.c).
+- [ ] drm_bsd: drm_bsd/drivers/gpu/drm/i915/i915_trace.h and display/intel_display_trace.h replace
+  upstream headers that include "i915_drv.h", "gt/intel_engine.h", "i915_irq.h" (resp.
+  "intel_crtc.h", "intel_display_types.h", ...); several units relied on that (gen6_ppgtt.c,
+  gen8_ppgtt.c, intel_ppgtt.c, intel_gtt.c, i915_gem_shrinker.c, i9xx_wm.c, intel_pmdemand.c).
+- [ ] Module build: build/i915/Objects.mk lists gt/hsw_clear_kernel.c and gt/ivb_clear_kernel.c,
+  which are #included by gen7_renderclear.c and are not translation units.
+- [ ] Import (P3 loop only, set-dependent): drm/intel/i915_hdcp_interface.h, intel-gtt.h,
+  drm_mipi_dsi.h, drm_accel.h, drm_dp_mst_topology_internal.h, intel_acpi.h for the
+  third_party/IMPORT_FILES layout used by scripts/p3-compile-check.py (the module build has them).
+
+KPI work still open (behaviour, not syntax):
+- [ ] shmem backing store (GEM objects; page cache, write_begin/write_end, writeback), today
+  find_lock_page() finds nothing and shmem_file_setup() is declaration-only.
+- [ ] Link-time closure: compile the module set to objects (HOST_STUBS) and check `nm -u` against
+  linuxkpi + allowlist, like check-kmod does for linuxkpi itself (docs/11 section 8, item 1).
+- [ ] User address-space features refused for now: i915 userptr (no VMAs visible), legacy
+  I915_GEM_MMAP (vm_mmap), kernel SSE (SSE4.1 hidden), relay (GuC log), sysctl publishing.
 
 ## P4 i915 display-only (8-12 wk)
 - Import i915 limited to Gen9 (KBL-R first); disable GT/GuC (`i915.enable_guc=0`, no execbuf).
