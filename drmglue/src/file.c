@@ -173,7 +173,7 @@ noop_llseek(struct lkpi_file *f, loff_t off, int whence)
 }
 
 loff_t
-no_llseek(struct lkpi_file *f, loff_t off, int whence)
+lkpi_no_llseek(struct lkpi_file *f, loff_t off, int whence)
 {
 	return (-ESPIPE);
 }

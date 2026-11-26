@@ -1028,7 +1028,7 @@ lkpi_pci_probe(struct pci_dev *pdev)
 	pdev->dev.driver = &drv->driver;
 	r = drv->probe(pdev, id);
 	if (r != 0) {
-		(void) devres_release_all(&pdev->dev);
+		(void) lkpi_devres_release_all(&pdev->dev);
 		pdev->driver = NULL;
 		pdev->dev.driver = NULL;
 		pci_set_drvdata(pdev, NULL);
@@ -1041,7 +1041,7 @@ lkpi_pci_remove(struct pci_dev *pdev)
 {
 	if (pdev->driver != NULL && pdev->driver->remove != NULL)
 		pdev->driver->remove(pdev);
-	(void) devres_release_all(&pdev->dev);
+	(void) lkpi_devres_release_all(&pdev->dev);
 	pdev->driver = NULL;
 	pdev->dev.driver = NULL;
 	pci_set_drvdata(pdev, NULL);
