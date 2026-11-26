@@ -10,5 +10,6 @@
 #define	_LINUXKPI_LINUX_POLL_H_
 
 #include <linux/fs.h>
+#include <linux/eventpoll.h>
 
 #endif /* _LINUXKPI_LINUX_POLL_H_ */

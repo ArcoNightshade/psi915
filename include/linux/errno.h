@@ -66,6 +66,9 @@
 #ifndef EBADE
 #define	EBADE			605
 #endif
+#ifndef EMULTIHOP
+#define	EMULTIHOP		607
+#endif
 #ifndef ENOKEY
 #define	ENOKEY			606
 #endif

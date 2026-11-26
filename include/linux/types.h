@@ -65,6 +65,11 @@ typedef long long	__kernel_time64_t;
 typedef int		__kernel_clockid_t;
 typedef unsigned short	__kernel_mode_t;
 
+#if defined(LINUXKPI_ILLUMOS_KERNEL) && !defined(_PTRDIFF_T)
+#define	_PTRDIFF_T
+typedef __PTRDIFF_TYPE__	ptrdiff_t;
+#endif
+
 #define	BITS_PER_LONG		(sizeof(long) * 8)
 #define	BITS_PER_LONG_LONG	(sizeof(long long) * 8)
 

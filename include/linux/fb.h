@@ -1,0 +1,21 @@
+/*
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2026 The psi915 Authors. All rights reserved.
+ * See the LICENSE file at the top of the source tree for the full text.
+ *
+ * Clean-room. fbdev: only the constants DRM headers use (fbdev emulation is off).
+ */
+#ifndef _LINUXKPI_INCLUDE_LINUX_FB_H_
+#define	_LINUXKPI_INCLUDE_LINUX_FB_H_
+
+#include <linux/types.h>
+
+struct fb_info;
+#define	FB_BLANK_UNBLANK	0
+#define	FB_BLANK_NORMAL		1
+#define	FB_BLANK_VSYNC_SUSPEND	2
+#define	FB_BLANK_HSYNC_SUSPEND	3
+#define	FB_BLANK_POWERDOWN	4
+
+#endif /* _LINUXKPI_INCLUDE_LINUX_FB_H_ */
