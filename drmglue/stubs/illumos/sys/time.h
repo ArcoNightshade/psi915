@@ -5,4 +5,11 @@
 #include <sys/types.h>
 extern clock_t ddi_get_lbolt(void);
 extern int64_t ddi_get_lbolt64(void);
+typedef struct timespec {
+	long	tv_sec;
+	long	tv_nsec;
+} timespec_t;
+typedef struct timespec timestruc_t;
+extern hrtime_t gethrtime(void);
+extern void gethrestime(timespec_t *);
 #endif

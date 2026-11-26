@@ -5,4 +5,6 @@
 #include <sys/types.h>
 extern pri_t minclsyspri;
 extern int servicing_interrupt(void);
+extern void kpreempt(int);
+#define	KPREEMPT_SYNC	(-1)
 #endif

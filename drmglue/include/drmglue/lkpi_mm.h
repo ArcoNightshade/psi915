@@ -42,6 +42,9 @@
 #ifndef PAGE_MASK
 #define	PAGE_MASK	(~(PAGE_SIZE - 1))
 #endif
+#ifndef PAGE_ALIGN
+#define	PAGE_ALIGN(x)	(((x) + PAGE_SIZE - 1) & PAGE_MASK)
+#endif
 
 struct page;		/* KPI struct page (P2) */
 struct mm_struct;
@@ -297,6 +300,7 @@ void lkpi_vma_bind(struct lkpi_vma *lv, void *seg);
 /* Fault types as the backend reports them. */
 #define	LKPI_FAULT_INVAL	0	/* ordinary fault (F_INVAL/F_PROT) */
 #define	LKPI_FAULT_SOFTLOCK	1	/* F_SOFTLOCK: translations must load */
+#define	LKPI_FAULT_PROT		2	/* F_PROT: protection fault */
 
 /*
  * devmap_access: make [off, off + len) present in the user's mapping.
@@ -310,7 +314,7 @@ int lkpi_vma_dup(struct lkpi_vma *lv, void *new_seg, struct lkpi_vma **nlvp);
 /*
  * devmap_unmap: [off, off + len) of lv goes away. new_seg1/new_seg2 are the
  * handles of the surviving pieces before/after the hole (or NULL); their
- * VMAs are returned in *nlv1/*nlv2. lv is destroyed.
+ * VMAs are returned in *nlv1 and *nlv2. lv is destroyed.
  */
 void lkpi_vma_unmap(struct lkpi_vma *lv, uint64_t off, size_t len,
     void *new_seg1, struct lkpi_vma **nlv1, void *new_seg2,

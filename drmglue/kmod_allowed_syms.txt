@@ -1,0 +1,106 @@
+# SPDX-License-Identifier: BSD-2-Clause
+# Undefined symbols the drmglue kernel objects may reference (make
+# check-kmod). Grouped by provider; a kmod containing drmglue needs
+# _depends_on "misc/linuxkpi misc/gfx_private".
+#
+# illumos kernel (unix/genunix), illumos-gate f71cb08e8c53. Names marked
+# (macro?) may be macros or inlines on a real system; the stubs declare
+# them as functions.
+atomic_cas_uint
+atomic_or_uint
+atomic_swap_uint
+bzero
+cmn_err
+ddi_copyin
+ddi_copyout
+ddi_create_minor_node
+ddi_driver_major
+ddi_get_instance
+ddi_model_convert_from
+ddi_prop_op
+ddi_remove_minor_node
+devmap_load
+devmap_setup
+devmap_unload
+f_setfd_or
+falloc
+fs_nosys
+getf
+getmajor
+kmem_free
+kmem_zalloc
+getminor
+makedevice
+makespecvp
+membar_producer
+memcpy
+memset
+minclsyspri
+mutex_destroy
+mutex_enter
+mutex_exit
+mutex_init
+nodev
+pollhead_clean
+pollwakeup
+releasef
+rw_destroy
+rw_enter
+rw_exit
+rw_init
+setf
+snprintf
+taskq_create
+taskq_destroy
+taskq_dispatch_ent
+taskq_wait
+threadp
+ufalloc
+vfs_freevfsops
+vfs_init
+vfs_makefsops
+vn_alloc
+vn_exists
+vn_free
+vn_freevnodeops
+vn_hold		(macro? VN_HOLD)
+vn_invalid
+vn_make_ops
+vn_matchops
+vn_rele
+vn_setops
+#
+# misc/gfx_private (illumos-gate usr/src/uts/i86pc/io/gfx_private)
+gfxp_alloc_kernel_space
+gfxp_devmap_umem_setup
+gfxp_free_kernel_space
+gfxp_load_kernel_space
+gfxp_umem_cookie_destroy
+gfxp_umem_cookie_init
+gfxp_unload_kernel_space
+#
+# misc/linuxkpi (this repository, src/)
+add_wait_queue
+idr_alloc
+idr_destroy
+idr_find
+idr_remove
+kfree
+kmalloc
+lkpi_bug
+lkpi_current
+lkpi_lock_recursion
+lkpi_plat_copyinstr
+lkpi_printk
+lkpi_rb_erase_augmented
+lkpi_rb_insert_augmented
+lkpi_warn_slowpath
+rb_first
+rb_next
+remove_wait_queue
+#
+# REQUESTED from the KPI, not yet provided (docs/10, R5 and R8).
+lkpi_dma_resv_alloc
+lkpi_dma_resv_free
+lkpi_page_to_pfn
+lkpi_put_page

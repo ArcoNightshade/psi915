@@ -32,6 +32,7 @@
 #include <linux/mutex.h>
 #include <linux/rwsem.h>
 #include <linux/list.h>
+#include <linux/wait.h>
 #include <drmglue/itree.h>
 
 #ifdef LINUXKPI_ILLUMOS_KERNEL
@@ -65,7 +66,6 @@ typedef void		*fl_owner_t;
 
 struct lkpi_file;
 struct vm_area_struct;
-struct wait_queue_head;		/* KPI <linux/wait.h> */
 struct seq_file;
 struct module;
 struct poll_table_struct;
@@ -112,14 +112,19 @@ struct file_operations {
 	void		(*show_fdinfo)(struct seq_file *, struct lkpi_file *);
 };
 
-/* Registered KPI wait-queue hooks per file (see lkpi_file_poll()). */
+/*
+ * Wait queues a file's f_op->poll passed to poll_wait(). Each gets one
+ * custom-function entry (KPI <linux/wait.h>) that forwards wake_up*() to
+ * the file's poll head; entries stay queued until the file is released
+ * (illumos poll heads are persistent, unlike Linux poll tables). See
+ * lkpi_file_poll() in src/file.c.
+ */
 #define	LKPI_FILE_MAX_POLLREG	4
-
-struct lkpi_wait_hook;		/* KPI, requested change R4 */
 
 struct lkpi_file_pollreg {
 	struct wait_queue_head	*wq;
-	struct lkpi_wait_hook	*hook;
+	struct wait_queue_entry	we;
+	struct lkpi_file	*f;
 };
 
 /* Pending mmap(2) parameters, valid during segmap -> devmap (docs/10 3.3). */
@@ -155,6 +160,7 @@ struct lkpi_file {
 	unsigned int			f_lkpi_npollreg;
 	struct lkpi_file_pollreg	f_lkpi_pollreg[LKPI_FILE_MAX_POLLREG];
 	uint32_t			f_lkpi_mmap_id;	/* anon mmap host id */
+	void				*f_lkpi_mmap_vp; /* backend: host snode */
 	struct inode			*f_lkpi_own_inode; /* freed with file */
 };
 

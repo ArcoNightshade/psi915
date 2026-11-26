@@ -47,4 +47,5 @@
 #define	EALREADY	149
 #define	EINPROGRESS	150
 #define	ECANCELED	47
+#define	ENAMETOOLONG	78
 #endif
