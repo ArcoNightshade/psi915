@@ -13,11 +13,13 @@
 #   6. replace drm/, i915/, gpl/ and rewrite third_party/IMPORT_FILES (blob id, set, licence per file).
 #
 # Usage: scripts/import-linux.sh [-s set[,set]] [-S sets] [-P] [-n] [-c] [-m] [-l] [-R dir path...]
-#   -s  add optional sets (debugfs fbdev compat capture perf selftest gen12 hwmon lpe auxdev gvt kunit)
+#   -s  add optional sets (debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit edidfw auxdev cec
+#       replaced)
 #   -S  replace the default set list (core,link,hdr,uapi,extra,aux)
 #   -P  do not apply patches (pristine upstream; for making new patches)
 #   -n  dry run: print "dest set path" for the selection and exit
-#   -c  check: rebuild in a temporary directory and compare with the committed trees and IMPORT_FILES
+#   -c  check: rebuild in a temporary directory and compare with the committed trees and IMPORT_FILES, then
+#       run the five GPL-boundary checks of third_party/gpl-policy.conf (docs/08 section 5)
 #   -m  manifest check only (classification complete, no stale entries)
 #   -l  list "set<TAB>path" (or UNCLASSIFIED) for every upstream file in scope, without failing
 #   -R  extract the given upstream paths (files or directories) from the pinned commit into dir and exit;
@@ -188,12 +190,96 @@ mkdir -p "$W/out/drm/include/generated"
 gen_autoconf "$TP/config/gen9.config" >"$W/out/drm/include/generated/autoconf.h"
 for d in $TREES; do mkdir -p "$W/out/$d"; done
 
+# --- GPL boundary checks (run by -c; docs/08 section 5, third_party/gpl-policy.conf) ------------------
+# $1: root holding drm/ i915/ gpl/ as imported (the temporary rebuild).  drm_bsd/ is read from $TOP.
+# Prints one line per check and returns non-zero if any check fails.
+gpl_checks() {
+	R=$1; P=$TP/gpl-policy.conf; C=$W/gplchk; mkdir -p "$C"; fails=0
+	[ -f "$P" ] || { echo "import-linux: missing $P" >&2; return 1; }
+	# Strip C comments well enough for symbol searches (kernel-doc lines start with "*").
+	nocomment() { sed -e 's|//.*||' -e '/^[[:space:]]*\*/d' -e '/^[[:space:]]*\/\*/d' "$@" 2>/dev/null; }
+	report() {	# number, description, file with offending lines
+		if [ -s "$3" ]; then
+			echo "import-linux: GPL check $1 FAILED: $2" >&2; sed 's/^/    /' "$3" >&2; fails=1
+		else
+			echo "import-linux: GPL check $1 OK: $2" >&2
+		fi
+	}
+	# MIT/BSD files of the Gen9 build: drm/ and i915/ except set "extra" (not compiled), plus drm_bsd/.
+	{ awk -F'\t' -v r="$R" '!/^#/ && $2 !~ /^gpl\// && $3 != "extra" && $2 ~ /\.[ch]$/ {print r "/" $2}' \
+		"$W/IMPORT_FILES"; [ -d "$TOP/drm_bsd" ] && find "$TOP/drm_bsd" -name '*.[ch]'; } | sort >"$C/mitfiles"
+
+	# 1. Licences: no GPL-only file outside gpl/; every drm_bsd file is BSD-2-Clause.
+	awk -F'\t' '!/^#/ && $2 !~ /^gpl\// && $4 ~ /GPL/ && $4 !~ /MIT|BSD|X11/ {print $2 "\t" $4}' \
+		"$W/IMPORT_FILES" >"$C/1"
+	if [ -d "$TOP/drm_bsd" ]; then
+		find "$TOP/drm_bsd" -name '*.[ch]' | sort | while read -r f; do
+			head -n 3 "$f" | grep -q 'SPDX-License-Identifier: BSD-2-Clause' || echo "${f#"$TOP"/}: not BSD-2-Clause"
+		done >>"$C/1"
+	fi
+	report 1 "GPL-only code exists only in gpl/; drm_bsd/ is BSD-2-Clause" "$C/1"
+
+	# 2. Only the allowed GPL files (G1 dma-buf group, G2 DRM helpers) are compiled.
+	awk -F'\t' '!/^#/ && $2 ~ /^gpl\/.*\.c$/ && ($3 == "core" || $3 == "link") {sub(/^gpl\//, "", $2); print $2}' \
+		"$W/IMPORT_FILES" | sort >"$C/2a"
+	awk '$1 == "g1" || $1 == "g2" {print $2}' "$P" | sort >"$C/2b"
+	comm -23 "$C/2a" "$C/2b" | sed 's/$/: compiled GPL file not in gpl-policy.conf g1\/g2/' >"$C/2"
+	report 2 "compiled GPL files are only the G1 (dma-buf) and G2 (DRM helper) sets" "$C/2"
+
+	# 3. MIT/BSD code includes no GPL header from gpl/, except allow-header debts.
+	awk '$1 == "allow-header" {print $2}' "$P" | sort >"$C/3allow"
+	(cd "$R/gpl" && find . -name '*.h' | sed 's|^\./||') | sort | comm -23 - "$C/3allow" >"$C/3hdr"
+	awk '{ if ($0 ~ /^include\//) print "<" substr($0, 9); else { n = split($0, a, "/"); print "\"" a[n] } }' \
+		"$C/3hdr" | sort -u >"$C/3names"
+	xargs grep -H -E '^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"]' <"$C/mitfiles" 2>/dev/null | awk -v names="$C/3names" '
+		BEGIN { while ((getline l < names) > 0) want[l] = 1 }
+		{
+			f = $0; sub(/:.*/, "", f); inc = $0; sub(/^[^:]*:/, "", inc)
+			if (match(inc, /<[^>]+>/)) key = "<" substr(inc, RSTART + 1, RLENGTH - 2)
+			else if (match(inc, /"[^"]+"/)) { q = substr(inc, RSTART + 1, RLENGTH - 2); n = split(q, a, "/"); key = "\"" a[n] }
+			else next
+			if (key in want) print f ": includes GPL header " key
+		}' | sed "s|$R/||; s|$TOP/||" >"$C/3"
+	report 3 "MIT/BSD files include no GPL header (except allow-header debts)" "$C/3"
+
+	# 4. G1 depends on the KPI only: no DRM headers and no includes outside its own directory.
+	: >"$C/4"
+	for g in $(awk '$1 == "g1" {print $2}' "$P"); do
+		f=$R/gpl/$g; [ -f "$f" ] || continue
+		grep -E '^[[:space:]]*#[[:space:]]*include' "$f" | while read -r line; do
+			case $line in
+			*'<drm/'*) echo "$g: $line (DRM header in G1)" ;;
+			*'"'*) q=$(echo "$line" | sed 's/.*"\(.*\)".*/\1/')
+			       [ -f "$(dirname "$f")/$q" ] || echo "$g: $line (outside G1)" ;;
+			esac
+		done >>"$C/4"
+	done
+	report 4 "G1 (dma-buf group) depends only on the KPI, never on drm/ or i915/" "$C/4"
+
+	# 5. drm/ does not use G2 exports (G2 depends on drm, so drm must not depend on G2).
+	for g in $(awk '$1 == "g2" {print $2}' "$P"); do
+		[ -f "$R/gpl/$g" ] && sed -n 's/^EXPORT_SYMBOL[A-Z_]*(\([A-Za-z0-9_]*\)).*/\1/p' "$R/gpl/$g"
+	done | sort -u >"$C/5syms"
+	: >"$C/5"
+	if [ -s "$C/5syms" ]; then
+		grep "^$R/drm/.*\\.c\$" "$C/mitfiles" | while read -r f; do
+			nocomment "$f" | grep -n -w -F -f "$C/5syms" | sed "s|^|${f#"$R"/}:|"
+		done >"$C/5"
+		[ -d "$TOP/drm_bsd" ] && find "$TOP/drm_bsd" -name '*.c' ! -path '*/i915/*' | sort | while read -r f; do
+			nocomment "$f" | grep -n -w -F -f "$C/5syms" | sed "s|^|${f#"$TOP"/}:|"
+		done >>"$C/5"
+	fi
+	report 5 "drm/ (and drm_bsd DRM core) never call G2 (drm_hdcp_helper, drm_gem_framebuffer_helper)" "$C/5"
+	return $fails
+}
+
 # --- 6. install or check ------------------------------------------------------------------------------
 if [ $CHECK = 1 ]; then
 	rc=0
 	for d in $TREES; do diff -r "$W/out/$d" "$TOP/$d" >&2 || rc=1; done
 	cmp -s "$W/IMPORT_FILES" "$TP/IMPORT_FILES" || { echo "import-linux: IMPORT_FILES differs" >&2; rc=1; }
-	[ $rc = 0 ] && echo "import-linux: check OK: drm/ i915/ gpl/ match pin + manifest + patches + config" >&2
+	gpl_checks "$W/out" || rc=1
+	[ $rc = 0 ] && echo "import-linux: check OK: drm/ i915/ gpl/ match pin + manifest + patches + config; GPL policy holds" >&2
 	exit $rc
 fi
 for d in $TREES; do rm -rf "${TOP:?}/$d"; cp -R "$W/out/$d" "$TOP/$d"; done
