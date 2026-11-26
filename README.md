@@ -100,3 +100,4 @@ mdb -k   # ::findleaks, ::kmem_verify
 | lkpi_ktest in kernel under kmem_flags=0xf | n/a | not done |
 | Kmod link (`ld -ztype=kmod`), CTF, modload/modunload | n/a | not done |
 | install.sh layout / ips / svr4 output | exercised with `-R` staging dir | not run |
+| docs/08-kpi-requirements.md | Ranked missing-API list for DRM core + Gen9 i915, GPL module boundary |
