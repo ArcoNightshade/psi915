@@ -98,6 +98,13 @@ src/linux_pci_ddi.c) is only compiled against stub headers. Detail in doc 03.
   "edu 0x10000ed: live 1 irq 1 fact 3628800 (1) dma 1 pool 1". This is the P2 exit test.
 - [ ] Owner: run lkpi_ktest (now 15 suites) under kmem_flags=0xf.
 
+Requests from drmglue (docs/10 section 5): R2 (`file` rename in platform.h), R5
+(`lkpi_page_release`, `put_page`, `page_to_pfn`) and R8 (`<linux/fcntl.h>` with illumos O_* values)
+are done; `lkpi_plat_uevent` is in src/plat_userland_dev.c (linked into every test). Still open,
+first items of P3: R1/R3 (move drmglue's struct file/inode/address_space/vm_area_struct into
+include/linux/fs.h, mm_types.h, together with its interval tree) and R10 (BSD dma-fence, dma-resv,
+dma-buf, sync_file headers with v6.14 layouts).
+
 Known P2 limitations: set_pages_*/set_memory_* cannot change cache attributes (memory stays WB);
 wbinvd_on_all_cpus flushes only the calling CPU; DMA mappings must be bus-contiguous (no swiotlb);
 no bridge topology; runtime PM always-on; interrupt vectors above LOCK_LEVEL refused.
