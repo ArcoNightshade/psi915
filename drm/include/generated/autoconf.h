@@ -66,6 +66,15 @@
 #define CONFIG_VIDEO 1
 #define CONFIG_VIDEO_CMDLINE 1
 #define CONFIG_HDMI 1
+#define CONFIG_DMA_SHARED_BUFFER 1
+#define CONFIG_SYNC_FILE 1
+/* CONFIG_DMABUF_HEAPS is not set */
+/* CONFIG_SW_SYNC is not set */
+/* CONFIG_UDMABUF is not set */
+/* CONFIG_DMABUF_SYSFS_STATS is not set */
+/* CONFIG_DMABUF_MOVE_NOTIFY is not set */
+/* CONFIG_DMABUF_DEBUG is not set */
+/* CONFIG_DMABUF_SELFTESTS is not set */
 #define CONFIG_APERTURE_HELPERS 1
 #define CONFIG_DRM 1
 #define CONFIG_DRM_KMS_HELPER 1
@@ -83,6 +92,10 @@
 #define CONFIG_DRM_BUDDY 1
 /* CONFIG_DRM_CLIENT is not set */
 /* CONFIG_DRM_CLIENT_SETUP is not set */
+/* CONFIG_DRM_CLIENT_LIB is not set */
+/* CONFIG_DRM_CLIENT_SELECTION is not set */
+/* CONFIG_DRM_CLIENT_LOG is not set */
+/* CONFIG_DRM_LOAD_EDID_FIRMWARE is not set */
 /* CONFIG_DRM_FBDEV_EMULATION is not set */
 /* CONFIG_DRM_PANIC is not set */
 /* CONFIG_DRM_SCHED is not set */
@@ -102,6 +115,10 @@
 /* CONFIG_DRM_DISPLAY_DP_TUNNEL is not set */
 /* CONFIG_DRM_DISPLAY_DP_TUNNEL_STATE_DEBUG is not set */
 /* CONFIG_DRM_ACCEL is not set */
+/* CONFIG_DRM_PANEL_BRIDGE is not set */
+/* CONFIG_DRM_KUNIT_TEST is not set */
+/* CONFIG_DRM_TTM_KUNIT_TEST is not set */
+/* CONFIG_DRM_EXPORT_FOR_TESTS is not set */
 /* CONFIG_DRM_WERROR is not set */
 #define CONFIG_DRM_I915 1
 #define CONFIG_DRM_I915_FORCE_PROBE ""

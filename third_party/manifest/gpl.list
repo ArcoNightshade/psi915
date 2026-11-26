@@ -90,3 +90,5 @@ hdr	include/drm/drm_writeback.h	DRM kernel header [GPL-2.0]
 hdr	include/drm/i2c/tda998x.h	DRM kernel header [GPL-2.0]
 hdr	include/drm/intel/i915_hdcp_interface.h	DRM kernel header [(GPL-2.0+)]
 hdr	include/drm/intel/intel-gtt.h	DRM kernel header [GPL-2.0]
+scope	drivers/platform/x86/intel_ips.h	single header included by i915 gt/intel_rps.c
+hdr	drivers/platform/x86/intel_ips.h	included by i915/gt/intel_rps.c as ../../../platform/x86/intel_ips.h; cross-tree relative include needs a patch [GPL-2.0]

@@ -2,27 +2,32 @@
 # SPDX-License-Identifier: BSD-2-Clause
 """Scan the imported DRM/i915 tree for the Linux kernel API it uses and compare with include/ (the KPI).
 
-Scope: every compiled file of the Gen9 build (sets "core" and "link" in third_party/IMPORT_FILES) plus every
-imported header they reach through #include.  Preprocessor conditionals are resolved where they depend only on
-CONFIG_* (drm/include/generated/autoconf.h), __linux__/__FreeBSD__ (both undefined on illumos) and a few
-compiler macros; anything else keeps all branches.
+Scope: every compiled file of the Gen9 build (sets "core" and "link" in third_party/IMPORT_FILES, in drm/, i915/
+and gpl/) plus every imported header they reach through #include.  Preprocessor conditionals are resolved where
+they depend only on CONFIG_* (drm/include/generated/autoconf.h) and a few compiler/OS macros; anything else keeps
+all branches.
 
-What counts as "Linux API": an identifier the scanned files use but no imported file (any default set except
-kpi-ref) defines.  Kinds:
+What counts as "Linux API": an identifier the scanned files use but no imported file defines.  Kinds:
   call    identifier followed by "(" (function or function-like macro)
   tag     struct/union/enum tag
   macro   ALL_CAPS identifier not followed by "(" (constants, object-like macros)
   type    typedef-like names (u32, __le16, *_t, ...)
-  ident   other identifiers that FreeBSD's LinuxKPI or include/ define (variables like jiffies, lowercase
-          object-like macros like __iomem); other lowercase identifiers are assumed to be locals and dropped
-Each name is mapped to the header that defines it in include/ (ours) and in FreeBSD's LinuxKPI (reference for
-the Linux header name).  Heuristic, text-based scan: no real preprocessing, so token-pasted names, macro
-arguments and local function pointers can produce false entries, and APIs used only through macros defined
-in KPI headers are not seen.  Counts are files, not call sites, unless stated.
+  ident   other identifiers that include/, FreeBSD's LinuxKPI or a Linux linux/ asm/ acpi/ header define as an
+          object-like macro, typedef or enumerator (jiffies, __iomem, ...); other lowercase identifiers are
+          assumed to be locals and dropped
+Each name is mapped to the header that defines it in include/ (ours, macro-expanded in the check-kmod illumos
+configuration; "illumos:" = visible through the stub illumos headers), in upstream Linux v6.14 (with that
+header's SPDX licence), in FreeBSD's LinuxKPI and in illumos sys/.  Heuristic, text-based scan: no real
+preprocessing, so token-pasted names, macro arguments and members can produce false entries, and APIs used only
+through macros defined in KPI headers are not seen.  Counts are files, not call sites, unless stated.
 
-Usage: tools/kpi-scan.py [--freebsd DIR] [--out DIR]
+It also maps the boundary between gpl/ (the separate GPL-2.0 module) and drm/ + i915/.
+
+Usage: tools/kpi-scan.py [--freebsd DIR] [--illumos DIR] [--linux-ref DIR] [--out DIR]
+  --linux-ref defaults to $REF/linux-hdrs, created with scripts/import-linux.sh -R when missing.
 Writes: tools/kpi-requirements.tsv, tools/kpi-requirements.json, tools/kpi-headers.tsv,
-        tools/kpi-config-usage.tsv, tools/kpi-bsdisms.tsv, tools/kpi-unresolved-includes.tsv
+        tools/kpi-config-usage.tsv, tools/kpi-unresolved-includes.tsv, tools/gpl-boundary.tsv,
+        tools/gpl-headers.tsv
 """
 import argparse, collections, json, os, re, sys
 
@@ -192,15 +197,15 @@ def prune(lines, ev):
 
 
 class FileScan:
-    __slots__ = ('path', 'includes', 'uses', 'defs', 'configs', 'bsd', 'paste')
+    __slots__ = ('path', 'includes', 'uses', 'defs', 'configs', 'exports', 'paste')
 
     def __init__(self, path):
         self.path = path
         self.includes = []          # (kind '<' or '"', name)
         self.uses = collections.Counter()   # (kind, name) -> count
-        self.defs = {}              # (ns, name) -> kind; ns 'id' or 'tag'; kind macro/fmacro/func/var/typedef/enum/tag
+        self.defs = {}              # (ns, name) -> kind: macro fmacro func sfunc var svar typedef enum tag
         self.configs = set()
-        self.bsd = collections.Counter()
+        self.exports = set()        # EXPORT_SYMBOL*(name)
         self.paste = set()          # token-paste prefixes seen in #define bodies (X##)
 
 
@@ -209,12 +214,8 @@ def scan_text(path, text, ev, collect_uses=True):
     text = strip(text)
     for c in re.findall(r'\bCONFIG_\w+', text):
         fs.configs.add(c)
+    fs.exports.update(re.findall(r'\bEXPORT_SYMBOL(?:_GPL|_NS|_NS_GPL)?\s*\(\s*(\w+)', text))
     raw_lines = logical_lines(text)
-    for ln in raw_lines:
-        s = ln.strip()
-        if re.match(r'#\s*if', s) or re.match(r'#\s*elif', s):
-            for m in re.findall(r'\b(__linux__|__FreeBSD__|__linux)\b', s):
-                fs.bsd['cond:' + m] += 1
     lines = prune(raw_lines, ev) if ev else raw_lines
     code = []
     for ln in lines:
@@ -223,8 +224,6 @@ def scan_text(path, text, ev, collect_uses=True):
             m = re.match(r'#\s*include\s*([<"])([^>"]+)[>"]', s)
             if m:
                 fs.includes.append((m.group(1), m.group(2).strip()))
-                if m.group(1) == '<' and re.match(r'(sys|vm|machine|dev|x86|contrib|net)/', m.group(2)):
-                    fs.bsd['include:' + m.group(2)] += 1
                 continue
             m = re.match(r'#\s*define\s+([A-Za-z_]\w*)(\(([^)]*)\))?(.*)', s)
             if m:
@@ -251,6 +250,7 @@ def scan_tokens(fs, toks, params, in_macro, collect_uses=True):
     enum_body = []   # brace levels that are enum bodies
     pending_enum = False
     last_ident_top = None
+    decl_static = False
     for i, t in enumerate(toks):
         prev = toks[i - 1] if i else ';'
         nxt = toks[i + 1] if i + 1 < n else ''
@@ -264,6 +264,8 @@ def scan_tokens(fs, toks, params, in_macro, collect_uses=True):
             if enum_body and enum_body[-1] == brace:
                 enum_body.pop()
             brace = max(0, brace - 1)
+            if brace == 0:
+                decl_static = False
             continue
         if t == '(':
             paren += 1
@@ -277,11 +279,15 @@ def scan_tokens(fs, toks, params, in_macro, collect_uses=True):
             if brace == 0:
                 typedef_stmt = False
                 pending_enum = False
+                decl_static = False
             last_ident_top = None
             continue
         if not IDENT_RE.match(t):
             continue
         if t in params:
+            continue
+        if t == 'static' and brace == 0 and paren == 0:
+            decl_static = True
             continue
         if t == 'typedef' and not in_macro:
             typedef_stmt = True
@@ -316,10 +322,10 @@ def scan_tokens(fs, toks, params, in_macro, collect_uses=True):
             or prev == '*'
         if not in_macro and brace == 0 and paren == 0:
             if nxt == '(' and prev_is_type:
-                fs.defs[('id', t)] = 'func'     # function declaration or definition
+                fs.defs[('id', t)] = 'sfunc' if decl_static else 'func'   # function declaration/definition
                 continue
             if nxt in ('=', ';', '[', ',') and prev_is_type and not typedef_stmt:
-                fs.defs[('id', t)] = 'var'      # global variable
+                fs.defs[('id', t)] = 'svar' if decl_static else 'var'     # file-scope variable
                 continue
         if not collect_uses:
             continue
@@ -415,43 +421,95 @@ def expanded_defs(include, stubs):
             chunks[cur].append(ln)
     defs = collections.defaultdict(dict)
     inc = os.path.abspath(include) + os.sep
+    stb = os.path.abspath(stubs) + os.sep
     for fn, lines in chunks.items():
         af = os.path.abspath(fn)
-        if not af.startswith(inc):
+        if af.startswith(inc):
+            rel = af[len(inc):]
+        elif af.startswith(stb):
+            rel = 'illumos:' + af[len(stb):]   # illumos name visible through include/ (stub headers)
+        else:
             continue
-        rel = af[len(inc):]
         fs = scan_text(rel, '\n'.join(lines), None, collect_uses=False)
         for k, kind in fs.defs.items():
             defs[k][rel] = kind
     return defs
 
 
+TREES = ('drm', 'i915', 'gpl')
+I915_REL = 'drivers/gpu/drm/i915/'
+
+
+def linux_ref_headers(ref):
+    """(ns,name) -> {linux header: kind}, header -> SPDX, from an extraction of upstream include trees.
+    Paths are mapped to the name used in #include (<linux/x.h>, <asm/x.h>, ...)."""
+    defs = collections.defaultdict(dict)
+    lic = {}
+    maps = [('include/uapi/', ''), ('arch/x86/include/uapi/', ''), ('arch/x86/include/generated/', ''),
+            ('arch/x86/include/', ''), ('include/', '')]
+    for dp, _, fns in os.walk(ref):
+        for fn in fns:
+            if not fn.endswith('.h'):
+                continue
+            p = os.path.join(dp, fn)
+            rel = os.path.relpath(p, ref)
+            name = None
+            for pre, rep in maps:
+                if rel.startswith(pre):
+                    name = rep + rel[len(pre):]
+                    break
+            if name is None or name.startswith(('drm/', 'uapi/drm/')):
+                continue
+            text = open(p, errors='replace').read()
+            m = re.search(r'SPDX-License-Identifier:\s*([^*\n]*)', text[:3000])
+            lic.setdefault(name, m.group(1).strip().rstrip('*/').strip() if m else 'no notice (GPL-2.0 default)')
+            fs = scan_text(name, text, REF_EV, collect_uses=False)
+            for k, kind in fs.defs.items():
+                defs[k].setdefault(name, kind)
+    return defs, lic
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--freebsd', default=os.path.expanduser('~/ref/freebsd/sys/compat/linuxkpi'))
-    ap.add_argument('--out', default=os.path.join(TOP, 'tools'))
     ap.add_argument('--illumos', default=os.path.expanduser('~/ref/illumos'))
+    ap.add_argument('--linux-ref', default=None,
+                    help='extraction of upstream include/, arch/x86/include (default $REF/linux-hdrs, '
+                         'created with scripts/import-linux.sh -R when missing)')
     ap.add_argument('--include', default=os.path.join(TOP, 'include'))
+    ap.add_argument('--out', default=os.path.join(TOP, 'tools'))
     a = ap.parse_args()
     for attr, sub in (('freebsd', 'freebsd/sys/compat/linuxkpi'), ('illumos', 'illumos')):
         if not os.path.isdir(getattr(a, attr)) and os.path.isdir('/home/user/ref/' + sub):
             setattr(a, attr, '/home/user/ref/' + sub)
         if not os.path.isdir(getattr(a, attr)):
             sys.exit(f'kpi-scan: reference tree for --{attr} not found (run scripts/fetch-refs.sh)')
+    ref_root = os.environ.get('REF') or (os.path.expanduser('~/ref') if os.path.isdir(os.path.expanduser('~/ref/linux'))
+                                         else '/home/user/ref')
+    if a.linux_ref is None:
+        a.linux_ref = os.path.join(ref_root, 'linux-hdrs')
+    if not os.path.isdir(a.linux_ref):
+        import subprocess
+        subprocess.run([os.path.join(TOP, 'scripts/import-linux.sh'), '-R', a.linux_ref, 'include/linux',
+                        'include/asm-generic', 'include/uapi/linux', 'include/uapi/asm-generic', 'include/acpi',
+                        'include/video', 'include/trace', 'include/media', 'include/net', 'include/crypto',
+                        'include/xen', 'include/kunit', 'include/vdso', 'arch/x86/include'],
+                       check=True, env=dict(os.environ, REF=ref_root))
 
     files = {}   # path -> set
+    lic_of = {}
     for ln in open(os.path.join(TOP, 'third_party/IMPORT_FILES')):
         if ln.startswith('#'):
             continue
         blob, path, st, lic = ln.rstrip('\n').split('\t')
         files[path] = st
+        lic_of[path] = lic
     cfg = load_config(os.path.join(TOP, 'drm/include/generated/autoconf.h'))
     ev = CondEval(cfg)
 
-    # Scan every imported file in the default sets (for definitions); uses only matter for the closure.
     scans = {}
     for path, st in files.items():
-        if st in ('kpi-ref', 'aux') or not path.endswith(('.c', '.h')):
+        if st == 'aux' or not path.endswith(('.c', '.h')):
             continue
         scans[path] = scan_text(path, open(os.path.join(TOP, path), errors='replace').read(), ev)
     tree_defs = set()
@@ -459,31 +517,32 @@ def main():
     for fs in scans.values():
         tree_defs |= set(fs.defs)
         paste |= fs.paste
-    # Definitions present only in branches that are false on illumos (e.g. #ifdef __linux__ ... #elif
-    # defined(__FreeBSD__) with no #else): a raw scan without conditional pruning.
+    # Definitions that exist only in branches that are false for the Gen9 configuration (raw, unpruned scan).
     tree_defs_raw = set()
     for path in scans:
         tree_defs_raw |= set(scan_text(path, open(os.path.join(TOP, path), errors='replace').read(), None,
                                        collect_uses=False).defs)
     paste_prefixes = tuple(sorted(paste))
 
-    # Include resolution inside the imported tree.
-    by_rel = {}
-    for path in scans:
-        for root in ('drm/include/', 'i915/include/', 'drm/drivers/gpu/', 'i915/drivers/gpu/', 'drm/drivers/'):
-            if path.startswith(root):
-                by_rel.setdefault(path[len(root):], path)
-    i915_root = 'i915/drivers/gpu/drm/i915/'
+    def split(p):
+        t, rest = p.split('/', 1)
+        return t, rest
 
     def resolve(src, kind, name):
+        _, rest = split(src)
         cands = []
         if kind == '"':
-            cands.append(os.path.normpath(os.path.join(os.path.dirname(src), name)))
-            if src.startswith(i915_root):
-                cands += [i915_root + name, i915_root + 'display/' + name]
-            if src.startswith('drm/drivers/gpu/drm/'):
-                cands += ['drm/drivers/gpu/drm/' + name]
-        cands += [p + name for p in ('drm/include/', 'i915/include/', 'drm/drivers/gpu/', 'drm/include/uapi/')]
+            d = os.path.dirname(rest)
+            for t in TREES:
+                cands.append(os.path.normpath(f'{t}/{d}/{name}'))
+            if rest.startswith(I915_REL):
+                for t in TREES:
+                    cands += [os.path.normpath(f'{t}/{I915_REL}{name}'), f'{t}/{I915_REL}display/{name}']
+            if rest.startswith('drivers/gpu/drm/'):
+                for t in TREES:
+                    cands.append(f'{t}/drivers/gpu/drm/{name}')
+        for t in TREES:
+            cands += [f'{t}/include/{name}', f'{t}/include/uapi/{name}']
         for c in cands:
             if c in scans:
                 return c
@@ -492,13 +551,15 @@ def main():
     roots = [p for p, st in files.items() if st in ('core', 'link') and p.endswith('.c')]
     closure = set(roots)
     work = list(roots)
-    ext_includes = collections.defaultdict(set)   # header -> files
+    ext_includes = collections.defaultdict(set)
     unresolved = collections.defaultdict(set)
+    inc_edges = collections.defaultdict(set)   # header -> including files (within tree)
     while work:
         p = work.pop()
         for kind, name in scans[p].includes:
             r = resolve(p, kind, name)
             if r:
+                inc_edges[r].add(p)
                 if r not in closure:
                     closure.add(r)
                     work.append(r)
@@ -506,11 +567,13 @@ def main():
                 unresolved[name].add(p)
             else:
                 ext_includes[name].add(p)
-    # #include "foo.c" (e.g. gen7_renderclear.c includes the clear kernels) resolves via the same path logic.
 
     def category(p):
         st = files.get(p, '?')
         return st if st in ('core', 'link') else 'hdr'
+
+    def tree(p):
+        return p.split('/', 1)[0]
 
     # Reference definitions.
     our_raw, our_headers = header_defs(a.include)
@@ -519,21 +582,23 @@ def main():
     for src in (our_raw, exp or {}):
         for k, v in src.items():
             our_defs[k].update(v)
+    lx_defs, lx_lic = linux_ref_headers(a.linux_ref)
     LINUXISH = ('linux', 'asm', 'asm-generic', 'acpi', 'video', 'uapi')
     fb_defs, fb_headers = header_defs(os.path.join(a.freebsd, 'common/include'), LINUXISH)
     _, fb_dummy = header_defs(os.path.join(a.freebsd, 'dummy/include'))
-    kref_defs = collections.defaultdict(dict)
-    for d in ('drm/linuxkpi/bsd/include', 'drm/linuxkpi/gplv2/include'):
-        for k, v in header_defs(os.path.join(TOP, d))[0].items():
-            kref_defs[k].update(v)
     ill_defs = collections.defaultdict(dict)
     for d in ('common/sys', 'intel/sys', 'i86pc/sys'):
         root = os.path.join(a.illumos, 'usr/src/uts', d)
         for k, v in header_defs(root)[0].items():
             ill_defs[k].update({'sys/' + h: kd for h, kd in v.items()})
-    api_universe = set(our_defs) | set(fb_defs) | set(kref_defs)
+    # Lowercase non-call identifiers count as API only if include/ or FreeBSD define them, or a Linux linux/, asm/
+    # or acpi/ header defines them as an object-like macro, typedef or enumerator (others are locals/members).
+    api_universe = set(our_defs) | set(fb_defs) | {
+        k for k, v in lx_defs.items()
+        if len(k[1]) >= 5 and any(kd in ('macro', 'typedef', 'enum') and h.startswith(('linux/', 'asm/', 'acpi/'))
+                                  and not h.startswith('linux/decompress/') for h, kd in v.items())}
 
-    usage = {}   # (kind, name) -> Counter(path -> uses)
+    usage = {}
     for p in sorted(closure):
         for (kind, name), cnt in scans[p].uses.items():
             ns = 'tag' if kind == 'tag' else 'id'
@@ -541,81 +606,67 @@ def main():
                 continue
             if kind == 'ident' and (ns, name) not in api_universe:
                 continue
-            u = usage.setdefault((kind, name), collections.Counter())
-            u[p] += cnt
+            usage.setdefault((kind, name), collections.Counter())[p] += cnt
+
+    KRANK = {'typedef': 0, 'tag': 0, 'enum': 0, 'macro': 0, 'fmacro': 0, 'func': 1, 'sfunc': 1, 'var': 2, 'svar': 2}
+    PREF = ('linux/types.h', 'linux/string.h', 'linux/kernel.h', 'linux/errno.h', 'asm-generic/errno-base.h')
 
     def pick(hs):
         if not hs:
             return ''
-        return sorted(hs, key=lambda h: (not h.startswith('linux/'), h.count('/'), h))[0]
+        return sorted(hs, key=lambda h: (h not in PREF, KRANK.get(hs[h], 3), not h.startswith('linux/'),
+                                         h.startswith('uapi/'), h.count('/'), h))[0]
 
     rows = []
     for (kind, name), u in usage.items():
         ns = 'tag' if kind == 'tag' else 'id'
-        ours = our_defs.get((ns, name), {})
-        fb = fb_defs.get((ns, name), {})
-        kr = kref_defs.get((ns, name), {})
-        il = ill_defs.get((ns, name), {})
-        status = ('provided' if ours else 'missing' if (fb or kr) else 'illumos-sys' if il
+        ours, lx = our_defs.get((ns, name), {}), lx_defs.get((ns, name), {})
+        fb, il = fb_defs.get((ns, name), {}), ill_defs.get((ns, name), {})
+        status = ('provided' if ours else 'missing' if (lx or fb) else 'illumos-sys' if il
                   else 'tree-conditional' if (ns, name) in tree_defs_raw
                   else 'tree-generated' if (name.startswith(paste_prefixes)
                                             or any((ns, pf + name) in tree_defs for pf in paste_prefixes))
                   else 'missing-unknown')
         c = collections.Counter(category(p) for p in u)
-        rows.append({
-            'kind': kind, 'name': name, 'status': status,
-            'include_header': pick(ours), 'freebsd_header': pick(fb), 'drmkmod_kpi_ref': pick(kr),
-            'illumos_header': pick(il),
-            'files_core': c['core'], 'files_link': c['link'], 'files_hdr': c['hdr'],
-            'files_total': len(u), 'uses_total': sum(u.values()),
-            'files': sorted(u),
-        })
+        lh = pick(lx)
+        rows.append({'kind': kind, 'name': name, 'status': status, 'include_header': pick(ours),
+                     'linux_header': lh, 'linux_header_licence': lx_lic.get(lh, ''), 'freebsd_header': pick(fb),
+                     'illumos_header': pick(il), 'files_core': c['core'], 'files_link': c['link'],
+                     'files_hdr': c['hdr'], 'files_gpl': sum(1 for p in u if tree(p) == 'gpl'),
+                     'files_total': len(u), 'uses_total': sum(u.values()), 'files': sorted(u)})
     rows.sort(key=lambda r: (-r['files_core'], -r['files_total'], r['kind'], r['name']))
     os.makedirs(a.out, exist_ok=True)
-
+    cols = ('kind', 'name', 'status', 'include_header', 'linux_header', 'linux_header_licence', 'freebsd_header',
+            'illumos_header', 'files_core', 'files_link', 'files_hdr', 'files_gpl', 'files_total', 'uses_total')
     with open(os.path.join(a.out, 'kpi-requirements.tsv'), 'w') as f:
         f.write('# Generated by tools/kpi-scan.py; see its docstring for method and limits.\n')
-        f.write('# status: provided (defined in include/), missing (defined by FreeBSD LinuxKPI or drm-kmod kpi-ref '
-                'headers, not by include/), illumos-sys (not a LinuxKPI name in either reference but defined by '
-                'illumos uts sys/ headers: libc-like names, errno, ...; include/ must expose it with Linux semantics), '
-                'tree-conditional (defined in the imported tree only under conditionals false on illumos, usually '
-                '#ifdef __linux__/#elif __FreeBSD__: needs a patch, not a KPI item), tree-generated (probably made by '
-                'token pasting in an imported macro), missing-unknown (in no reference: FreeBSD-native code, token-pasted names or scanner noise; '
-                'review by hand)\n')
-        f.write('kind\tname\tstatus\tinclude_header\tfreebsd_header\tdrmkmod_kpi_ref\tillumos_header\tfiles_core\tfiles_link\t'
-                'files_hdr\tfiles_total\tuses_total\tfiles\n')
+        f.write('# status: provided (defined in include/), missing (defined by a Linux v6.14 or FreeBSD LinuxKPI header, '
+                'not by include/), illumos-sys (only illumos sys/ headers define the name: errno, libc-like; include/ '
+                'must expose it with Linux semantics), tree-conditional (defined in the imported tree only under '
+                'CONFIG choices that are off), tree-generated (probably made by token pasting in an imported macro), '
+                'missing-unknown (in no reference; review by hand).  files_gpl counts users in gpl/.\n')
+        f.write('\t'.join(cols) + '\tfiles\n')
         for r in rows:
-            f.write('\t'.join(str(r[k]) for k in ('kind', 'name', 'status', 'include_header', 'freebsd_header',
-                                                  'drmkmod_kpi_ref', 'illumos_header', 'files_core', 'files_link', 'files_hdr',
-                                                  'files_total', 'uses_total')) + '\t' + ' '.join(r['files']) + '\n')
+            f.write('\t'.join(str(r[k]) for k in cols) + '\t' + ' '.join(r['files']) + '\n')
     with open(os.path.join(a.out, 'kpi-requirements.json'), 'w') as f:
         json.dump({'generator': 'tools/kpi-scan.py', 'scanned_files': sorted(closure),
                    'file_sets': {p: category(p) for p in sorted(closure)}, 'symbols': rows}, f, indent=0)
 
-    # Headers outside the tree.
     with open(os.path.join(a.out, 'kpi-headers.tsv'), 'w') as f:
         f.write('# Generated by tools/kpi-scan.py.  Angle-bracket includes not satisfied by the imported tree.\n')
         f.write('# status: provided (include/ has it), missing, freebsd-dummy (FreeBSD satisfies it with an empty '
-                'header), drmkmod-kpi-ref (drm/linuxkpi has a copy), bsd-native (FreeBSD system header: '
-                'needs a patch)\n')
-        f.write('header\tstatus\tfiles_core\tfiles_link\tfiles_hdr\tfiles_total\tfiles\n')
+                'header).  linux_licence: SPDX of the upstream header (GPL ones must be written clean-room for '
+                'include/; MIT/BSD/dual ones could be imported).\n')
+        f.write('header\tstatus\tlinux_licence\tfiles_core\tfiles_link\tfiles_hdr\tfiles_total\tfiles\n')
         hrows = []
         for h, fl in ext_includes.items():
-            if h in our_headers:
-                s = 'provided'
-            elif re.match(r'(sys|vm|machine|dev|x86|contrib|net)/', h) and h not in fb_headers:
-                s = 'bsd-native'
-            elif h in fb_dummy and h not in fb_headers:
-                s = 'freebsd-dummy'
-            elif os.path.exists(os.path.join(TOP, 'drm/linuxkpi/bsd/include', h)) or \
-                    os.path.exists(os.path.join(TOP, 'drm/linuxkpi/gplv2/include', h)):
-                s = 'missing(drmkmod-kpi-ref)'
-            else:
-                s = 'missing'
+            s = ('provided' if h in our_headers else 'freebsd-dummy' if (h in fb_dummy and h not in fb_headers)
+                 else 'missing')
             c = collections.Counter(category(p) for p in fl)
             hrows.append((-c['core'], -len(fl), h, s, c, fl))
         for _, _, h, s, c, fl in sorted(hrows):
-            f.write(f"{h}\t{s}\t{c['core']}\t{c['link']}\t{c['hdr']}\t{len(fl)}\t{' '.join(sorted(fl))}\n")
+            f.write(f"{h}\t{s}\t{lx_lic.get(h, '')}\t{c['core']}\t{c['link']}\t{c['hdr']}\t{len(fl)}\t"
+                    f"{' '.join(sorted(fl))}\n")
 
     with open(os.path.join(a.out, 'kpi-unresolved-includes.tsv'), 'w') as f:
         f.write('# Generated by tools/kpi-scan.py.  Quoted includes in the Gen9 closure that resolve to no imported '
@@ -624,7 +675,6 @@ def main():
         for h in sorted(unresolved):
             f.write(f"{h}\t{' '.join(sorted(unresolved[h]))}\n")
 
-    # CONFIG usage.
     cfg_files = collections.defaultdict(set)
     for p in closure:
         for c in scans[p].configs:
@@ -634,30 +684,75 @@ def main():
                 'drm/include/generated/autoconf.h ("unset" = not set).\n')
         f.write('symbol\tvalue\tfiles_total\tfiles\n')
         for c in sorted(cfg_files, key=lambda c: (-len(cfg_files[c]), c)):
-            v = cfg.get(c, 'unset')
-            f.write(f"{c}\t{v}\t{len(cfg_files[c])}\t{' '.join(sorted(cfg_files[c]))}\n")
+            f.write(f"{c}\t{cfg.get(c, 'unset')}\t{len(cfg_files[c])}\t{' '.join(sorted(cfg_files[c]))}\n")
 
-    # BSD-isms: files whose meaning changes on illumos.
-    with open(os.path.join(a.out, 'kpi-bsdisms.tsv'), 'w') as f:
-        f.write('# Generated by tools/kpi-scan.py.  Files in the Gen9 closure with __linux__/__FreeBSD__ conditionals '
-                'or FreeBSD system includes.  On illumos neither macro is defined, so "#ifdef __linux__ ... #else" '
-                'compiles the FreeBSD branch: each file needs review and usually a patch.\n')
-        f.write('file\tset\tcond___linux__\tcond___FreeBSD__\tbsd_includes\n')
-        for p in sorted(closure):
-            b = scans[p].bsd
-            if not b:
+    # GPL module boundary: symbols defined in one side and used by the other, plus GPL headers included by
+    # drm/ and i915/ files.
+    defs_by_file = {p: scans[p].defs for p in closure}
+    definer = collections.defaultdict(set)   # (ns,name) -> files defining it (non-static)
+    for p, d in defs_by_file.items():
+        for k, kind in d.items():
+            if kind not in ('sfunc', 'svar'):
+                definer[k].add(p)
+    brows = []
+    for (ns, name), dfs in definer.items():
+        for side in ('gpl', 'main'):
+            src = sorted(p for p in dfs if (tree(p) == 'gpl') == (side == 'gpl'))
+            if not src:
                 continue
-            incs = ' '.join(sorted(k[8:] for k in b if k.startswith('include:')))
-            lin = b['cond:__linux__'] + b['cond:__linux']
-            f.write(f"{p}\t{category(p)}\t{lin}\t{b['cond:__FreeBSD__']}\t{incs}\n")
+            if any((tree(p) == 'gpl') != (side == 'gpl') for p in dfs):
+                continue   # defined on both sides (e.g. prototype in a main header): skip ambiguous
+            users = sorted(p for p in closure if (tree(p) == 'gpl') != (side == 'gpl') and
+                           any(scans[p].uses.get((k, name)) for k in (('tag',) if ns == 'tag' else
+                                                                       ('call', 'macro', 'type', 'ident'))))
+            if not users:
+                continue
+            kinds = {defs_by_file[p][(ns, name)] for p in src}
+            exported = any(name in scans[p].exports for p in src)
+            via = 'header' if all(p.endswith('.h') for p in src) else 'function/variable'
+            # Drop locals/members that the top-level heuristics mistook for definitions.
+            if via == 'function/variable':
+                cfiles = [p for p in src if p.endswith('.c')]
+                ckinds = {defs_by_file[p][(ns, name)] for p in cfiles}
+                if name.startswith('__') or TYPE_RE.search(name) or name == 'bool' or \
+                        not ('func' in ckinds or ('var' in ckinds and (exported or '_' in name))):
+                    continue
+            elif ns == 'id' and not ('_' in name or name.isupper()) or len(name) < 4:
+                continue
+            brows.append(('gpl->main' if side == 'gpl' else 'main->gpl', name, '/'.join(sorted(kinds)), via,
+                          'yes' if exported else 'no', ' '.join(src), len(users), ' '.join(users)))
+    brows.sort(key=lambda r: (r[0], r[3] != 'function/variable', -r[6], r[1]))
+    with open(os.path.join(a.out, 'gpl-boundary.tsv'), 'w') as f:
+        f.write('# Generated by tools/kpi-scan.py.  Symbols crossing the boundary between gpl/ (GPL-2.0 module) and '
+                'drm/ + i915/ in the Gen9 closure.\n# direction gpl->main: defined in gpl/, used by drm/ or i915/ '
+                '(the GPL module must export it, or it is header-only code compiled into the other module); '
+                'main->gpl: defined in drm/ or i915/, used by gpl/.  via=header means a macro, inline, type or '
+                'prototype from a header: compiled into the user, no symbol crosses at link time.\n')
+        f.write('direction\tsymbol\tkind\tvia\tupstream_EXPORT_SYMBOL\tdefined_in\tusers\tuser_files\n')
+        for r in brows:
+            f.write('\t'.join(str(x) for x in r) + '\n')
+    with open(os.path.join(a.out, 'gpl-headers.tsv'), 'w') as f:
+        f.write('# Generated by tools/kpi-scan.py.  GPL-only headers in gpl/ that drm/ or i915/ files include '
+                'directly.\n')
+        f.write('header\tlicence\tmain_includers\tfiles\n')
+        for h in sorted(inc_edges):
+            if tree(h) != 'gpl' or not h.endswith('.h'):
+                continue
+            inc = sorted(p for p in inc_edges[h] if tree(p) != 'gpl')
+            if inc:
+                f.write(f"{h}\t{lic_of.get(h, '')}\t{len(inc)}\t{' '.join(inc)}\n")
 
-    # Summary on stdout.
     st = collections.Counter(r['status'] for r in rows)
+    stc = collections.Counter(r['status'] for r in rows if r['files_core'])
     print(f'scanned {len(closure)} files ({sum(1 for p in closure if category(p)=="core")} core, '
           f'{sum(1 for p in closure if category(p)=="link")} link, '
-          f'{sum(1 for p in closure if category(p)=="hdr")} headers)')
-    print(f'symbols: {len(rows)} ({dict(st)}); external headers: {len(ext_includes)}; '
-          f'unresolved quoted includes: {len(unresolved)}')
+          f'{sum(1 for p in closure if category(p)=="hdr")} headers; '
+          f'{sum(1 for p in closure if tree(p)=="gpl")} in gpl/)')
+    print(f'symbols: {len(rows)} {dict(st)}')
+    print(f'used by core files: {dict(stc)}')
+    print(f'external headers: {len(ext_includes)}; unresolved quoted includes: {len(unresolved)}; '
+          f'boundary rows: {len(brows)}')
+
 
 
 if __name__ == '__main__':

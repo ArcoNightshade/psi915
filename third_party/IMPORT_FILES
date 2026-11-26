@@ -229,6 +229,7 @@ bbf8c5a8fdbdd17900137145dadf884c103fe8f9	gpl/drivers/gpu/drm/i915/display/intel_
 463a7177997cf4990ff97bedd39d21187d344a95	gpl/drivers/gpu/drm/i915/i915_trace_points.c	core	GPL-2.0
 86f0c3942b1dd1274565010f86a9c06814921fb1	gpl/drivers/gpu/drm/i915/intel_uncore_trace.c	core	GPL-2.0
 f13ff71edf2db85cb234fbde88979573b2c59005	gpl/drivers/gpu/drm/i915/intel_uncore_trace.h	hdr	GPL-2.0
+35ed9711c7b97d3554dceb135432ceaa1729de66	gpl/drivers/platform/x86/intel_ips.h	hdr	GPL-2.0
 49ee3fb4951a55b3cbe11c387191a70cc0c162c8	gpl/drivers/video/cmdline.c	core	GPL-2.0
 13cc8b7196978a8506f9bb0fd381387627946e0d	gpl/drivers/video/nomodeset.c	core	GPL-2.0
 6002c5666031fad327313a662f777a007dfca4eb	gpl/include/drm/bridge/analogix_dp.h	hdr	GPL-2.0-or-later
