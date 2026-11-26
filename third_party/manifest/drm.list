@@ -9,7 +9,7 @@
 #   extra  imported (requested subsystem or helper) but not compiled for the Gen9 target
 #   aux    non-compiled supporting source
 # Optional sets (import-linux.sh -s <set>): debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit
-#   edidfw auxdev cec
+#   edidfw auxdev cec replaced
 #   exclude never imported
 scope	drivers/gpu/drm/	must be fully classified
 scope	drivers/dma-buf/	must be fully classified
