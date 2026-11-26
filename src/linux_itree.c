@@ -14,7 +14,7 @@
 #include <linux/kernel.h>
 #include <linux/rbtree.h>
 #include <linux/rbtree_augmented.h>
-#include <drmglue/itree.h>
+#include <linuxkpi/itree.h>
 
 #define	ITN(rbp)	rb_entry((rbp), struct lkpi_itree_node, rb)
 #define	ITLAST(n)	((n)->last)

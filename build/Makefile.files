@@ -23,6 +23,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_idr.o \
 		   linux_io.o \
 		   linux_irq.o \
+		   linux_itree.o \
 		   linux_kstrtox.o \
 		   linux_kthread.o \
 		   linux_list_sort.o \
