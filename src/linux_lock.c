@@ -144,3 +144,88 @@ completion_done(struct completion *c)
 {
 	return (READ_ONCE(c->done) != 0);
 }
+
+/*
+ * Interruptible mutex acquisition (docs/12 L5). Waiters register in
+ * m->lkpi_waiters and sleep on one of LKPI_MTX_WQ hashed condition
+ * variables; mutex_unlock() broadcasts on the bucket when waiters exist.
+ * The bucket lock closes the race between a failed tryenter and the
+ * unlocker's broadcast. Killable waits sleep without signal wakeups in
+ * short slices and test for a fatal signal, since an ordinary pending
+ * signal would make a signal-aware sleep return at once.
+ */
+#define	LKPI_MTX_WQ	64
+
+static struct {
+	lkpi_plat_mutex_t	lock;
+	lkpi_plat_cv_t		cv;
+} lkpi_mtx_wq[LKPI_MTX_WQ] = {
+	[0 ... LKPI_MTX_WQ - 1] = { LKPI_PLAT_MUTEX_INITIALIZER,
+	    LKPI_PLAT_CV_INITIALIZER }
+};
+
+static unsigned int
+lkpi_mtx_bucket(const struct mutex *m)
+{
+	uintptr_t a = (uintptr_t)m;
+
+	return ((unsigned int)((a >> 4) ^ (a >> 12)) % LKPI_MTX_WQ);
+}
+
+void
+lkpi_mutex_wake(struct mutex *m)
+{
+	unsigned int b = lkpi_mtx_bucket(m);
+
+	lkpi_plat_mutex_enter(&lkpi_mtx_wq[b].lock);
+	lkpi_plat_cv_broadcast(&lkpi_mtx_wq[b].cv);
+	lkpi_plat_mutex_exit(&lkpi_mtx_wq[b].lock);
+}
+
+int
+lkpi_mutex_lock_sig(struct mutex *m, bool killable_only)
+{
+	void *self = lkpi_plat_curthread();
+	unsigned int b;
+	int r = 0;
+
+	if (unlikely(READ_ONCE(m->owner) == self))
+		lkpi_lock_recursion(m, "mutex");
+	if (lkpi_plat_mutex_tryenter(&m->m))
+		goto got;
+	b = lkpi_mtx_bucket(m);
+	lkpi_plat_mutex_enter(&lkpi_mtx_wq[b].lock);
+	__atomic_fetch_add(&m->lkpi_waiters, 1, __ATOMIC_SEQ_CST);
+	for (;;) {
+		if (lkpi_plat_mutex_tryenter(&m->m))
+			break;
+		if (killable_only) {
+			if (lkpi_plat_fatal_signal_pending()) {
+				r = -EINTR;
+				break;
+			}
+			(void) lkpi_plat_cv_timedwait(&lkpi_mtx_wq[b].cv,
+			    &lkpi_mtx_wq[b].lock, 1 + (long)lkpi_plat_hz() / 100,
+			    false);
+		} else {
+			/*
+			 * Timed as a fallback: code that drops m->m inside a
+			 * condition-variable wait releases it without a wake.
+			 */
+			if (lkpi_plat_signal_pending() ||
+			    lkpi_plat_cv_timedwait(&lkpi_mtx_wq[b].cv,
+			    &lkpi_mtx_wq[b].lock, 1 + (long)lkpi_plat_hz() / 100,
+			    true) == LKPI_PLAT_WAIT_INTR) {
+				r = -EINTR;
+				break;
+			}
+		}
+	}
+	__atomic_fetch_sub(&m->lkpi_waiters, 1, __ATOMIC_SEQ_CST);
+	lkpi_plat_mutex_exit(&lkpi_mtx_wq[b].lock);
+	if (r != 0)
+		return (r);
+got:
+	WRITE_ONCE(m->owner, self);
+	return (0);
+}

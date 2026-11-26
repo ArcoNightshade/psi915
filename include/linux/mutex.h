@@ -10,8 +10,10 @@
  *
  * struct mutex is an adaptive illumos kmutex_t plus an owner field for
  * lockdep-lite (mutex_is_locked(), lockdep_assert_held()). Differences:
- *   - mutex_lock_interruptible()/_killable() cannot be interrupted and
- *     always return 0 (kmutex_t has no signal-aware enter);
+ *   - mutex_lock_interruptible()/_killable() wait on a hashed condition
+ *     variable instead of in mutex_enter(), so a signal (any, resp. a
+ *     fatal one) ends the wait with -EINTR (docs/12 L5); mutex_unlock()
+ *     wakes them when the waiter count is non-zero;
  *   - taking a mutex the caller already holds warns before deadlocking.
  *
  * illumos <sys/mutex.h> declares mutex_init() and mutex_destroy() with
@@ -32,10 +34,15 @@
 struct mutex {
 	lkpi_plat_mutex_t	m;
 	void			*owner;
+	unsigned int		lkpi_waiters;	/* interruptible waiters */
 };
 
 #define	__MUTEX_INITIALIZER(name)					\
-	{ .m = LKPI_PLAT_MUTEX_INITIALIZER, .owner = NULL }
+	{ .m = LKPI_PLAT_MUTEX_INITIALIZER, .owner = NULL, .lkpi_waiters = 0 }
+
+/* src/linux_lock.c */
+int lkpi_mutex_lock_sig(struct mutex *m, bool killable_only);
+void lkpi_mutex_wake(struct mutex *m);
 #define	DEFINE_MUTEX(name)	struct mutex name = __MUTEX_INITIALIZER(name)
 
 void lkpi_lock_recursion(const void *lock, const char *what);
@@ -45,6 +52,7 @@ lkpi_mutex_init(struct mutex *m)
 {
 	lkpi_plat_mutex_init(&m->m, NULL);
 	m->owner = NULL;
+	m->lkpi_waiters = 0;
 }
 
 static inline void
@@ -85,6 +93,8 @@ mutex_unlock(struct mutex *m)
 	WARN_ON_ONCE(READ_ONCE(m->owner) != lkpi_plat_curthread());
 	WRITE_ONCE(m->owner, NULL);
 	lkpi_plat_mutex_exit(&m->m);
+	if (unlikely(__atomic_load_n(&m->lkpi_waiters, __ATOMIC_SEQ_CST) != 0))
+		lkpi_mutex_wake(m);
 }
 
 static inline bool
@@ -99,17 +109,23 @@ lkpi_mutex_held(const struct mutex *m)
 	return (READ_ONCE(m->owner) == lkpi_plat_curthread());
 }
 
+/* 0, or -EINTR when a signal arrived while waiting. */
 static inline int __must_check
 mutex_lock_interruptible(struct mutex *m)
 {
-	mutex_lock(m);
-	return (0);
+	return (lkpi_mutex_lock_sig(m, false));
 }
 
-#define	mutex_lock_killable(m)			mutex_lock_interruptible(m)
+/* 0, or -EINTR when a fatal signal arrived while waiting. */
+static inline int __must_check
+mutex_lock_killable(struct mutex *m)
+{
+	return (lkpi_mutex_lock_sig(m, true));
+}
+
 #define	mutex_lock_nested(m, subclass)		mutex_lock(m)
 #define	mutex_lock_interruptible_nested(m, s)	mutex_lock_interruptible(m)
-#define	mutex_lock_killable_nested(m, s)	mutex_lock_interruptible(m)
+#define	mutex_lock_killable_nested(m, s)	mutex_lock_killable(m)
 #define	mutex_lock_nest_lock(m, nest)		mutex_lock(m)
 #define	mutex_lock_io(m)			mutex_lock(m)
 #define	mutex_lock_io_nested(m, s)		mutex_lock(m)

@@ -45,7 +45,14 @@
 #include <linux/rcupdate.h>
 #include <linuxkpi/subsys.h>
 
-#define	LKPI_WQ_MAX_WORKERS	16
+/*
+ * Workers per queue, created on demand when all are busy (and kept until
+ * the queue is destroyed): Linux's default active limit (WQ_DFL_ACTIVE,
+ * 256), because DRM and
+ * i915 queue items that block on other items of the same queue (atomic
+ * commit tails, fence work): a small cap can deadlock (docs/12 L3).
+ */
+#define	LKPI_WQ_MAX_WORKERS	WQ_DFL_ACTIVE
 
 struct lkpi_worker {
 	struct list_head	wq_entry;	/* wq->workers */

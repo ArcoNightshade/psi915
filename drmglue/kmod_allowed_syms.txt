@@ -114,3 +114,5 @@ lkpi_itree_first
 lkpi_itree_next
 lkpi_itree_min
 lkpi_itree_succ
+lkpi_mutex_wake
+lkpi_mutex_lock_sig

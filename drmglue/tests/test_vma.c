@@ -277,6 +277,9 @@ TEST(errors)
 	puts = sim_page_puts;
 	CHECK_EQ(sim_access(s, 1, false), 1001);
 	CHECK_EQ(sim_page_puts, puts + 1);
+	/* F_SOFTLOCK on a VM_PFNMAP|VM_IO mapping is refused (docs/12 D1). */
+	CHECK_EQ(lkpi_vma_fault(s->lv, OBJ_OFF, PAGE_SIZE, LKPI_FAULT_SOFTLOCK,
+	    false), EFAULT);
 	/* Out-of-range fault offset */
 	CHECK_EQ(lkpi_vma_fault(s->lv, OBJ_OFF + 2 * PAGE_SIZE, PAGE_SIZE,
 	    LKPI_FAULT_INVAL, false), EFAULT);

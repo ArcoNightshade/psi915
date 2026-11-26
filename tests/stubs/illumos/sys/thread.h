@@ -7,11 +7,18 @@
 /* Real illumos: kthread_t is struct _kthread (much larger), threadp() asm. */
 struct proc;
 struct _klwp;
+typedef uint64_t kt_did_t;
+struct _afd_stub {
+	int		a_stale;
+};
 typedef struct _kthread {
 	k_sigset_t	t_sig;
 	struct _klwp	*t_lwp;
 	struct proc	*t_procp;
+	kt_did_t	t_did;
+	struct _afd_stub t_activefd;
 } kthread_t;
+extern void thread_join(kt_did_t);
 extern kthread_t *threadp(void);
 #define	curthread	(threadp())
 #define	ttolwp(x)	((x)->t_lwp)

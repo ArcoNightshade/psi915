@@ -219,3 +219,6 @@ ddi_dma_buf_bind_handle
 getrbuf
 freerbuf
 page_numtopp_nolock
+# docs/12 L1/L2
+thread_join
+schedctl_cancel_pending
