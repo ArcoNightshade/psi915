@@ -44,17 +44,29 @@ KFLAGS = [
 
 def includes(path):
     d = os.path.dirname(path)
-    inc = [
-        os.path.join(TOP, 'include'),
+    gpl = os.path.relpath(path, TOP).startswith('gpl/')
+    # drm_bsd/ replacements come ahead of drm/include (drm_bsd/MANIFEST);
+    # gpl/ is only on the path of GPL units.
+    inc = [os.path.join(TOP, 'include')]
+    inc += [os.path.join(TOP, 'drm_bsd', x) for x in (
+        'include', 'drivers/gpu/drm', 'drivers/gpu/drm/i915',
+        'drivers/gpu/drm/i915/display')]
+    inc += [
         os.path.join(TOP, 'drm/include'),
         os.path.join(TOP, 'drm/include/uapi'),
         os.path.join(TOP, 'i915/include'),
-        os.path.join(TOP, 'gpl/include'),
-        d,
     ]
-    for root in ('i915/drivers/gpu/drm/i915', 'drm/drivers/gpu/drm'):
+    if gpl:
+        inc.append(os.path.join(TOP, 'gpl/include'))
+    inc.append(d)
+    for root in ('i915/drivers/gpu/drm/i915', 'drm/drivers/gpu/drm',
+                 'drm_bsd/drivers/gpu/drm/i915', 'drm_bsd/drivers/gpu/drm'):
         r = os.path.join(TOP, root)
         if path.startswith(r) and r not in inc:
+            inc.append(r)
+    for root in ('i915/drivers/gpu/drm/i915', 'drm/drivers/gpu/drm'):
+        r = os.path.join(TOP, root)
+        if r not in inc and (path.startswith(os.path.join(TOP, 'drm_bsd'))):
             inc.append(r)
     inc.append(os.path.join(TOP, 'tests/stubs/illumos'))
     flags = []
@@ -105,6 +117,18 @@ def main():
             if a.f and not re.search(a.f, parts[1]):
                 continue
             files.append((parts[1], parts[2]))
+    # BSD replacements (drm_bsd/MANIFEST), counted as tree "drm_bsd".
+    man = os.path.join(TOP, 'drm_bsd/MANIFEST')
+    if os.path.exists(man):
+        with open(man) as f:
+            for line in f:
+                parts = line.rstrip('\n').split('\t')
+                if line.startswith('#') or len(parts) < 2:
+                    continue
+                if parts[0] in sets and parts[1].endswith('.c'):
+                    p = 'drm_bsd/' + parts[1]
+                    if not a.f or re.search(a.f, p):
+                        files.append((p, parts[0]))
     os.makedirs(a.o, exist_ok=True)
     results = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=a.j) as ex:

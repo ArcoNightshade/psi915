@@ -37,6 +37,7 @@
 #include <linux/dev_printk.h>
 #include <linux/err.h>
 #include <linux/module.h>
+#include <linux/mod_devicetable.h>
 
 struct device;
 struct device_driver;

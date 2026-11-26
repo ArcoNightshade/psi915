@@ -113,6 +113,48 @@ no bridge topology; runtime PM always-on; interrupt vectors above LOCK_LEVEL ref
 - Import drm core at pinned Linux; dma-fence/dma-resv/dma-buf (+fd), GEM, vma_manager, mm, atomic KMS, EDID, DP/HDMI helpers, syncobj, scheduler, ttm; cb_ops ioctl/mmap/poll glue; /dev/dri nodes (card, render).
 - Exit: `vkms`-style virtual device exposes KMS, `modetest`-equivalent enumerates; dumb buffer mmap works.
 
+### P3 KPI status (2026-11-26, in progress)
+Measured with `scripts/p3-compile-check.py`, which syntax-checks every imported translation unit
+(third_party/IMPORT_FILES sets core + link, plus drm_bsd/MANIFEST) with gcc -fsyntax-only in the
+illumos kernel configuration (stub illumos headers, kconfig.h + generated autoconf.h, include/ first,
+drm_bsd/ ahead of drm/include, gpl/include only for gpl/ units). Results in tests/out/p3/
+(results.tsv per file, summary.txt with the most frequent missing headers and names). The first error
+in a file hides later ones, so counts move in steps.
+
+| Date | Units compiling | drm core | drm_bsd | gpl core | i915 core | i915 link |
+|------|-----------------|----------|---------|----------|-----------|-----------|
+| 2026-11-26 start | 2/374 | 2/69 | - | 0/19 | 0/184 | 0/100 |
+| after first header batches | 22/363 | 9/69 | - | 4/8 | 4/184 | 4/100 |
+| after hdmi.h, cache.h, seq/fs fixes | 46/370 | 25/69 | 4/7 | 5/8 | 5/184 | 6/100 |
+
+Done:
+- [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
+  kdev_t in include/linux/fs.h (+poll.h, kdev_t.h, file.h, anon_inodes.h); vm_area_struct, vm_fault,
+  vm_operations_struct, VM_* in mm_types.h with the helper prototypes in mm.h; interval tree moved
+  to include/linuxkpi/itree.h + src/linux_itree.c. drmglue includes them (its make check passes).
+- [x] R10: BSD clean-room dma-fence, dma-fence-array/chain/unwrap, dma-resv, dma-buf, sync_file
+  headers with v6.14 member layouts (implementations: gpl/ module and the MIT dma-resv.c).
+- [x] Notifier chains (atomic, blocking, raw); xas_* not needed (no user in the imported tree).
+- [x] Linux printf: %pV, %pe, %ph, %pa, %p4cc, %pR in printk and the snprintf/scnprintf/kasprintf
+  family (lkpi_vsnprintf).
+- [x] Headers: kconfig.h (IS_ENABLED), export.h, asm/ioctl.h (Linux encoding), string_helpers,
+  string_choices, llist, average (EWMA), ctype, random, radix-tree (over XArray), iosys-map,
+  interval_tree_generic (INTERVAL_TREE_DEFINE), iopoll, sizes, byteorder, cache, notifier, shrinker
+  (registry), seq_buf, capability (drv_priv), uidgid, poison, pfn_t, uapi sync_file, tracepoint and
+  trace/events/dma_fence no-ops, hdmi.h (MIT, imported unchanged from v6.14 like hdmi.c), and
+  stubs for backlight, component, pm_qos, pwm, perf_event, stackdepot, dynamic_debug, vga_switcheroo,
+  aperture, hypervisor, mmu_notifier, shmem_fs (declarations only), pagevec, pagemap, eventfd,
+  platform_device, ref_tracker, relay, gpio, debugobjects, kmsg_dump, ...
+
+Next (from tests/out/p3/summary.txt):
+- [ ] Import requests (third_party, not KPI): include/drm/intel/i915_hdcp_interface.h (blocks 96
+  i915 units), intel-gtt.h, drm_mipi_dsi.h, drm_gem_atomic_helper.h, video/cmdline.h,
+  drm_dp_mst_topology_internal.h.
+- [ ] drmglue pseudofs types into include/linux (linux/pseudo_fs.h, dcache.h, fs_context.h).
+- [ ] shmem file implementation (GEM backing store) in drmglue/KPI.
+- [ ] Remaining undeclared names in summary.txt (handle_simple_irq, PIDTYPE_PID, WB_SYNC_NONE,
+  SWAP_CLUSTER_MAX, EREMOTE, EBADSLT, ...), then fix-ups once units compile further.
+
 ## P4 i915 display-only (8-12 wk)
 - Import i915 limited to Gen9 (KBL-R first); disable GT/GuC (`i915.enable_guc=0`, no execbuf).
 - DMC firmware, power wells, eDP/HDMI/DP, panel power/backlight, hotplug via sysevent, fb console handoff.

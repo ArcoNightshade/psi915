@@ -52,6 +52,10 @@ typedef uint64_t	resource_size_t;
 typedef unsigned long	pgoff_t;
 typedef unsigned long	irq_hw_number_t;
 typedef unsigned long	kernel_ulong_t;
+/* Macro over a KPI name: illumos <sys/types.h> may define loff_t too. */
+typedef long long	lkpi_loff_t;
+#define	loff_t		lkpi_loff_t
+typedef unsigned short	umode_t;
 typedef unsigned long	__kernel_size_t;
 typedef long		__kernel_ssize_t;
 typedef long		__kernel_ptrdiff_t;

@@ -41,6 +41,7 @@
 #include <linux/vmalloc.h>
 #include <linux/overflow.h>
 #include <linux/err.h>
+#include <linux/sizes.h>
 #include <linux/fs.h>
 
 #define	MAX_PAGE_ORDER		10
@@ -184,7 +185,21 @@ int lkpi_vma_insert_pfns(struct vm_area_struct *vma, unsigned long addr,
     const unsigned long *pfns, unsigned long pfn_base, unsigned long n,
     pgprot_t prot);
 
-#define	si_meminfo(i)			do { (void)(i); } while (0)
+struct sysinfo {
+	unsigned long	totalram;
+	unsigned long	freeram;
+	unsigned long	totalhigh;
+	unsigned int	mem_unit;
+};
+
+static inline void
+si_meminfo(struct sysinfo *si)
+{
+	si->totalram = lkpi_totalram_pages();
+	si->freeram = si->totalram / 2;		/* not tracked: a guess */
+	si->totalhigh = 0;
+	si->mem_unit = PAGE_SIZE;
+}
 #define	cond_resched_lockless()		do { } while (0)
 
 #endif /* _LINUXKPI_LINUX_MM_H_ */

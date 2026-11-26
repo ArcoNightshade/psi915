@@ -29,11 +29,10 @@
 #include <linuxkpi/itree.h>
 
 #include <linux/fcntl.h>
+#include <linux/capability.h>
+#include <linux/uidgid.h>
 
-typedef long long	lkpi_loff_t;
-#define	loff_t		lkpi_loff_t
 typedef unsigned int	fmode_t;
-typedef unsigned short	umode_t;
 typedef void		*fl_owner_t;
 
 /* Linux kdev_t: 12-bit major, 20-bit minor (in-kernel encoding). */
@@ -95,8 +94,17 @@ struct path {
 	struct dentry		*dentry;
 };
 
+typedef unsigned int fop_flags_t;
+#define	FOP_BUFFER_RASYNC	((fop_flags_t)1 << 0)
+#define	FOP_BUFFER_WASYNC	((fop_flags_t)1 << 1)
+#define	FOP_MMAP_SYNC		((fop_flags_t)1 << 2)
+#define	FOP_DIO_PARALLEL_WRITE	((fop_flags_t)1 << 3)
+#define	FOP_HUGE_PAGES		((fop_flags_t)1 << 4)
+#define	FOP_UNSIGNED_OFFSET	((fop_flags_t)1 << 5)
+
 struct file_operations {
 	struct lkpi_module	*owner;
+	fop_flags_t	fop_flags;
 	loff_t		(*llseek)(struct lkpi_file *, loff_t, int);
 	ssize_t		(*read)(struct lkpi_file *, char __user *, size_t,
 			    loff_t *);
@@ -263,6 +271,9 @@ stream_open(struct inode *ip, struct lkpi_file *f)
 {
 	return (nonseekable_open(ip, f));
 }
+
+/* No 32-bit compat ioctls (docs/09 5.9). */
+#define	compat_ptr_ioctl	NULL
 
 loff_t noop_llseek(struct lkpi_file *f, loff_t off, int whence);
 loff_t no_llseek(struct lkpi_file *f, loff_t off, int whence);

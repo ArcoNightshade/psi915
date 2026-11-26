@@ -48,5 +48,8 @@
 #define	EINPROGRESS	150
 #define	ECANCELED	47
 #define	ENAMETOOLONG	78
+#define	EMULTIHOP	74
+#define	ENOBUFS	132
+#define	ESTALE	151
 #define	EPROTO	71
 #endif

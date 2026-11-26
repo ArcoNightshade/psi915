@@ -14,6 +14,7 @@
 #include <linux/string.h>
 
 #define	UUID_SIZE	16
+#define	UUID_STRING_LEN	36
 
 typedef struct {
 	u8	b[UUID_SIZE];

@@ -101,5 +101,6 @@ kobject_name(const struct kobject *kobj)
 }
 
 extern struct kobject *kernel_kobj;
+extern const struct sysfs_ops kobj_sysfs_ops;
 
 #endif /* _LINUXKPI_LINUX_KOBJECT_H_ */
