@@ -17,6 +17,7 @@
 #include <asm/cacheflush.h>
 #include <asm/cpu_device_id.h>
 #include <asm/fpu/api.h>
+#include <asm/tsc.h>
 #include <linuxkpi/plat_dev.h>
 
 static struct cpuinfo_x86 lkpi_cpu;
@@ -174,4 +175,24 @@ lkpi_kernel_fpu_begin(void)
 void
 lkpi_kernel_fpu_end(void)
 {
+}
+
+unsigned int
+lkpi_tsc_khz(void)
+{
+	u32 a, b, c, d, max;
+
+	lkpi_cpuid(0, 0, &max, &b, &c, &d);
+	if (max >= 0x15) {
+		lkpi_cpuid(0x15, 0, &a, &b, &c, &d);
+		/* TSC = crystal (c Hz) * b / a */
+		if (a != 0 && b != 0 && c != 0)
+			return ((unsigned int)(((u64)c * b / a) / 1000));
+	}
+	if (max >= 0x16) {
+		lkpi_cpuid(0x16, 0, &a, &b, &c, &d);
+		if ((a & 0xffff) != 0)
+			return ((a & 0xffff) * 1000);	/* base MHz */
+	}
+	return (0);
 }

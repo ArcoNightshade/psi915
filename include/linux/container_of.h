@@ -24,6 +24,12 @@
 	(t *)(void *)((char *)__lkpi_mptr - offsetof(t, m));		\
 })
 
+/* As container_of, keeping a const qualifier of ptr. */
+#define	container_of_const(ptr, t, m)					\
+	_Generic((ptr),							\
+	    const typeof(*(ptr)) *: ((const t *)container_of(ptr, t, m)), \
+	    default: ((t *)container_of(ptr, t, m)))
+
 #define	typeof_member(t, m)	typeof(((t *)0)->m)
 
 #endif /* _LINUXKPI_LINUX_CONTAINER_OF_H_ */

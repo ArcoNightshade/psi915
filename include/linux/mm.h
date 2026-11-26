@@ -165,6 +165,29 @@ vm_fault_t vmf_insert_pfn(struct vm_area_struct *vma, unsigned long addr,
     unsigned long pfn);
 vm_fault_t vmf_insert_pfn_prot(struct vm_area_struct *vma, unsigned long addr,
     unsigned long pfn, pgprot_t prot);
+/*
+ * VMA iteration over a user address space (i915 userptr probing). The
+ * KPI does not see process mappings (illumos as/seg), so no VMA is ever
+ * found and userptr objects are refused (-EFAULT): not supported yet.
+ */
+struct vma_iterator {
+	struct mm_struct	*mm;
+	unsigned long		index;
+};
+#define	VMA_ITERATOR(name, mm_, addr)					\
+	struct vma_iterator name = { .mm = (mm_), .index = (addr) }
+
+static inline struct vm_area_struct *
+vma_find(struct vma_iterator *vmi, unsigned long max)
+{
+	(void) vmi;
+	(void) max;
+	return (NULL);
+}
+#define	for_each_vma_range(vmi, vma, end)				\
+	for ((vma) = vma_find(&(vmi), (end)); (vma) != NULL;		\
+	    (vma) = vma_find(&(vmi), (end)))
+
 int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
     unsigned long pfn, unsigned long size, pgprot_t prot);
 #define	io_remap_pfn_range(v, a, p, s, pr)	remap_pfn_range(v, a, p, s, pr)

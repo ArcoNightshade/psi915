@@ -14,6 +14,7 @@
 #include <linux/types.h>
 #include <linux/err.h>
 #include <linux/seq_file.h>
+#include <linux/fs.h>
 
 struct dentry;
 
@@ -27,6 +28,10 @@ struct debugfs_regset32 {
 	int				nregs;
 	void				*base;
 };
+
+#define	DEFINE_DEBUGFS_ATTRIBUTE(f, g, s, fmt)	DEFINE_SIMPLE_ATTRIBUTE(f, g, s, fmt)
+#define	DEFINE_DEBUGFS_ATTRIBUTE_SIGNED(f, g, s, fmt)	\
+	DEFINE_SIMPLE_ATTRIBUTE(f, g, s, fmt)
 
 #define	LKPI_DEBUGFS_NONE	((struct dentry *)ERR_PTR(-ENODEV))
 

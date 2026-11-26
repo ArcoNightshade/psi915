@@ -512,6 +512,14 @@ tasklet_unlock_wait(struct tasklet_struct *t)
 		lkpi_plat_sleep_ns(10000);
 }
 
+/* Busy-waits (may be called with preemption disabled). */
+void
+tasklet_unlock_spin_wait(struct tasklet_struct *t)
+{
+	while (test_bit(TASKLET_STATE_RUN, &t->state))
+		lkpi_cpu_relax();
+}
+
 void
 lkpi_irq_work_fn(struct work_struct *w)
 {

@@ -12,6 +12,8 @@
 #include <linux/types.h>
 
 struct fb_info;
+#define	FBINFO_STATE_RUNNING	0
+#define	FBINFO_STATE_SUSPENDED	1
 #define	FB_BLANK_UNBLANK	0
 #define	FB_BLANK_NORMAL		1
 #define	FB_BLANK_VSYNC_SUSPEND	2

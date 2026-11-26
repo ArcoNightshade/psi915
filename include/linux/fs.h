@@ -21,6 +21,7 @@
 
 #include <linux/types.h>
 #include <linux/atomic.h>
+#include <linux/stat.h>
 #include <linux/mutex.h>
 #include <linux/rwsem.h>
 #include <linux/list.h>
@@ -61,8 +62,19 @@ struct poll_table_struct;
  * file, keyed by page offset, so unmap_mapping_range() can find them
  * (docs/10, section 3.5).
  */
+struct writeback_control;
+struct lkpi_page;
+
+/* Page-cache operations (shmem backing store; see docs/04). */
+struct address_space_operations {
+	int	(*writepage)(struct lkpi_page *page,
+		    struct writeback_control *wbc);
+	bool	(*dirty_folio)(struct address_space *mapping, void *folio);
+};
+
 struct address_space {
 	struct inode		*host;
+	const struct address_space_operations *a_ops;
 	struct rw_semaphore	i_mmap_rwsem;
 	struct lkpi_itree	i_mmap;
 };
@@ -274,6 +286,28 @@ stream_open(struct inode *ip, struct lkpi_file *f)
 
 /* No 32-bit compat ioctls (docs/09 5.9). */
 #define	compat_ptr_ioctl	NULL
+
+/*
+ * Simple attribute files (debugfs/sysfs u64 get/set): there is no
+ * debugfs, so opening one fails with -ENODEV; get, set and fmt are only
+ * referenced.
+ */
+#define	DEFINE_SIMPLE_ATTRIBUTE(__fops, __get, __set, __fmt)		\
+static int								\
+__fops ## _lkpi_open(struct inode *__i, struct lkpi_file *__f)		\
+{									\
+	(void) __i;							\
+	(void) __f;							\
+	(void) (__get);							\
+	(void) (__set);							\
+	(void) (__fmt);							\
+	return (-ENODEV);						\
+}									\
+static const struct file_operations __fops = {				\
+	.open = __fops ## _lkpi_open,					\
+}
+#define	DEFINE_SIMPLE_ATTRIBUTE_SIGNED(f, g, s, fmt)			\
+	DEFINE_SIMPLE_ATTRIBUTE(f, g, s, fmt)
 
 loff_t noop_llseek(struct lkpi_file *f, loff_t off, int whence);
 loff_t no_llseek(struct lkpi_file *f, loff_t off, int whence);

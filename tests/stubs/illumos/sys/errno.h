@@ -56,5 +56,7 @@
 #define	ENOLINK	67
 #define	EBADMSG	77
 #define	EMSGSIZE	97
+#define	ENOTCONN	134
+#define	ENOPKG	65
 #define	EPROTO	71
 #endif

@@ -15,6 +15,7 @@
 
 #include <linux/types.h>
 #include <linux/io.h>
+#include <linux/pgtable.h>
 #include <linux/slab.h>
 #include <linux/bug.h>
 
@@ -22,7 +23,7 @@ struct io_mapping {
 	resource_size_t		base;
 	unsigned long		size;
 	void __iomem		*iomem;
-	unsigned long		prot;	/* unused; pgprot placeholder */
+	pgprot_t		prot;	/* write-combining */
 };
 
 static inline struct io_mapping *
@@ -34,6 +35,7 @@ io_mapping_init_wc(struct io_mapping *m, resource_size_t base,
 		return (NULL);
 	m->base = base;
 	m->size = size;
+	m->prot = pgprot_writecombine(PAGE_KERNEL);
 	return (m);
 }
 

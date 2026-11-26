@@ -16,4 +16,6 @@
 #define	current_is_kswapd()	(false)
 #define	mapping_set_unevictable(m)	do { (void)(m); } while (0)
 
+#define	SWAP_CLUSTER_MAX	32UL
+
 #endif /* _LINUXKPI_INCLUDE_LINUX_SWAP_H_ */

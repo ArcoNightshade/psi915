@@ -61,6 +61,14 @@
 #define	PCI_ROM_RESOURCE	6
 #define	DEVICE_COUNT_RESOURCE	7
 #define	PCI_NUM_RESOURCES	DEVICE_COUNT_RESOURCE
+#define	PCI_STD_RESOURCES	0
+#define	PCI_STD_RESOURCE_END	5
+/*
+ * Lowest address for new PCI memory allocations (x86 Linux:
+ * pci_mem_start, 256 MiB by default); used by i915 to place an
+ * unassigned MCHBAR (gen <= 3, not reached on Kaby Lake).
+ */
+#define	PCIBIOS_MIN_MEM		0x10000000UL
 
 #define	PCI_IRQ_INTX		(1U << 0)
 #define	PCI_IRQ_LEGACY		PCI_IRQ_INTX

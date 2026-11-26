@@ -335,6 +335,9 @@ struct wait_queue_head *__var_waitqueue(const void *p);
 void wake_up_var(void *var);
 void wake_up_bit(void *word, int bit);
 
+#define	___wait_var_event(var, cond, state, excl, ret, cmd)		\
+	__lkpi_wait_forever(*__var_waitqueue(var), cond, state, excl,	\
+	    (void)0, (void)0)	/* cmd must be schedule(); see wait_bit.h */
 #define	wait_var_event(var, cond)					\
 	wait_event(*__var_waitqueue(var), cond)
 #define	wait_var_event_timeout(var, cond, tmo)				\

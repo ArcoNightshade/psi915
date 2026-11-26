@@ -14,8 +14,14 @@
 
 #include <linux/types.h>
 #include <linux/workqueue.h>
+#include <linux/llist.h>
 
 struct irq_work {
+	/* Linux-visible: callers keep irq_works on llists via node.llist. */
+	struct {
+		struct llist_node	llist;
+		unsigned int		u_flags;
+	} node;
 	struct work_struct	lkpi_work;
 	void			(*func)(struct irq_work *w);
 };

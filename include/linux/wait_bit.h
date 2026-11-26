@@ -12,4 +12,6 @@
 
 #include <linux/wait.h>
 
+/* ___wait_var_event() is in <linux/wait.h>. */
+
 #endif /* _LINUXKPI_LINUX_WAIT_BIT_H_ */

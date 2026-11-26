@@ -21,6 +21,8 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/bug.h>
+#include <linux/mutex.h>
+#include <linux/pid.h>
 #include <linuxkpi/subsys.h>
 
 static lkpi_plat_tsd_t lkpi_task_key;
@@ -288,4 +290,80 @@ schedule(void)
 		return;
 	}
 	(void) schedule_timeout(MAX_SCHEDULE_TIMEOUT);
+}
+
+/*
+ * struct pid table: one object per id number in use. The table lock
+ * also protects the counts (get/put are rare: DRM file open/close and
+ * GEM context creation).
+ */
+static DEFINE_MUTEX(lkpi_pid_lock);
+static LIST_HEAD(lkpi_pid_list);
+
+static struct pid *
+lkpi_pid_lookup(pid_t nr, bool ref)
+{
+	struct pid *p;
+
+	mutex_lock(&lkpi_pid_lock);
+	list_for_each_entry(p, &lkpi_pid_list, lkpi_link) {
+		if (p->nr == nr)
+			goto out;
+	}
+	p = kzalloc(sizeof (*p), GFP_KERNEL);
+	if (p == NULL) {
+		mutex_unlock(&lkpi_pid_lock);
+		return (NULL);
+	}
+	p->nr = nr;
+	list_add(&p->lkpi_link, &lkpi_pid_list);
+out:
+	if (ref)
+		p->count++;
+	mutex_unlock(&lkpi_pid_lock);
+	return (p);
+}
+
+struct pid *
+get_pid(struct pid *p)
+{
+	if (p != NULL) {
+		mutex_lock(&lkpi_pid_lock);
+		p->count++;
+		mutex_unlock(&lkpi_pid_lock);
+	}
+	return (p);
+}
+
+void
+put_pid(struct pid *p)
+{
+	if (p == NULL)
+		return;
+	mutex_lock(&lkpi_pid_lock);
+	if (p->count > 0 && --p->count == 0) {
+		list_del(&p->lkpi_link);
+		kfree(p);
+	}
+	mutex_unlock(&lkpi_pid_lock);
+}
+
+struct pid *
+get_task_pid(struct task_struct *t, enum pid_type type)
+{
+	return (lkpi_pid_lookup(type == PIDTYPE_PID ? t->pid : t->tgid,
+	    true));
+}
+
+/* No reference is taken (Linux semantics); the object stays listed. */
+struct pid *
+task_tgid(struct task_struct *t)
+{
+	return (lkpi_pid_lookup(t->tgid, false));
+}
+
+struct pid *
+task_pid(struct task_struct *t)
+{
+	return (lkpi_pid_lookup(t->pid, false));
 }

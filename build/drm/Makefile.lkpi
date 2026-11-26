@@ -75,6 +75,7 @@ DRMGLUE_IN	= g1
 #
 AUTOCONF_H	= $(SRCBASE)/drm/include/generated/autoconf.h
 KCONFIG_H	= $(INCBASE)/linux/kconfig.h
+COMPILER_TYPES_H = $(INCBASE)/linux/compiler_types.h
 
 #
 # Include path, in order:
@@ -100,7 +101,8 @@ INCLUDE_PATH	= $(MODULE_INC) \
 		  $(if $(KERNEL_INC),-I$(KERNEL_INC))
 
 LINUX_DEFS	= -D__KERNEL__ -DKBUILD_MODNAME='"$(LINUX_MODNAME)"' \
-		  -include $(KCONFIG_H) $(MODULE_DEFS)
+		  -include $(KCONFIG_H) -include $(COMPILER_TYPES_H) \
+		  $(MODULE_DEFS)
 CPPFLAGS	= $(ALWAYS_DEFS) $(DEBUG_DEFS) $(INCLUDE_PATH) $(LINUX_DEFS) \
 		  $(EXTRA_CPPFLAGS)
 

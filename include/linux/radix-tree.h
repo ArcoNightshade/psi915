@@ -29,6 +29,29 @@ radix_tree_insert(struct xarray *xa, unsigned long index, void *item)
 #define	radix_tree_lookup(xa, i)	xa_load(xa, i)
 #define	radix_tree_delete(xa, i)	xa_erase(xa, i)
 #define	radix_tree_empty(xa)		xa_empty(xa)
+/*
+ * Slot iteration over the backing XArray: *slot is a copy of the entry
+ * (iter->entry), not a pointer into the tree; radix_tree_iter_delete()
+ * erases the entry at iter->index. Enough for lookups and deletion while
+ * iterating, which is what DRM/i915 do.
+ */
+struct radix_tree_iter {
+	unsigned long	index;
+	unsigned long	next_index;
+	void		*entry;
+};
+
+#define	radix_tree_for_each_slot(slot, root, iter, start)		\
+	for ((iter)->index = (start);					\
+	    ((iter)->entry = xa_find((root), &(iter)->index, ULONG_MAX,	\
+	    XA_PRESENT)) != NULL && ((slot) = &(iter)->entry, 1);	\
+	    (iter)->index++)
+#define	radix_tree_deref_slot(slot)		(*(slot))
+#define	radix_tree_deref_slot_protected(slot, l)	(*(slot))
+#define	radix_tree_iter_delete(root, iter, slot)			\
+	((void)(slot), (void)xa_erase((root), (iter)->index))
+#define	radix_tree_iter_resume(slot, iter)	(slot)
+
 #define	radix_tree_preload(gfp)		(0)
 #define	radix_tree_maybe_preload(gfp)	(0)
 #define	radix_tree_preload_end()	do { } while (0)

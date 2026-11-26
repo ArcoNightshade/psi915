@@ -21,6 +21,13 @@ rdtsc(void)
 	__asm__ __volatile__("rdtsc" : "=a" (lo), "=d" (hi));
 	return (((cycles_t)hi << 32) | lo);
 }
+/*
+ * TSC frequency in kHz: the CPUID leaf 0x15/0x16 base frequency when the
+ * CPU reports it (Skylake and later), else 0 (src/linux_cpu.c).
+ */
+unsigned int lkpi_tsc_khz(void);
+#define	tsc_khz		lkpi_tsc_khz()
+
 #define	get_cycles()	rdtsc()
 #define	rdtsc_ordered()	rdtsc()
 

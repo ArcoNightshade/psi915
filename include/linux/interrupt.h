@@ -134,6 +134,7 @@ void tasklet_enable(struct tasklet_struct *t);
 bool tasklet_trylock(struct tasklet_struct *t);
 void tasklet_unlock(struct tasklet_struct *t);
 void tasklet_unlock_wait(struct tasklet_struct *t);
+void tasklet_unlock_spin_wait(struct tasklet_struct *t);
 #define	tasklet_hi_schedule(t)		tasklet_schedule(t)
 #define	tasklet_disable_in_atomic(t)	tasklet_disable(t)
 

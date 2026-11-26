@@ -84,6 +84,8 @@
 #define	MAX_SCHEDULE_TIMEOUT	LONG_MAX
 #endif
 
+#include <linux/pid.h>
+
 struct mm_struct;
 struct lkpi_kthread;
 struct lkpi_worker;
