@@ -33,4 +33,6 @@ struct pwm_lookup {
 	int	dummy;
 };
 
+#define	pwm_is_enabled(p)		((void)(p), false)
+
 #endif /* _LINUXKPI_INCLUDE_LINUX_PWM_H_ */

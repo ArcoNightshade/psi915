@@ -45,6 +45,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_slab.o \
 		   linux_sort.o \
 		   linux_srcu.o \
+		   linux_string.o \
 		   linux_timer.o \
 		   linux_wait.o \
 		   linux_workqueue.o \

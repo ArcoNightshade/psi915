@@ -24,4 +24,8 @@ struct fwnode_handle {
 #define	device_property_present(d, p)		((void)(d), false)
 #define	dev_fwnode(d)				((struct fwnode_handle *)NULL)
 
+#define	fwnode_handle_put(f)		do { (void)(f); } while (0)
+#define	fwnode_handle_get(f)		(f)
+#define	device_set_node(d, f)		do { (void)(d); (void)(f); } while (0)
+
 #endif /* _LINUXKPI_INCLUDE_LINUX_PROPERTY_H_ */

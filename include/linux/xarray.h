@@ -258,4 +258,8 @@ xa_release(struct xarray *xa, unsigned long index)
 	    (entry) != NULL;						\
 	    (entry) = xa_find_after((xa), &(index), ULONG_MAX, (filter)))
 
+/* The XArray lock is never taken from interrupts here: same as plain. */
+#define	xa_alloc_cyclic_irq(xa, id, e, l, n, gfp)	\
+	xa_alloc_cyclic((xa), (id), (e), (l), (n), (gfp))
+
 #endif /* _LINUXKPI_LINUX_XARRAY_H_ */

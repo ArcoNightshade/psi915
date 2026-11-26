@@ -76,6 +76,12 @@
  */
 #define	PCIBIOS_MIN_MEM		0x10000000UL
 
+/* No PCIe hierarchy or bus resource management in the KPI. */
+#define	pcie_find_root_port(pdev)	((void)(pdev), (struct pci_dev *)NULL)
+#define	pci_release_resource(pdev, bar)	do { (void)(pdev); } while (0)
+#define	pci_assign_unassigned_bus_resources(bus) do { (void)(bus); } while (0)
+
+
 /*
  * Bus address allocation (i915 gen <= 3 MCHBAR placement only): not
  * supported, fails with -ENOSPC.
@@ -409,6 +415,10 @@ int pci_bus_read_config_word(struct pci_bus *bus, unsigned int devfn,
     int where, u16 *val);
 int pci_bus_read_config_dword(struct pci_bus *bus, unsigned int devfn,
     int where, u32 *val);
+int pci_bus_write_config_byte(struct pci_bus *bus, unsigned int devfn,
+    int where, u8 val);
+int pci_bus_write_config_word(struct pci_bus *bus, unsigned int devfn,
+    int where, u16 val);
 int pci_bus_write_config_dword(struct pci_bus *bus, unsigned int devfn,
     int where, u32 val);
 

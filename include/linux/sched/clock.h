@@ -10,5 +10,11 @@
 #define	_LINUXKPI_LINUX_SCHED_CLOCK_H_
 
 #include <linux/sched.h>
+#include <linux/ktime.h>
+
+/* Nanosecond clocks (monotonic; no per-CPU clocks). */
+#define	local_clock()		ktime_get_ns()
+#define	sched_clock()		ktime_get_ns()
+#define	cpu_clock(cpu)		((void)(cpu), ktime_get_ns())
 
 #endif /* _LINUXKPI_LINUX_SCHED_CLOCK_H_ */

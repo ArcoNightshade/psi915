@@ -40,6 +40,8 @@
 #include <linux/circ_buf.h>
 #include <linux/kconfig.h>
 #include <linux/cleanup.h>
+#include <linux/unaligned.h>
+#include <linux/uuid.h>
 #include <linux/jump_label.h>
 #include <linux/minmax.h>
 
@@ -755,6 +757,49 @@ TEST(p3_helpers)
 static int qparam = 3;
 module_param(qparam, int, 0444);
 
+TEST(string_helpers)
+{
+	char buf[32], *p, *tok;
+	unsigned short hu[3];
+	int d, n;
+	unsigned int x;
+	static const char *const names[] = { "off", "on", "auto" };
+	guid_t g;
+	uuid_t u;
+
+	(void) strscpy(buf, "  a b \t\n");
+	CHECK_EQ(strcmp(strim(buf), "a b"), 0);
+	(void) strscpy(buf, "x,y,,z");
+	p = buf;
+	tok = strsep(&p, ",");
+	CHECK(strcmp(tok, "x") == 0 && strcmp(p, "y,,z") == 0);
+	(void) strsep(&p, ",");
+	tok = strsep(&p, ",");
+	CHECK(tok != NULL && *tok == '\0');
+	tok = strsep(&p, ",");
+	CHECK(strcmp(tok, "z") == 0 && p == NULL);
+	CHECK(*strchrnul("abc", 'z') == '\0');
+	CHECK(strnchr("abcdef", 3, 'd') == NULL);
+	CHECK(strrchr("a/b/c", '/') != NULL && strcmp(strrchr("a/b/c", '/'), "/c") == 0);
+	(void) strscpy(buf, "ab");
+	CHECK_EQ((int)strlcat(buf, "cdef", 5), 6);
+	CHECK_EQ(strcmp(buf, "abcd"), 0);
+	CHECK_EQ(match_string(names, ARRAY_SIZE(names), "auto"), 2);
+	CHECK_EQ(match_string(names, ARRAY_SIZE(names), "x"), -EINVAL);
+	CHECK_EQ(sscanf("10 20 65535", "%hu %hu %hu", &hu[0], &hu[1], &hu[2]), 3);
+	CHECK(hu[0] == 10 && hu[2] == 65535);
+	CHECK_EQ(sscanf("v=-7,0x1f rest", "v=%d,%x%n", &d, &x, &n), 2);
+	CHECK(d == -7 && x == 0x1f && n == 9);
+	CHECK_EQ(sscanf("abc", "%d", &d), 0);
+	CHECK(uuid_is_valid("3e5b41c6-eb1d-4260-9d15-c71fbadae414"));
+	CHECK(!uuid_is_valid("3e5b41c6-eb1d-4260-9d15_c71fbadae414"));
+	guid_gen(&g);
+	uuid_gen(&u);
+	CHECK((u.b[6] >> 4) == 4 && (u.b[8] & 0xc0) == 0x80);
+	CHECK(!guid_is_null(&g));
+	CHECK(mem_is_zero("\0\0\0", 3) && !mem_is_zero("\0\1", 2));
+}
+
 TEST(param_modname)
 {
 	CHECK(LKPI_PARAM_REF(qparam) == &__lkpi_param_tmisc_qparam);
@@ -821,12 +866,27 @@ TEST(cleanup_classes)
 	BUILD_BUG_ON(sizeof (int) != 4);
 	BUILD_BUG_ON(sizeof (arr) != 5 && ctr > 0);
 	CHECK(typecheck(int, ctr));
+	{
+		u8 b[9] = { 0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88 };
+		u32 v32;
+
+		CHECK_EQ(get_unaligned_le16(b + 1), 0x2211);
+		CHECK_EQ(get_unaligned_be32(b + 1), 0x11223344U);
+		CHECK_EQ(get_unaligned_le24(b + 1), 0x332211U);
+		CHECK(get_unaligned_le64(b + 1) == 0x8877665544332211ULL);
+		put_unaligned_be16(0xabcd, b + 3);
+		CHECK(b[3] == 0xab && b[4] == 0xcd);
+		v32 = 0x01020304;
+		put_unaligned(v32, (u32 *)(void *)(b + 5));
+		CHECK_EQ(get_unaligned((u32 *)(void *)(b + 5)), 0x01020304U);
+	}
 }
 
 LKPI_SUITE(misc)
 {
 	RUN(cleanup_classes);
 	RUN(param_modname);
+	RUN(string_helpers);
 	RUN(uaccess);
 	RUN(module_params);
 	RUN(ww_mutex_basic);

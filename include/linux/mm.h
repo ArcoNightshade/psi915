@@ -228,5 +228,25 @@ si_meminfo(struct sysinfo *si)
 
 /* Imported code expects copy_{to,from}_user from the mm headers. */
 #include <linux/uaccess.h>
+#include <linux/mmap_lock.h>
+
+/* Page cache state of single-page folios (shmem backend: docs/04). */
+#define	PageWriteback(p)		((void)(p), false)
+#define	SetPageReclaim(p)		do { (void)(p); } while (0)
+#define	ClearPageReclaim(p)		do { (void)(p); } while (0)
+#define	page_mapped(p)			((void)(p), false)
+#define	want_init_on_free()		(false)
+#define	want_init_on_alloc(f)		((void)(f), false)
+
+/* Copy-on-write private mapping (VM_MAYWRITE without VM_SHARED). */
+#define	is_cow_mapping(flags)						\
+	(((flags) & (VM_SHARED | VM_MAYWRITE)) == VM_MAYWRITE)
+
+/*
+ * Kernel-initiated user mmap (legacy I915_GEM_MMAP): not supported; the
+ * ioctl fails and userspace uses the mmap-offset path.
+ */
+#define	vm_mmap(f, a, l, p, fl, off)					\
+	((void)(f), (void)(a), (void)(l), (unsigned long)-ENODEV)
 
 #endif /* _LINUXKPI_LINUX_MM_H_ */

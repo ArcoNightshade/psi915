@@ -18,6 +18,7 @@
 #include <linux/stdarg.h>
 #include <drmglue/lkpi_fs.h>
 #include <drmglue/pseudofs.h>
+#include <linux/mutex.h>
 
 struct pseudo_fs_context *
 init_pseudo(struct fs_context *fc, unsigned long magic)
@@ -195,4 +196,46 @@ dynamic_dname(char *buffer, int buflen, const char *fmt, ...)
 	buffer += buflen - sz;
 	memcpy(buffer, tmp, (size_t)sz);
 	return (buffer);
+}
+
+/*
+ * Counted kern_mount() (Linux simple_pin_fs/simple_release_fs): the
+ * first pin mounts, the last release unmounts. One lock for all users
+ * (DRM pins its pseudo file system once per device).
+ */
+static DEFINE_MUTEX(lkpi_pin_lock);
+
+int
+simple_pin_fs(struct file_system_type *type, struct vfsmount **mount,
+    int *count)
+{
+	struct vfsmount *mnt;
+
+	mutex_lock(&lkpi_pin_lock);
+	if (*mount == NULL) {
+		mnt = kern_mount(type);
+		if (IS_ERR(mnt)) {
+			mutex_unlock(&lkpi_pin_lock);
+			return (PTR_ERR(mnt));
+		}
+		*mount = mnt;
+	}
+	(*count)++;
+	mutex_unlock(&lkpi_pin_lock);
+	return (0);
+}
+
+void
+simple_release_fs(struct vfsmount **mount, int *count)
+{
+	struct vfsmount *mnt = NULL;
+
+	mutex_lock(&lkpi_pin_lock);
+	if (*count > 0 && --(*count) == 0) {
+		mnt = *mount;
+		*mount = NULL;
+	}
+	mutex_unlock(&lkpi_pin_lock);
+	if (mnt != NULL)
+		kern_unmount(mnt);
 }

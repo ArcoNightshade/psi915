@@ -37,4 +37,12 @@ int seq_buf_printf(struct seq_buf *s, const char *fmt, ...) __printf(2, 3);
 #define	seq_buf_used(s)		((s)->len < (s)->size ? (s)->len : (s)->size)
 #define	seq_buf_has_overflowed(s) ((s)->len > (s)->size)
 
+static inline void
+seq_buf_clear(struct seq_buf *s)
+{
+	s->len = 0;
+	if (s->size > 0)
+		s->buffer[0] = '\0';
+}
+
 #endif /* _LINUXKPI_INCLUDE_LINUX_SEQ_BUF_H_ */

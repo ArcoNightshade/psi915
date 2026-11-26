@@ -34,6 +34,9 @@ struct vga_switcheroo_client_ops {
 #define	vga_switcheroo_unregister_client(p)	do { (void)(p); } while (0)
 #define	vga_switcheroo_process_delayed_switch()	do { } while (0)
 #define	vga_switcheroo_handler_flags()		(0)
+#define	vga_switcheroo_lock_ddc(p)		((void)(p), -ENODEV)
+#define	vga_switcheroo_unlock_ddc(p)		((void)(p), -ENODEV)
+#define	vga_switcheroo_client_probe_defer(p)	((void)(p), false)
 #define	vga_switcheroo_client_fb_set(p, i)	do { } while (0)
 
 #endif /* _LINUXKPI_LINUX_VGA_SWITCHEROO_H_ */

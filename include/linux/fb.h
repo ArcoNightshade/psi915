@@ -20,4 +20,7 @@ struct fb_info;
 #define	FB_BLANK_HSYNC_SUSPEND	3
 #define	FB_BLANK_POWERDOWN	4
 
+#define	KHZ2PICOS(a)		(1000000000UL / (a))
+#define	PICOS2KHZ(a)		(1000000000UL / (a))
+
 #endif /* _LINUXKPI_INCLUDE_LINUX_FB_H_ */

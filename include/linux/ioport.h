@@ -14,6 +14,20 @@
 #include <linux/types.h>
 #include <linux/compiler.h>
 
+/* Resource descriptors (resource.desc). */
+enum {
+	IORES_DESC_NONE = 0,
+	IORES_DESC_CRASH_KERNEL = 1,
+	IORES_DESC_ACPI_TABLES = 2,
+	IORES_DESC_ACPI_NV_STORAGE = 3,
+	IORES_DESC_PERSISTENT_MEMORY = 4,
+	IORES_DESC_PERSISTENT_MEMORY_LEGACY = 5,
+	IORES_DESC_DEVICE_PRIVATE_MEMORY = 6,
+	IORES_DESC_RESERVED = 7,
+	IORES_DESC_SOFT_RESERVED = 8,
+	IORES_DESC_CXL = 9
+};
+
 struct resource {
 	resource_size_t		start;
 	resource_size_t		end;	/* inclusive */

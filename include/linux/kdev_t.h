@@ -17,4 +17,8 @@
 #define	MAJOR(d)	LKPI_MAJOR(d)
 #define	MINOR(d)	LKPI_MINOR(d)
 
+/* 16-bit old_encode_dev: 8-bit major and minor. */
+#define	old_encode_dev(d)	\
+	((u16)((LKPI_MAJOR(d) << 8) | ((d) & LKPI_MINORMASK & 0xff)))
+
 #endif /* _LINUXKPI_LINUX_KDEV_T_H_ */

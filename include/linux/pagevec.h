@@ -59,4 +59,16 @@ folio_batch_release(struct folio_batch *fb)
 
 #define	check_move_unevictable_folios(fb)	do { (void)(fb); } while (0)
 
+static inline void
+__folio_batch_release(struct folio_batch *fb)
+{
+	unsigned int i;
+
+	for (i = 0; i < fb->nr; i++)
+		folio_put(fb->folios[i]);
+	folio_batch_init(fb);
+}
+#define	folio_batch_release(fb)	__folio_batch_release(fb)
+#define	check_move_unevictable_folios(fb)	do { (void)(fb); } while (0)
+
 #endif /* _LINUXKPI_INCLUDE_LINUX_PAGEVEC_H_ */

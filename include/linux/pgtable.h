@@ -13,6 +13,7 @@
 #define	_LINUXKPI_LINUX_PGTABLE_H_
 
 #include <linux/types.h>
+#include <asm/memtype.h>
 
 #ifndef PAGE_SHIFT
 #define	PAGE_SHIFT	12

@@ -23,6 +23,7 @@ enum acpi_backlight_type {
 	acpi_backlight_dell_uart
 };
 
+#define	ACPI_VIDEO_CLASS		"video"
 #define	ACPI_VIDEO_NOTIFY_PROBE		0x81
 #define	acpi_video_register()		(0)
 #define	acpi_video_unregister()		do { } while (0)

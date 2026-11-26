@@ -228,4 +228,6 @@ sg_page_iter_dma_address(struct sg_dma_page_iter *it)
 #define	for_each_sgtable_dma_page(sgt, dma_iter, pgoffset)		\
 	for_each_sg_dma_page((sgt)->sgl, dma_iter, (sgt)->nents, pgoffset)
 
+#define	sg_set_folio(sg, f, len, off)	sg_set_page((sg), &(f)->page, (len), (off))
+
 #endif /* _LINUXKPI_LINUX_SCATTERLIST_H_ */

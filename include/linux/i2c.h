@@ -215,4 +215,7 @@ void i2c_put_adapter(struct i2c_adapter *adap);
 #define	i2c_mark_adapter_resumed(a)	do { (void)(a); } while (0)
 #define	i2c_verify_client(d)		((struct i2c_client *)NULL)
 
+/* ACPI I2C resources: no ACPI resource parsing; never found. */
+#define	i2c_acpi_get_i2c_resource(ares, i2c)	((void)(ares), (void)(i2c), false)
+
 #endif /* _LINUXKPI_LINUX_I2C_H_ */

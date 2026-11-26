@@ -53,4 +53,12 @@ uuid_equal(const uuid_t *a, const uuid_t *b)
 	return (memcmp(a, b, sizeof (uuid_t)) == 0);
 }
 
+#define	guid_is_null(g)		mem_is_zero((g), sizeof (guid_t))
+#define	uuid_is_null(u)		mem_is_zero((u), sizeof (uuid_t))
+#define	import_guid(dst, src)	memcpy((dst), (src), sizeof (guid_t))
+#define	export_guid(dst, src)	memcpy((dst), (src), sizeof (guid_t))
+bool uuid_is_valid(const char *uuid);
+void guid_gen(guid_t *g);
+void uuid_gen(uuid_t *u);
+
 #endif /* _LINUXKPI_LINUX_UUID_H_ */

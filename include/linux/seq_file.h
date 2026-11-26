@@ -66,4 +66,6 @@ long seq_read(struct lkpi_file *f, char __user *buf, size_t size,
     long long *ppos);
 long long seq_lseek(struct lkpi_file *f, long long off, int whence);
 
+#define	single_open_size(f, show, d, sz)	((void)(sz), single_open(f, show, d))
+
 #endif /* _LINUXKPI_LINUX_SEQ_FILE_H_ */

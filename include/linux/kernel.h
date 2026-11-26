@@ -30,6 +30,8 @@
 #include <linux/kstrtox.h>
 #include <linux/typecheck.h>
 #include <linux/jump_label.h>
+#include <linux/byteorder.h>
+#include <asm/processor.h>	/* cpu_relax() */
 
 /* ptr if cond (a constant), else NULL: usable in static initialisers. */
 #define	PTR_IF(cond, ptr)	((cond) ? (ptr) : NULL)

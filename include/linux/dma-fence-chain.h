@@ -46,12 +46,6 @@ dma_fence_is_chain(struct dma_fence *fence)
 	return (fence->ops == &dma_fence_chain_ops);
 }
 
-static inline bool
-dma_fence_is_container(struct dma_fence *fence)
-{
-	return (dma_fence_is_array(fence) || dma_fence_is_chain(fence));
-}
-
 static inline struct dma_fence *
 dma_fence_chain_contained(struct dma_fence *fence)
 {

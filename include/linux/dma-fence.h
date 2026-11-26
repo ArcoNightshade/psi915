@@ -262,4 +262,15 @@ dma_fence_wait(struct dma_fence *fence, bool intr)
 #define	dma_fence_test_signaled_flag(f)					\
 	test_bit(DMA_FENCE_FLAG_SIGNALED_BIT, &(f)->flags)
 
+/* Container fences (arrays and chains; implementations in gpl/). */
+extern const struct dma_fence_ops dma_fence_array_ops;
+extern const struct dma_fence_ops dma_fence_chain_ops;
+
+static inline bool
+dma_fence_is_container(struct dma_fence *fence)
+{
+	return (fence->ops == &dma_fence_array_ops ||
+	    fence->ops == &dma_fence_chain_ops);
+}
+
 #endif /* _LINUXKPI_LINUX_DMA_FENCE_H_ */

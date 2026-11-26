@@ -138,6 +138,7 @@ illumos headers, so it measures KPI header coverage only; per-module pass counts
 | docs/11 snapshot (merge 9cfcdba) | 17/18 | 48/77 | 3/3 | 16/287 | 84/385 |
 | after batch 6, compiler_types.h, -DI915 in build/i915 | 17/18 | 73/77 | 3/3 | 259/287 | 352/385 |
 | after batch 7, drmglue in linuxkpi (R-K2: g1 loses 10 drmglue TUs) | 8/8 | 75/77 | 3/3 | 270/287 | 356/375 |
+| after batch 8 (string helpers, sscanf, uuid, unaligned, of/mmap_lock stubs) | 8/8 | 76/77 | 3/3 | 273/287 | 360/375 |
 
 Done:
 - [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
@@ -193,6 +194,15 @@ Done:
   pci_bus_alloc_resource (fails) and pcibios_align_resource, PTR_IF, ratelimit flags, SEEK_*,
   kdev_t.h and dcache.h from fs.h, writeback.h from swap.h, sysctl.h from perf_event.h, uaccess.h
   from mm.h, ECHRNG/EWOULDBLOCK; slab.h no longer redefines L1_CACHE_BYTES.
+- [x] Batch 8 (from the implicit-declaration warnings of the syntax-check logs): src/linux_string.c
+  (strim, strsep, strchrnul, strnchr, strrchr, strlcat, match_string, a small sscanf, uuid_is_valid,
+  uuid_gen/guid_gen; tested), linux/unaligned.h (tested), mem_is_zero, strtomem_pad, isascii,
+  BUILD_BUG_ON_INVALID, local_clock, seqprop_sequence, dma_fence_is_container in dma-fence.h,
+  mmap_lock.h (no-ops: the KPI does not manage user address spaces), vm_mmap (fails: legacy GEM mmap
+  unsupported), folio helpers, of/fwnode no-ops, register_chrdev (no effect; drmglue owns the cdev),
+  simple_pin_fs/simple_release_fs (drmglue pseudofs.c), pci_bus_write_config_byte/word, port I/O
+  outb/inb, pat_enabled, KHZ2PICOS, xa_alloc_cyclic_irq, time_after32, old_encode_dev, bitmap.h from
+  sched.h, byteorder.h and asm/processor.h from kernel.h.
 - [x] docs/11 R-K2: drmglue/src is linked into linuxkpi (build/Makefile.files DRMGLUE_OBJS,
   drmglue_<file>.o; linuxkpi_mod.c starts drmglue_init last and stops it first); Makefile.lkpi
   defaults to DRMGLUE_IN=none, so linuxkpi_gpl_g1 has no BSD infrastructure. tests/Makefile

@@ -85,6 +85,7 @@
 #endif
 
 #include <linux/pid.h>
+#include <linux/bitmap.h>	/* via cpumask.h in Linux */
 
 struct mm_struct;
 struct lkpi_kthread;

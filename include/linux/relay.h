@@ -11,8 +11,18 @@
 
 #include <linux/types.h>
 
-struct rchan;
 struct rchan_buf;
+
+/* Never allocated (relay_open fails); members for type checks only. */
+struct rchan {
+	size_t			subbuf_size;
+	size_t			n_subbufs;
+	size_t			alloc_size;
+	const struct rchan_callbacks *cb;
+	void			*private_data;
+	int			is_global;
+	struct rchan_buf	**buf;
+};
 struct dentry;
 struct file_operations;
 

@@ -122,6 +122,8 @@ __lkpi_write_seqcount_invalidate(seqcount_t *s)
 	WRITE_ONCE(s->sequence, s->sequence + 2);
 }
 
+/* Current sequence (Linux internal accessor, used by i915). */
+#define	seqprop_sequence(s)	READ_ONCE(__lkpi_seqc(s)->sequence)
 #define	__read_seqcount_begin(s)	__lkpi_read_seqcount_begin(__lkpi_seqc(s))
 #define	raw_read_seqcount_begin(s)	__lkpi_raw_read_seqcount_begin(__lkpi_seqc(s))
 #define	read_seqcount_begin(s)		__lkpi_raw_read_seqcount_begin(__lkpi_seqc(s))

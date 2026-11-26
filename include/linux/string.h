@@ -132,4 +132,46 @@ strstarts(const char *str, const char *prefix)
 	return (strncmp(str, prefix, strlen(prefix)) == 0);
 }
 
+/* True if the size bytes at p are all zero. */
+static inline bool
+mem_is_zero(const void *p, size_t size)
+{
+	return (memchr_inv(p, 0, size) == NULL);
+}
+
+/*
+ * String helpers not guaranteed by the illumos kernel (src/linux_string.c);
+ * the lkpi_ names avoid clashes with libc in userland.
+ */
+char *lkpi_strim(char *s);
+char *lkpi_strsep(char **sp, const char *delim);
+char *lkpi_strchrnul(const char *s, int c);
+char *lkpi_strnchr(const char *s, size_t count, int c);
+char *lkpi_strrchr(const char *s, int c);
+size_t lkpi_strlcat(char *dst, const char *src, size_t size);
+int lkpi_match_string(const char * const *array, size_t n, const char *s);
+int lkpi_sscanf(const char *buf, const char *fmt, ...)
+    __attribute__((format(scanf, 2, 3)));
+#define	strim(s)		lkpi_strim(s)
+#define	strstrip(s)		lkpi_strim(s)
+#define	strsep(sp, d)		lkpi_strsep((sp), (d))
+#define	strchrnul(s, c)		lkpi_strchrnul((s), (c))
+#define	strnchr(s, n, c)	lkpi_strnchr((s), (n), (c))
+#define	strrchr(s, c)		lkpi_strrchr((s), (c))
+#define	strlcat(d, s, n)	lkpi_strlcat((d), (s), (n))
+#define	sscanf(...)		lkpi_sscanf(__VA_ARGS__)
+#define	match_string(a, n, s)	lkpi_match_string((a), (n), (s))
+#define	sysfs_match_string(a, s)	lkpi_match_string((a), ARRAY_SIZE(a), (s))
+
+/* Copy a string into a fixed-size non-NUL-terminated field, padding. */
+#define	strtomem_pad(dest, src, pad)	do {				\
+	size_t __lkpi_n = strnlen((src), sizeof (dest));		\
+	memcpy((dest), (src), __lkpi_n);				\
+	memset((char *)(dest) + __lkpi_n, (pad), sizeof (dest) - __lkpi_n); \
+} while (0)
+#define	strtomem(dest, src)						\
+	memcpy((dest), (src), strnlen((src), sizeof (dest)))
+
+#include <linux/string_choices.h>
+
 #endif /* _LINUXKPI_LINUX_STRING_H_ */

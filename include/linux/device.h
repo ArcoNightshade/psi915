@@ -63,6 +63,8 @@ struct bus_type {
 	int			(*probe)(struct device *dev);
 	void			(*remove)(struct device *dev);
 	void			(*shutdown)(struct device *dev);
+	int			(*uevent)(const struct device *dev,
+				    struct kobj_uevent_env *env);
 	const struct dev_pm_ops	*pm;
 };
 

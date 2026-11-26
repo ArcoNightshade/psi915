@@ -53,4 +53,8 @@ static inline int lkpi_toupper(int c) { return (lkpi_islower(c) ? c - 32 : c); }
 #define	toupper(c)	lkpi_toupper(c)
 #define	_tolower(c)	((c) | 0x20)
 
+#ifndef isascii
+#define	isascii(c)	(((unsigned char)(c)) <= 0x7f)
+#endif
+
 #endif /* _LINUXKPI_LINUX_CTYPE_H_ */

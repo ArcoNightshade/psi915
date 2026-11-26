@@ -87,4 +87,6 @@ lkpi_pm_generic_nop(struct device *dev)
 #define	pm_runtime_barrier(dev)		do { (void)(dev); } while (0)
 #define	devm_pm_runtime_enable(dev)	((void)(dev), 0)
 
+#define	pm_runtime_no_callbacks(dev)	do { (void)(dev); } while (0)
+
 #endif /* _LINUXKPI_LINUX_PM_RUNTIME_H_ */

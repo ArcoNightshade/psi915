@@ -38,5 +38,7 @@ typedef void (*irq_flow_handler_t)(void *desc);
 #define	irq_set_chip_data(i, d)			((void)(i), (void)(d), 0)
 #define	irq_data_get_irq_chip_data(d)		((d)->chip_data)
 #define	handle_simple_irq			NULL
+#define	generic_handle_irq(irq)			((void)(irq), -EINVAL)
+#define	generic_handle_irq_safe(irq)		((void)(irq), -EINVAL)
 
 #endif /* _LINUXKPI_LINUX_IRQ_H_ */

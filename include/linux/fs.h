@@ -65,6 +65,7 @@ struct poll_table_struct;
  */
 struct writeback_control;
 struct lkpi_page;
+struct folio;
 struct address_space;
 
 /* Page-cache operations (shmem backing store; see docs/04). */
@@ -72,6 +73,13 @@ struct address_space_operations {
 	int	(*writepage)(struct lkpi_page *page,
 		    struct writeback_control *wbc);
 	bool	(*dirty_folio)(struct address_space *mapping, void *folio);
+	int	(*write_begin)(struct lkpi_file *file,
+		    struct address_space *mapping, long long pos,
+		    unsigned int len, struct folio **foliop, void **fsdata);
+	int	(*write_end)(struct lkpi_file *file,
+		    struct address_space *mapping, long long pos,
+		    unsigned int len, unsigned int copied, struct folio *folio,
+		    void *fsdata);
 };
 
 struct address_space {
@@ -310,6 +318,29 @@ static const struct file_operations __fops = {				\
 }
 #define	DEFINE_SIMPLE_ATTRIBUTE_SIGNED(f, g, s, fmt)			\
 	DEFINE_SIMPLE_ATTRIBUTE(f, g, s, fmt)
+
+/*
+ * Character device majors: the illumos character device of DRM is
+ * drmglue's (cb_ops), so Linux's DRM_MAJOR registration succeeds without
+ * effect.
+ */
+#define	register_chrdev(maj, name, fops)	\
+	((void)(maj), (void)(name), (void)(fops), 0)
+#define	unregister_chrdev(maj, name)	do { (void)(maj); } while (0)
+
+/* f_op reference helpers (no module reference counts). */
+#define	fops_get(f)		(f)
+#define	fops_put(f)		do { (void)(f); } while (0)
+#define	replace_fops(file, fops)	((file)->f_op = (fops))
+
+/*
+ * simple_pin_fs/simple_release_fs: a counted kern_mount() of a pseudo
+ * file system (DRM's anonymous inodes); src/linux_device.c.
+ */
+struct file_system_type;
+int simple_pin_fs(struct file_system_type *type, struct vfsmount **mount,
+    int *count);
+void simple_release_fs(struct vfsmount **mount, int *count);
 
 #ifndef SEEK_SET
 #define	SEEK_SET	0

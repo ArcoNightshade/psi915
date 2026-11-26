@@ -45,6 +45,8 @@
 	__lkpi_build_bug(e, msg,					\
 	    __lkpi_bbo_cat(__lkpi_build_bug_failed_, __COUNTER__))
 #define	BUILD_BUG_ON(e)		BUILD_BUG_ON_MSG(e, "BUILD_BUG_ON(" #e ")")
+/* Type-checks e without evaluating it. */
+#define	BUILD_BUG_ON_INVALID(e)	((void)(sizeof((long)(e))))
 #define	BUILD_BUG_ON_NOT_POWER_OF_2(n)				\
 	BUILD_BUG_ON((n) == 0 || (((n) & ((n) - 1)) != 0))
 #define	BUILD_BUG()		BUILD_BUG_ON_MSG(1, "BUILD_BUG")

@@ -113,4 +113,7 @@ jiffies_to_nsecs(unsigned long j)
 #define	round_jiffies_relative(j)	(j)
 #define	round_jiffies_up_relative(j)	(j)
 
+#define	time_after32(a, b)	((s32)((u32)(b) - (u32)(a)) < 0)
+#define	time_before32(b, a)	time_after32(a, b)
+
 #endif /* _LINUXKPI_LINUX_JIFFIES_H_ */

@@ -17,6 +17,12 @@
 static inline void *kmap(struct page *p) { return (page_address(p)); }
 static inline void *kmap_atomic(struct page *p) { return (page_address(p)); }
 static inline void *kmap_local_page(struct page *p) { return (page_address(p)); }
+/* Folios are single pages here. */
+#define	offset_in_folio(f, p)	((size_t)((unsigned long)(p) & (PAGE_SIZE - 1)))
+#define	memcpy_to_folio(f, off, src, len)				\
+	memcpy((char *)page_address(&(f)->page) + (off), (src), (len))
+#define	memcpy_from_folio(dst, f, off, len)				\
+	memcpy((dst), (char *)page_address(&(f)->page) + (off), (len))
 #define	kmap_local_folio(f, off)	((char *)page_address(&(f)->page) + (off))
 #define	kmap_atomic_prot(p, prot)	kmap_atomic(p)
 #define	kmap_local_page_prot(p, prot)	kmap_local_page(p)

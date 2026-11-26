@@ -926,6 +926,24 @@ pci_bus_read_config_dword(struct pci_bus *bus, unsigned int devfn,
 }
 
 int
+pci_bus_write_config_byte(struct pci_bus *bus, unsigned int devfn,
+    int where, u8 val)
+{
+	u32 v = val;
+
+	return (lkpi_bus_cfg(bus, devfn, where, 1, &v, true));
+}
+
+int
+pci_bus_write_config_word(struct pci_bus *bus, unsigned int devfn,
+    int where, u16 val)
+{
+	u32 v = val;
+
+	return (lkpi_bus_cfg(bus, devfn, where, 2, &v, true));
+}
+
+int
 pci_bus_write_config_dword(struct pci_bus *bus, unsigned int devfn,
     int where, u32 val)
 {

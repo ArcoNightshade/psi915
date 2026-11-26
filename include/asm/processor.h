@@ -11,6 +11,7 @@
 
 #include <linuxkpi/platform.h>
 #include <asm/cpufeature.h>
+#include <asm/fpu/api.h>
 
 #define	cpu_relax()		lkpi_cpu_relax()
 #define	INTEL_FAM6_KABYLAKE_L	0x8E
