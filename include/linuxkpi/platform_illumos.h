@@ -36,8 +36,11 @@
 #include <sys/thread.h>
 #include <sys/disp.h>
 #include <sys/time.h>
+#include <sys/callo.h>
+#include <sys/cpuvar.h>
 #include <sys/ddi.h>
 #include <sys/sunddi.h>
+#include <sys/file.h>
 
 #define	lkpi_assert(x)		ASSERT(x)
 
@@ -218,6 +221,147 @@ lkpi_plat_sleep_ticks(long ticks)
 {
 	delay((clock_t)(ticks > 0 ? ticks : 1));
 }
+
+/*
+ * High-resolution monotonic clock (gethrtime(9F)) and wall clock
+ * (gethrestime(9F)), both in nanoseconds.
+ */
+static inline uint64_t
+lkpi_plat_nsec(void)
+{
+	return ((uint64_t)gethrtime());
+}
+
+static inline void
+lkpi_plat_realtime(int64_t *sec, long *nsec)
+{
+	timespec_t ts;
+
+	gethrestime(&ts);
+	*sec = (int64_t)ts.tv_sec;
+	*nsec = (long)ts.tv_nsec;
+}
+
+/*
+ * Wait until the monotonic clock reaches deadline (ns, lkpi_plat_nsec()
+ * scale); LKPI_PLAT_WAIT_{OK,TIMEOUT,INTR}. Uses the high-resolution
+ * callout (cv_timedwait_hires / cv_timedwait_sig_hrtime, absolute), so
+ * the wait is not rounded up to a clock tick.
+ */
+static inline int
+lkpi_plat_cv_timedwait_ns(lkpi_plat_cv_t *cv, lkpi_plat_mutex_t *m,
+    uint64_t deadline, bool intr)
+{
+	clock_t r;
+
+	if ((int64_t)deadline <= 0 || deadline <= lkpi_plat_nsec())
+		return (LKPI_PLAT_WAIT_TIMEOUT);
+	if (intr) {
+		r = cv_timedwait_sig_hrtime(cv, m, (hrtime_t)deadline);
+		if (r == 0)
+			return (LKPI_PLAT_WAIT_INTR);
+	} else {
+		r = cv_timedwait_hires(cv, m, (hrtime_t)deadline, 1000,
+		    CALLOUT_FLAG_ABSOLUTE);
+	}
+	return (r < 0 ? LKPI_PLAT_WAIT_TIMEOUT : LKPI_PLAT_WAIT_OK);
+}
+
+/* Busy-wait (never sleeps; usable in any context). */
+static inline void
+lkpi_plat_udelay(unsigned long us)
+{
+	drv_usecwait((clock_t)us);
+}
+
+/* Number of online CPUs (sizing of worker pools). */
+static inline unsigned int
+lkpi_plat_ncpus(void)
+{
+	return (ncpus > 0 ? (unsigned int)ncpus : 1U);
+}
+
+/* Sequential id (0..ncpus-1) of the CPU running the caller (a hint). */
+static inline unsigned int
+lkpi_plat_cpu_id(void)
+{
+	return ((unsigned int)CPU->cpu_seqid);
+}
+
+/* Give up the CPU to other runnable threads. */
+static inline void
+lkpi_plat_yield(void)
+{
+	kpreempt(KPREEMPT_SYNC);
+}
+
+/*
+ * Thread-specific data with a destructor that runs when the thread exits
+ * (tsd_create(9F-like), uts/common/disp/thread.c): the destructor is
+ * called from thread_exit()/lwp_exit() via tsd_exit(), and for every
+ * thread still holding a value when the key is destroyed (tsd_destroy()).
+ * Keys start at 0 = unallocated.
+ */
+typedef uint_t	lkpi_plat_tsd_t;
+
+static inline void
+lkpi_plat_tsd_create(lkpi_plat_tsd_t *key, void (*dtor)(void *))
+{
+	tsd_create(key, dtor);
+}
+
+static inline void
+lkpi_plat_tsd_destroy(lkpi_plat_tsd_t *key)
+{
+	tsd_destroy(key);
+}
+
+static inline void *
+lkpi_plat_tsd_get(lkpi_plat_tsd_t key)
+{
+	return (tsd_get(key));
+}
+
+/* May allocate (KM_SLEEP): never call from interrupt context. */
+static inline int
+lkpi_plat_tsd_set(lkpi_plat_tsd_t key, void *value)
+{
+	return (tsd_set(key, value));
+}
+
+/*
+ * User memory access (ddi_copyin(9F)/ddi_copyout(9F)). kernel = true when
+ * the "user" address is really a kernel address (FKIOCTL ioctls issued by
+ * other kernel modules). 0 or EFAULT.
+ */
+static inline int
+lkpi_plat_copyin(const void *uaddr, void *kaddr, size_t len, bool kernel)
+{
+	return (ddi_copyin(uaddr, kaddr, len, kernel ? FKIOCTL : 0) == 0 ?
+	    0 : EFAULT);
+}
+
+static inline int
+lkpi_plat_copyout(const void *kaddr, void *uaddr, size_t len, bool kernel)
+{
+	return (ddi_copyout(kaddr, uaddr, len, kernel ? FKIOCTL : 0) == 0 ?
+	    0 : EFAULT);
+}
+
+/*
+ * Out of line (src/plat_illumos.c), because they need process internals:
+ * signal checks for the current thread (always false for kernel threads,
+ * which have no lwp), the current process id and command name, string
+ * copy-in, and sub-tick sleeps.
+ */
+bool lkpi_plat_signal_pending(void);
+bool lkpi_plat_fatal_signal_pending(void);
+int lkpi_plat_getpid(void);
+void lkpi_plat_getcomm(char *buf, size_t len);
+/* Copies at most len bytes incl. NUL; returns length or -EFAULT/-ENAMETOOLONG. */
+long lkpi_plat_copyinstr(const char *uaddr, char *kbuf, size_t len,
+    bool kernel);
+void lkpi_plat_sleep_ns(uint64_t ns);
 
 static inline int
 __lkpi_plat_kmflag(int flags)

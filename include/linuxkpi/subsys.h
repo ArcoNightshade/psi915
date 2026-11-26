@@ -19,4 +19,27 @@ int lkpi_rcu_init(void);
 /* Waits for pending call_rcu() callbacks, then stops the thread. */
 void lkpi_rcu_fini(void);
 
+/* Timer thread (src/linux_timer.c). */
+int lkpi_timer_init(void);
+void lkpi_timer_fini(void);
+
+/* Workqueues: manager thread and system_* queues (src/linux_workqueue.c). */
+int lkpi_workqueue_init(void);
+void lkpi_workqueue_fini(void);
+
+/* current/task_struct TSD key (src/linux_sched.c). */
+int lkpi_sched_init(void);
+/* Releases the tasks of all threads still holding one. */
+void lkpi_sched_fini(void);
+
+/* Hashed var/bit wait queues (src/linux_wait.c); then lkpi_sched_fini(). */
+void lkpi_wait_fini(void);
+void lkpi_sched_fini_last(void);
+
+struct task_struct;
+/* Make t (caller's reference) the current thread's task. 0 or errno. */
+int lkpi_task_bind(struct task_struct *t);
+/* Drop the current thread's task (before a KPI-created thread exits). */
+void lkpi_task_unbind(void);
+
 #endif /* _LINUXKPI_SUBSYS_H_ */

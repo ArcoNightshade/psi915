@@ -15,6 +15,10 @@
  * nodes) and a "full" bitmap: bit i is set when slot i is a non-NULL entry
  * (leaf) or a completely full child (inner node). xa_alloc() uses it to
  * skip full subtrees. Reserved entries (XA_ZERO_ENTRY) count as full.
+ *
+ * Search marks: marks[m] bit i is set when slot i holds an entry with
+ * mark m (leaf) or a child with any entry carrying mark m (inner node).
+ * Erasing an entry clears its marks; replacing it keeps them.
  */
 
 #include <linux/kernel.h>
@@ -25,6 +29,7 @@
 #define	XA_CHUNK_SIZE	(1U << XA_CHUNK_SHIFT)
 #define	XA_CHUNK_MASK	(XA_CHUNK_SIZE - 1)
 #define	XA_FULL		(~0UL)
+#define	XA_MARK_COUNT	3
 
 struct lkpi_xa_node {
 	unsigned char		shift;
@@ -32,6 +37,7 @@ struct lkpi_xa_node {
 	unsigned short		count;
 	struct lkpi_xa_node	*parent;
 	unsigned long		full;
+	unsigned long		marks[XA_MARK_COUNT];
 	void			*slots[XA_CHUNK_SIZE];
 };
 
@@ -103,6 +109,38 @@ lkpi_xa_update_full(struct lkpi_xa_node *n, unsigned int off, bool full)
 	}
 }
 
+/* Set or clear mark bit off of node n and propagate upwards. */
+static void
+lkpi_xa_update_mark(struct lkpi_xa_node *n, unsigned int off, unsigned int m,
+    bool set)
+{
+	bool was, is;
+
+	while (n != NULL) {
+		was = n->marks[m] != 0;
+		if (set)
+			n->marks[m] |= 1UL << off;
+		else
+			n->marks[m] &= ~(1UL << off);
+		is = n->marks[m] != 0;
+		if (was == is)
+			return;
+		off = n->offset;
+		set = is;
+		n = n->parent;
+	}
+}
+
+static void
+lkpi_xa_clear_marks(struct lkpi_xa_node *leaf, unsigned int off)
+{
+	unsigned int m;
+
+	for (m = 0; m < XA_MARK_COUNT; m++)
+		if (leaf->marks[m] & (1UL << off))
+			lkpi_xa_update_mark(leaf, off, m, false);
+}
+
 /* Free empty nodes from n upwards, then drop useless root levels. */
 static void
 lkpi_xa_prune(struct xarray *xa, struct lkpi_xa_node *n)
@@ -158,6 +196,9 @@ lkpi_xa_grow(struct xarray *xa, unsigned long index, gfp_t gfp)
 		n->count = 1;
 		if (root->full == XA_FULL)
 			n->full = 1;
+		for (unsigned int m = 0; m < XA_MARK_COUNT; m++)
+			if (root->marks[m] != 0)
+				n->marks[m] = 1;
 		root->parent = n;
 		root->offset = 0;
 		xa->xa_head = n;
@@ -240,7 +281,10 @@ lkpi_xa_store_raw(struct xarray *xa, unsigned long index, void *entry,
 	if (old == NULL && entry != NULL) {
 		leaf->count++;
 		lkpi_xa_update_full(leaf, off, true);
+	} else if (old != NULL && xa_is_zero(entry)) {
+		lkpi_xa_clear_marks(leaf, off);
 	} else if (old != NULL && entry == NULL) {
+		lkpi_xa_clear_marks(leaf, off);
 		leaf->count--;
 		lkpi_xa_update_full(leaf, off, false);
 		lkpi_xa_prune(xa, leaf);
@@ -372,7 +416,7 @@ xa_reserve(struct xarray *xa, unsigned long index, gfp_t gfp)
  */
 static bool
 lkpi_xa_find_in(const struct lkpi_xa_node *n, unsigned long base,
-    unsigned long start, unsigned long max, bool want_free,
+    unsigned long start, unsigned long max, bool want_free, int mark,
     unsigned long *found, void **entryp)
 {
 	unsigned int s = n->shift, i;
@@ -396,6 +440,8 @@ lkpi_xa_find_in(const struct lkpi_xa_node *n, unsigned long base,
 			}
 		} else if (e == NULL) {
 			continue;
+		} else if (mark >= 0 && !(n->marks[mark] & (1UL << i))) {
+			continue;
 		}
 		if (s == 0) {
 			if (want_free || xa_is_zero(e))
@@ -406,7 +452,7 @@ lkpi_xa_find_in(const struct lkpi_xa_node *n, unsigned long base,
 		}
 		if (lkpi_xa_find_in(e, slot_base,
 		    start > slot_base ? start : slot_base, max, want_free,
-		    found, entryp))
+		    mark, found, entryp))
 			return (true);
 	}
 	return (false);
@@ -414,13 +460,15 @@ lkpi_xa_find_in(const struct lkpi_xa_node *n, unsigned long base,
 
 static void *
 lkpi_xa_find_locked(struct xarray *xa, unsigned long start,
-    unsigned long max, unsigned long *found)
+    unsigned long max, xa_mark_t filter, unsigned long *found)
 {
 	void *entry = NULL;
+	int mark = filter < XA_MARK_COUNT ? (int)filter : -1;
 
 	if (xa->xa_head == NULL || start > max)
 		return (NULL);
-	if (lkpi_xa_find_in(xa->xa_head, 0, start, max, false, found, &entry))
+	if (lkpi_xa_find_in(xa->xa_head, 0, start, max, false, mark, found,
+	    &entry))
 		return (entry);
 	return (NULL);
 }
@@ -433,8 +481,7 @@ xa_find(struct xarray *xa, unsigned long *index, unsigned long max,
 	unsigned long found = 0;
 	void *entry;
 
-	(void) filter;
-	entry = lkpi_xa_find_locked(xa, *index, max, &found);
+	entry = lkpi_xa_find_locked(xa, *index, max, filter, &found);
 	if (entry != NULL)
 		*index = found;
 	lkpi_xa_unlock(xa, locked);
@@ -471,7 +518,7 @@ lkpi_xa_find_free(struct xarray *xa, unsigned long min, unsigned long max,
 		*found = min;
 		return (true);
 	}
-	if (lkpi_xa_find_in(root, 0, min, max, true, found, NULL))
+	if (lkpi_xa_find_in(root, 0, min, max, true, -1, found, NULL))
 		return (true);
 	rmax = lkpi_xa_node_max(root);
 	if (rmax < max) {
@@ -588,4 +635,84 @@ xa_destroy(struct xarray *xa)
 		lkpi_xa_free_tree(xa->xa_head);
 	xa->xa_head = NULL;
 	lkpi_xa_unlock(xa, locked);
+}
+
+/* Marks. Only present (non-NULL, non-reserved) entries can be marked. */
+
+void
+__xa_set_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	struct lkpi_xa_node *leaf;
+	unsigned int off = index & XA_CHUNK_MASK;
+	void *e;
+
+	if (mark >= XA_MARK_COUNT)
+		return;
+	leaf = lkpi_xa_leaf(xa, index, false, 0);
+	if (leaf == NULL)
+		return;
+	e = leaf->slots[off];
+	if (e == NULL || xa_is_zero(e))
+		return;
+	if (!(leaf->marks[mark] & (1UL << off)))
+		lkpi_xa_update_mark(leaf, off, mark, true);
+}
+
+void
+__xa_clear_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	struct lkpi_xa_node *leaf;
+	unsigned int off = index & XA_CHUNK_MASK;
+
+	if (mark >= XA_MARK_COUNT)
+		return;
+	leaf = lkpi_xa_leaf(xa, index, false, 0);
+	if (leaf != NULL && (leaf->marks[mark] & (1UL << off)))
+		lkpi_xa_update_mark(leaf, off, mark, false);
+}
+
+void
+xa_set_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	bool locked = lkpi_xa_lock(xa);
+
+	__xa_set_mark(xa, index, mark);
+	lkpi_xa_unlock(xa, locked);
+}
+
+void
+xa_clear_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	bool locked = lkpi_xa_lock(xa);
+
+	__xa_clear_mark(xa, index, mark);
+	lkpi_xa_unlock(xa, locked);
+}
+
+bool
+xa_get_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	bool locked = lkpi_xa_lock(xa);
+	struct lkpi_xa_node *leaf;
+	bool r = false;
+
+	if (mark < XA_MARK_COUNT) {
+		leaf = lkpi_xa_leaf(xa, index, false, 0);
+		r = leaf != NULL &&
+		    (leaf->marks[mark] & (1UL << (index & XA_CHUNK_MASK)));
+	}
+	lkpi_xa_unlock(xa, locked);
+	return (r);
+}
+
+bool
+xa_marked(struct xarray *xa, xa_mark_t mark)
+{
+	bool locked = lkpi_xa_lock(xa);
+	struct lkpi_xa_node *root = xa->xa_head;
+	bool r = mark < XA_MARK_COUNT && root != NULL &&
+	    root->marks[mark] != 0;
+
+	lkpi_xa_unlock(xa, locked);
+	return (r);
 }

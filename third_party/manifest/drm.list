@@ -1,0 +1,367 @@
+# psi915 import manifest: drm.list
+# Format: <set><TAB><upstream path><TAB><reason>.  A path ending in "/" covers everything below it; the longest
+# matching entry wins.  "scope" lines name the upstream directories that must be fully classified.
+# Destination: drm/<upstream path>.
+# Sets imported by default: core link hdr uapi extra aux.
+#   core   compiled for the Gen9 (KBL-R) target
+#   link   compiled only for link closure: code for non-Gen9 hardware (candidate for stub patches)
+#   hdr    header;  uapi  userspace ABI header
+#   extra  imported (requested subsystem or helper) but not compiled for the Gen9 target
+#   aux    non-compiled supporting source
+# Optional sets (import-linux.sh -s <set>): debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit
+#   edidfw auxdev cec
+#   exclude never imported
+scope	drivers/gpu/drm/	must be fully classified
+scope	drivers/dma-buf/	must be fully classified
+scope	drivers/video/	must be fully classified
+scope	include/drm/	must be fully classified
+scope	include/uapi/drm/	must be fully classified
+exclude	drivers/dma-buf/Kconfig	build file
+exclude	drivers/dma-buf/Makefile	build file
+exclude	drivers/dma-buf/dma-buf-sysfs-stats.c	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+exclude	drivers/dma-buf/dma-heap.c	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+core	drivers/dma-buf/dma-resv.c	dma-buf/dma-fence/dma-resv/sync_file (used by DRM core and i915)
+exclude	drivers/dma-buf/heaps/Kconfig	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+exclude	drivers/dma-buf/heaps/Makefile	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+exclude	drivers/dma-buf/heaps/cma_heap.c	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+exclude	drivers/dma-buf/heaps/system_heap.c	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+selftest	drivers/dma-buf/selftest.c	CONFIG_DMABUF_SELFTESTS off
+selftest	drivers/dma-buf/selftest.h	CONFIG_DMABUF_SELFTESTS off
+selftest	drivers/dma-buf/selftests.h	CONFIG_DMABUF_SELFTESTS off
+selftest	drivers/dma-buf/st-dma-fence-chain.c	CONFIG_DMABUF_SELFTESTS off
+selftest	drivers/dma-buf/st-dma-fence-unwrap.c	CONFIG_DMABUF_SELFTESTS off
+selftest	drivers/dma-buf/st-dma-fence.c	CONFIG_DMABUF_SELFTESTS off
+selftest	drivers/dma-buf/st-dma-resv.c	CONFIG_DMABUF_SELFTESTS off
+exclude	drivers/dma-buf/sw_sync.c	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+exclude	drivers/dma-buf/sync_debug.c	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+exclude	drivers/dma-buf/udmabuf.c	dma-buf heaps/udmabuf/sw_sync/sysfs stats: not needed by i915
+exclude	drivers/gpu/drm/Kconfig	build/Kconfig/Rust or other non-C file
+exclude	drivers/gpu/drm/Makefile	build/Kconfig/Rust or other non-C file
+exclude	drivers/gpu/drm/amd/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/arm/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/armada/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/aspeed/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/ast/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/atmel-hlcdc/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/bridge/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/ci/	GitLab CI files
+exclude	drivers/gpu/drm/clients/Kconfig	build file
+exclude	drivers/gpu/drm/clients/Makefile	build file
+hdr	drivers/gpu/drm/clients/drm_client_internal.h	client internal header
+fbdev	drivers/gpu/drm/clients/drm_client_setup.c	in-kernel clients (fbdev/drm_log); CONFIG_DRM_CLIENT_LIB off
+fbdev	drivers/gpu/drm/clients/drm_fbdev_client.c	in-kernel clients (fbdev/drm_log); CONFIG_DRM_CLIENT_LIB off
+fbdev	drivers/gpu/drm/clients/drm_log.c	in-kernel clients (fbdev/drm_log); CONFIG_DRM_CLIENT_LIB off
+exclude	drivers/gpu/drm/display/Kconfig	build file
+exclude	drivers/gpu/drm/display/Makefile	build file
+core	drivers/gpu/drm/display/drm_display_helper_mod.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC)
+exclude	drivers/gpu/drm/display/drm_dp_aux_bus.c	DP AUX bus for device-tree panels
+auxdev	drivers/gpu/drm/display/drm_dp_aux_dev.c	/dev/drm_dp_auxN; CONFIG_DRM_DISPLAY_DP_AUX_CHARDEV off
+core	drivers/gpu/drm/display/drm_dp_dual_mode_helper.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC)
+core	drivers/gpu/drm/display/drm_dp_helper.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC)
+hdr	drivers/gpu/drm/display/drm_dp_helper_internal.h	display helper internal header
+core	drivers/gpu/drm/display/drm_dp_mst_topology.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC)
+gen12	drivers/gpu/drm/display/drm_dp_tunnel.c	DP tunnel BW allocation (Gen12+/USB4); CONFIG_DRM_DISPLAY_DP_TUNNEL off
+core	drivers/gpu/drm/display/drm_dsc_helper.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC)
+extra	drivers/gpu/drm/display/drm_hdmi_audio_helper.c	display helper with no i915 user
+core	drivers/gpu/drm/display/drm_hdmi_helper.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC)
+extra	drivers/gpu/drm/display/drm_hdmi_state_helper.c	display helper with no i915 user
+core	drivers/gpu/drm/display/drm_scdc_helper.c	DRM display helpers used by i915 (DP, MST, DSC, HDCP, HDMI, SCDC)
+core	drivers/gpu/drm/drm_atomic.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_atomic_helper.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_atomic_state_helper.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_atomic_uapi.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_auth.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_blend.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_bridge.c	drm_atomic_helper.c/drm_probe_helper.c call bridge chain functions
+link	drivers/gpu/drm/drm_buddy.c	used only by i915_ttm_buddy_manager.c (discrete LMEM); link closure
+core	drivers/gpu/drm/drm_cache.c	DRM core / KMS helper
+fbdev	drivers/gpu/drm/drm_client.c	CONFIG_DRM_CLIENT off (drm_client_event.h has stubs)
+fbdev	drivers/gpu/drm/drm_client_event.c	CONFIG_DRM_CLIENT off
+fbdev	drivers/gpu/drm/drm_client_modeset.c	CONFIG_DRM_CLIENT off
+core	drivers/gpu/drm/drm_color_mgmt.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_connector.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_crtc.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_crtc_helper.c	DRM core / KMS helper
+hdr	drivers/gpu/drm/drm_crtc_helper_internal.h	DRM internal header
+hdr	drivers/gpu/drm/drm_crtc_internal.h	DRM internal header
+core	drivers/gpu/drm/drm_damage_helper.c	DRM core / KMS helper
+debugfs	drivers/gpu/drm/drm_debugfs.c	CONFIG_DEBUG_FS off
+debugfs	drivers/gpu/drm/drm_debugfs_crc.c	CONFIG_DEBUG_FS off
+core	drivers/gpu/drm/drm_displayid.c	DRM core / KMS helper
+hdr	drivers/gpu/drm/drm_displayid_internal.h	DRM internal header
+extra	drivers/gpu/drm/drm_draw.c	used by drm_panic/drm_log only
+hdr	drivers/gpu/drm/drm_draw_internal.h	DRM internal header
+core	drivers/gpu/drm/drm_drv.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_dumb_buffers.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_edid.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_eld.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_encoder.c	DRM core / KMS helper
+extra	drivers/gpu/drm/drm_encoder_slave.c	drm_kms_helper member; no i915 user
+extra	drivers/gpu/drm/drm_exec.c	used by drm_gpuvm/amdgpu/xe; no i915 user
+exclude	drivers/gpu/drm/drm_fb_dma_helper.c	DMA-GEM helper for SoC drivers
+fbdev	drivers/gpu/drm/drm_fb_helper.c	CONFIG_DRM_FBDEV_EMULATION off: the illumos console is not fbcon
+exclude	drivers/gpu/drm/drm_fbdev_dma.c	DMA-GEM fbdev
+exclude	drivers/gpu/drm/drm_fbdev_shmem.c	shmem-GEM fbdev
+fbdev	drivers/gpu/drm/drm_fbdev_ttm.c	CONFIG_DRM_FBDEV_EMULATION off
+core	drivers/gpu/drm/drm_file.c	DRM core / KMS helper
+extra	drivers/gpu/drm/drm_flip_work.c	drm_kms_helper member; no i915 user
+extra	drivers/gpu/drm/drm_format_helper.c	drm_kms_helper member; no i915 user
+core	drivers/gpu/drm/drm_fourcc.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_framebuffer.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_gem.c	DRM core / KMS helper
+exclude	drivers/gpu/drm/drm_gem_dma_helper.c	DMA-GEM helper
+exclude	drivers/gpu/drm/drm_gem_shmem_helper.c	shmem-GEM helper (virtio, panfrost, ...)
+exclude	drivers/gpu/drm/drm_gem_vram_helper.c	VRAM helper (ast, bochs, ...)
+extra	drivers/gpu/drm/drm_gpuvm.c	GPU VA manager (xe/nouveau); no i915 user
+hdr	drivers/gpu/drm/drm_internal.h	DRM internal header
+compat	drivers/gpu/drm/drm_ioc32.c	CONFIG_COMPAT off initially (ddi_model_convert_from per ioctl)
+core	drivers/gpu/drm/drm_ioctl.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_kms_helper_common.c	drm_kms_helper module init/params
+exclude	drivers/gpu/drm/drm_mipi_dbi.c	MIPI DBI panels
+link	drivers/gpu/drm/drm_mipi_dsi.c	MIPI DSI; i915 users are DSI encoders (VLV/CHV/BXT/GLK/ICL+), not KBL-R eDP; link closure
+core	drivers/gpu/drm/drm_mm.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_mode_config.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_mode_object.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_modes.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_modeset_helper.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_modeset_lock.c	DRM core / KMS helper
+exclude	drivers/gpu/drm/drm_of.c	device tree (CONFIG_OF off)
+core	drivers/gpu/drm/drm_panel.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_panel_orientation_quirks.c	DRM core / KMS helper
+extra	drivers/gpu/drm/drm_panic.c	CONFIG_DRM_PANIC off (i915 has no panic hooks in 6.14)
+exclude	drivers/gpu/drm/drm_panic_qr.rs	build/Kconfig/Rust or other non-C file
+core	drivers/gpu/drm/drm_pci.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_plane.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_plane_helper.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_prime.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_print.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_privacy_screen.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_privacy_screen_x86.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_probe_helper.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_property.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_rect.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_self_refresh_helper.c	no i915 user; drm_atomic_helper.c calls it
+extra	drivers/gpu/drm/drm_suballoc.c	amdgpu/radeon sub-allocator
+core	drivers/gpu/drm/drm_syncobj.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_vblank.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_vblank_work.c	DRM core / KMS helper
+core	drivers/gpu/drm/drm_vma_manager.c	DRM core / KMS helper
+exclude	drivers/gpu/drm/etnaviv/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/exynos/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/fsl-dcu/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/gma500/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/gud/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/hisilicon/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/hyperv/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/i2c/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/imagination/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/imx/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/ingenic/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/kmb/	other DRM driver or helper, out of scope
+kunit	drivers/gpu/drm/lib/	drm_random (CONFIG_DRM_LIB_RANDOM, selftests only)
+exclude	drivers/gpu/drm/lima/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/logicvc/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/loongson/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/mcde/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/mediatek/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/meson/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/mgag200/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/msm/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/mxsfb/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/nouveau/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/omapdrm/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/panel/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/panfrost/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/panthor/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/pl111/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/qxl/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/radeon/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/renesas/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/rockchip/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/scheduler/Makefile	build file
+extra	drivers/gpu/drm/scheduler/gpu_scheduler_trace.h	DRM GPU scheduler (requested); not used by i915
+extra	drivers/gpu/drm/scheduler/sched_entity.c	DRM GPU scheduler (requested); not used by i915
+extra	drivers/gpu/drm/scheduler/sched_fence.c	DRM GPU scheduler (requested); not used by i915
+extra	drivers/gpu/drm/scheduler/sched_main.c	DRM GPU scheduler (requested); not used by i915
+exclude	drivers/gpu/drm/solomon/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/sprd/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/sti/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/stm/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/sun4i/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/tegra/	other DRM driver or helper, out of scope
+kunit	drivers/gpu/drm/tests/	DRM KUnit tests
+exclude	drivers/gpu/drm/tidss/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/tilcdc/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/tiny/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/ttm/Makefile	build file
+kunit	drivers/gpu/drm/ttm/tests/	TTM KUnit tests
+exclude	drivers/gpu/drm/ttm/ttm_agp_backend.c	AGP backend; CONFIG_AGP off on amd64
+core	drivers/gpu/drm/ttm/ttm_bo.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_bo_util.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_bo_vm.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_device.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_execbuf_util.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_module.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+hdr	drivers/gpu/drm/ttm/ttm_module.h	TTM internal header
+core	drivers/gpu/drm/ttm/ttm_pool.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_range_manager.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_resource.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_sys_manager.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+core	drivers/gpu/drm/ttm/ttm_tt.c	TTM: i915_driver.c always calls intel_region_ttm_device_init()
+exclude	drivers/gpu/drm/tve200/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/udl/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/v3d/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/vboxvideo/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/vc4/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/vgem/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/virtio/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/vkms/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/vmwgfx/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/xe/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/xen/	other DRM driver or helper, out of scope
+exclude	drivers/gpu/drm/xlnx/	other DRM driver or helper, out of scope
+exclude	drivers/video/Kconfig	video helper not used by i915
+exclude	drivers/video/Makefile	video helper not used by i915
+core	drivers/video/aperture.c	aperture_remove_conflicting_pci_devices(), used by i915_driver.c
+exclude	drivers/video/backlight/	fbdev/backlight/console/logo: not imported
+exclude	drivers/video/console/	fbdev/backlight/console/logo: not imported
+exclude	drivers/video/display_timing.c	video helper not used by i915
+exclude	drivers/video/fbdev/	fbdev/backlight/console/logo: not imported
+core	drivers/video/hdmi.c	HDMI infoframes (hdmi_infoframe_*), used by drm_edid.c and i915
+exclude	drivers/video/logo/	fbdev/backlight/console/logo: not imported
+exclude	drivers/video/of_display_timing.c	video helper not used by i915
+exclude	drivers/video/of_videomode.c	video helper not used by i915
+exclude	drivers/video/screen_info_generic.c	video helper not used by i915
+exclude	drivers/video/screen_info_pci.c	video helper not used by i915
+exclude	drivers/video/sticore.c	video helper not used by i915
+exclude	drivers/video/vgastate.c	video helper not used by i915
+exclude	drivers/video/videomode.c	video helper not used by i915
+hdr	include/drm/amd_asic_type.h	DRM kernel header
+hdr	include/drm/clients/drm_client_setup.h	DRM kernel header
+hdr	include/drm/display/drm_dp.h	DRM kernel header
+hdr	include/drm/display/drm_dp_dual_mode_helper.h	DRM kernel header
+hdr	include/drm/display/drm_dp_helper.h	DRM kernel header
+hdr	include/drm/display/drm_dp_mst_helper.h	DRM kernel header
+hdr	include/drm/display/drm_dp_tunnel.h	DRM kernel header
+hdr	include/drm/display/drm_dsc.h	DRM kernel header
+hdr	include/drm/display/drm_dsc_helper.h	DRM kernel header
+hdr	include/drm/display/drm_hdcp.h	DRM kernel header
+hdr	include/drm/display/drm_hdcp_helper.h	DRM kernel header
+hdr	include/drm/display/drm_hdmi_audio_helper.h	DRM kernel header
+hdr	include/drm/display/drm_hdmi_helper.h	DRM kernel header
+hdr	include/drm/display/drm_hdmi_state_helper.h	DRM kernel header
+hdr	include/drm/display/drm_scdc.h	DRM kernel header
+hdr	include/drm/display/drm_scdc_helper.h	DRM kernel header
+hdr	include/drm/drm_atomic.h	DRM kernel header
+hdr	include/drm/drm_atomic_helper.h	DRM kernel header
+hdr	include/drm/drm_atomic_state_helper.h	DRM kernel header
+hdr	include/drm/drm_atomic_uapi.h	DRM kernel header
+hdr	include/drm/drm_audio_component.h	DRM kernel header
+hdr	include/drm/drm_auth.h	DRM kernel header
+hdr	include/drm/drm_blend.h	DRM kernel header
+hdr	include/drm/drm_bridge.h	DRM kernel header
+hdr	include/drm/drm_buddy.h	DRM kernel header
+hdr	include/drm/drm_cache.h	DRM kernel header
+hdr	include/drm/drm_client.h	DRM kernel header
+hdr	include/drm/drm_client_event.h	DRM kernel header
+hdr	include/drm/drm_color_mgmt.h	DRM kernel header
+hdr	include/drm/drm_connector.h	DRM kernel header
+hdr	include/drm/drm_crtc.h	DRM kernel header
+hdr	include/drm/drm_crtc_helper.h	DRM kernel header
+hdr	include/drm/drm_damage_helper.h	DRM kernel header
+hdr	include/drm/drm_debugfs.h	DRM kernel header
+hdr	include/drm/drm_debugfs_crc.h	DRM kernel header
+hdr	include/drm/drm_device.h	DRM kernel header
+hdr	include/drm/drm_drv.h	DRM kernel header
+hdr	include/drm/drm_edid.h	DRM kernel header
+hdr	include/drm/drm_eld.h	DRM kernel header
+hdr	include/drm/drm_encoder.h	DRM kernel header
+hdr	include/drm/drm_encoder_slave.h	DRM kernel header
+hdr	include/drm/drm_exec.h	DRM kernel header
+hdr	include/drm/drm_fb_helper.h	DRM kernel header
+hdr	include/drm/drm_fbdev_dma.h	DRM kernel header
+hdr	include/drm/drm_fbdev_shmem.h	DRM kernel header
+hdr	include/drm/drm_fbdev_ttm.h	DRM kernel header
+hdr	include/drm/drm_file.h	DRM kernel header
+hdr	include/drm/drm_fixed.h	DRM kernel header
+hdr	include/drm/drm_flip_work.h	DRM kernel header
+hdr	include/drm/drm_fourcc.h	DRM kernel header
+hdr	include/drm/drm_framebuffer.h	DRM kernel header
+hdr	include/drm/drm_gem.h	DRM kernel header
+hdr	include/drm/drm_gem_framebuffer_helper.h	DRM kernel header
+hdr	include/drm/drm_gpuvm.h	DRM kernel header
+hdr	include/drm/drm_ioctl.h	DRM kernel header
+hdr	include/drm/drm_mm.h	DRM kernel header
+hdr	include/drm/drm_mode_config.h	DRM kernel header
+hdr	include/drm/drm_mode_object.h	DRM kernel header
+hdr	include/drm/drm_modes.h	DRM kernel header
+hdr	include/drm/drm_modeset_helper.h	DRM kernel header
+hdr	include/drm/drm_modeset_helper_vtables.h	DRM kernel header
+hdr	include/drm/drm_modeset_lock.h	DRM kernel header
+hdr	include/drm/drm_module.h	DRM kernel header
+hdr	include/drm/drm_panel.h	DRM kernel header
+hdr	include/drm/drm_panic.h	DRM kernel header
+hdr	include/drm/drm_pciids.h	DRM kernel header
+hdr	include/drm/drm_plane.h	DRM kernel header
+hdr	include/drm/drm_plane_helper.h	DRM kernel header
+hdr	include/drm/drm_prime.h	DRM kernel header
+hdr	include/drm/drm_print.h	DRM kernel header
+hdr	include/drm/drm_privacy_screen_consumer.h	DRM kernel header
+hdr	include/drm/drm_privacy_screen_driver.h	DRM kernel header
+hdr	include/drm/drm_privacy_screen_machine.h	DRM kernel header
+hdr	include/drm/drm_probe_helper.h	DRM kernel header
+hdr	include/drm/drm_property.h	DRM kernel header
+hdr	include/drm/drm_rect.h	DRM kernel header
+hdr	include/drm/drm_self_refresh_helper.h	DRM kernel header
+hdr	include/drm/drm_suballoc.h	DRM kernel header
+hdr	include/drm/drm_syncobj.h	DRM kernel header
+hdr	include/drm/drm_util.h	DRM kernel header
+hdr	include/drm/drm_utils.h	DRM kernel header
+hdr	include/drm/drm_vblank.h	DRM kernel header
+hdr	include/drm/drm_vblank_work.h	DRM kernel header
+hdr	include/drm/drm_vma_manager.h	DRM kernel header
+hdr	include/drm/gpu_scheduler.h	DRM kernel header
+hdr	include/drm/gud.h	DRM kernel header
+hdr	include/drm/i2c/ch7006.h	DRM kernel header
+hdr	include/drm/i2c/sil164.h	DRM kernel header
+hdr	include/drm/spsc_queue.h	DRM kernel header
+hdr	include/drm/task_barrier.h	DRM kernel header
+hdr	include/drm/ttm/ttm_bo.h	DRM kernel header
+hdr	include/drm/ttm/ttm_caching.h	DRM kernel header
+hdr	include/drm/ttm/ttm_device.h	DRM kernel header
+hdr	include/drm/ttm/ttm_execbuf_util.h	DRM kernel header
+hdr	include/drm/ttm/ttm_kmap_iter.h	DRM kernel header
+hdr	include/drm/ttm/ttm_placement.h	DRM kernel header
+hdr	include/drm/ttm/ttm_pool.h	DRM kernel header
+hdr	include/drm/ttm/ttm_range_manager.h	DRM kernel header
+hdr	include/drm/ttm/ttm_resource.h	DRM kernel header
+hdr	include/drm/ttm/ttm_tt.h	DRM kernel header
+exclude	include/uapi/drm/amdgpu_drm.h	uAPI of another driver
+exclude	include/uapi/drm/amdxdna_accel.h	uAPI of another driver
+exclude	include/uapi/drm/armada_drm.h	uAPI of another driver
+uapi	include/uapi/drm/drm.h	DRM/i915 userspace ABI
+uapi	include/uapi/drm/drm_fourcc.h	DRM/i915 userspace ABI
+uapi	include/uapi/drm/drm_mode.h	DRM/i915 userspace ABI
+uapi	include/uapi/drm/drm_sarea.h	DRM/i915 userspace ABI
+exclude	include/uapi/drm/etnaviv_drm.h	uAPI of another driver
+exclude	include/uapi/drm/exynos_drm.h	uAPI of another driver
+exclude	include/uapi/drm/habanalabs_accel.h	uAPI of another driver
+uapi	include/uapi/drm/i915_drm.h	DRM/i915 userspace ABI
+exclude	include/uapi/drm/ivpu_accel.h	uAPI of another driver
+exclude	include/uapi/drm/lima_drm.h	uAPI of another driver
+exclude	include/uapi/drm/msm_drm.h	uAPI of another driver
+exclude	include/uapi/drm/nouveau_drm.h	uAPI of another driver
+exclude	include/uapi/drm/omap_drm.h	uAPI of another driver
+exclude	include/uapi/drm/panfrost_drm.h	uAPI of another driver
+exclude	include/uapi/drm/panthor_drm.h	uAPI of another driver
+exclude	include/uapi/drm/pvr_drm.h	uAPI of another driver
+exclude	include/uapi/drm/qaic_accel.h	uAPI of another driver
+exclude	include/uapi/drm/qxl_drm.h	uAPI of another driver
+exclude	include/uapi/drm/radeon_drm.h	uAPI of another driver
+exclude	include/uapi/drm/tegra_drm.h	uAPI of another driver
+exclude	include/uapi/drm/v3d_drm.h	uAPI of another driver
+exclude	include/uapi/drm/vc4_drm.h	uAPI of another driver
+exclude	include/uapi/drm/vgem_drm.h	uAPI of another driver
+exclude	include/uapi/drm/virtgpu_drm.h	uAPI of another driver
+exclude	include/uapi/drm/vmwgfx_drm.h	uAPI of another driver
+exclude	include/uapi/drm/xe_drm.h	uAPI of another driver

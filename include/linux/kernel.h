@@ -27,6 +27,7 @@
 #include <linux/panic.h>
 #include <linux/err.h>
 #include <linux/errno.h>
+#include <linux/kstrtox.h>
 
 /*
  * illumos <sys/sysmacros.h> defines ARRAY_SIZE without the array check

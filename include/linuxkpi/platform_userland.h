@@ -30,6 +30,8 @@
 #include <stdarg.h>
 #include <time.h>
 #include <pthread.h>
+#include <sched.h>
+#include <unistd.h>
 
 #define	lkpi_assert(x)		assert(x)
 
@@ -97,10 +99,19 @@ lkpi_plat_cv_wait(lkpi_plat_cv_t *cv, lkpi_plat_mutex_t *m)
 	(void) pthread_cond_wait(cv, m);
 }
 
-/* No signals interrupt waits in userland. */
+/*
+ * Real signals never interrupt waits in userland. Tests simulate a pending
+ * signal for the calling thread by setting lkpi_plat_fake_signal (defined
+ * in src/plat_userland.c): signal_pending() then reports it, and
+ * interruptible waits return "interrupted" without blocking.
+ */
+extern __thread int lkpi_plat_fake_signal;
+
 static inline bool
 lkpi_plat_cv_wait_sig(lkpi_plat_cv_t *cv, lkpi_plat_mutex_t *m)
 {
+	if (lkpi_plat_fake_signal)
+		return (true);
 	(void) pthread_cond_wait(cv, m);
 	return (false);
 }
@@ -112,7 +123,8 @@ lkpi_plat_cv_timedwait(lkpi_plat_cv_t *cv, lkpi_plat_mutex_t *m, long ticks,
 {
 	struct timespec ts;
 
-	(void) intr;
+	if (intr && lkpi_plat_fake_signal)
+		return (LKPI_PLAT_WAIT_INTR);
 	if (ticks <= 0)
 		return (LKPI_PLAT_WAIT_TIMEOUT);
 	/* Default condvar clock is CLOCK_REALTIME. */
@@ -281,6 +293,193 @@ lkpi_plat_sleep_ticks(long ticks)
 	ts.tv_nsec = (ticks % 1000) * 1000000L;
 	while (nanosleep(&ts, &ts) != 0 && errno == EINTR)
 		continue;
+}
+
+static inline uint64_t
+lkpi_plat_nsec(void)
+{
+	struct timespec ts;
+
+	(void) clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ((uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec);
+}
+
+static inline void
+lkpi_plat_realtime(int64_t *sec, long *nsec)
+{
+	struct timespec ts;
+
+	(void) clock_gettime(CLOCK_REALTIME, &ts);
+	*sec = (int64_t)ts.tv_sec;
+	*nsec = ts.tv_nsec;
+}
+
+/*
+ * Absolute monotonic deadline. The default condvar clock is
+ * CLOCK_REALTIME, so convert the remaining time to a realtime deadline.
+ */
+static inline int
+lkpi_plat_cv_timedwait_ns(lkpi_plat_cv_t *cv, lkpi_plat_mutex_t *m,
+    uint64_t deadline, bool intr)
+{
+	struct timespec ts;
+	uint64_t now = lkpi_plat_nsec(), left;
+
+	if (intr && lkpi_plat_fake_signal)
+		return (LKPI_PLAT_WAIT_INTR);
+	if (deadline <= now)
+		return (LKPI_PLAT_WAIT_TIMEOUT);
+	left = deadline - now;
+	(void) clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_sec += (time_t)(left / 1000000000ULL);
+	ts.tv_nsec += (long)(left % 1000000000ULL);
+	if (ts.tv_nsec >= 1000000000L) {
+		ts.tv_sec++;
+		ts.tv_nsec -= 1000000000L;
+	}
+	if (pthread_cond_timedwait(cv, m, &ts) == ETIMEDOUT &&
+	    lkpi_plat_nsec() >= deadline)
+		return (LKPI_PLAT_WAIT_TIMEOUT);
+	return (LKPI_PLAT_WAIT_OK);
+}
+
+static inline void
+lkpi_plat_sleep_ns(uint64_t ns)
+{
+	struct timespec ts;
+
+	ts.tv_sec = (time_t)(ns / 1000000000ULL);
+	ts.tv_nsec = (long)(ns % 1000000000ULL);
+	while (nanosleep(&ts, &ts) != 0 && errno == EINTR)
+		continue;
+}
+
+static inline void
+lkpi_plat_udelay(unsigned long us)
+{
+	uint64_t end = lkpi_plat_nsec() + (uint64_t)us * 1000ULL;
+
+	while (lkpi_plat_nsec() < end)
+		continue;
+}
+
+static inline unsigned int
+lkpi_plat_ncpus(void)
+{
+	return (4U);
+}
+
+static inline unsigned int
+lkpi_plat_cpu_id(void)
+{
+	return (0U);
+}
+
+static inline void
+lkpi_plat_yield(void)
+{
+	(void) sched_yield();
+}
+
+/* Thread-specific data with an exit destructor: pthread keys. */
+typedef struct {
+	pthread_key_t	key;
+	int		valid;
+} lkpi_plat_tsd_t;
+
+static inline void
+lkpi_plat_tsd_create(lkpi_plat_tsd_t *key, void (*dtor)(void *))
+{
+	if (!key->valid && pthread_key_create(&key->key, dtor) == 0)
+		key->valid = 1;
+}
+
+static inline void
+lkpi_plat_tsd_destroy(lkpi_plat_tsd_t *key)
+{
+	if (key->valid)
+		(void) pthread_key_delete(key->key);
+	key->valid = 0;
+}
+
+static inline void *
+lkpi_plat_tsd_get(lkpi_plat_tsd_t key)
+{
+	return (key.valid ? pthread_getspecific(key.key) : NULL);
+}
+
+static inline int
+lkpi_plat_tsd_set(lkpi_plat_tsd_t key, void *value)
+{
+	return (key.valid ? pthread_setspecific(key.key, value) : EINVAL);
+}
+
+static inline bool
+lkpi_plat_signal_pending(void)
+{
+	return (lkpi_plat_fake_signal != 0);
+}
+
+static inline bool
+lkpi_plat_fatal_signal_pending(void)
+{
+	return (lkpi_plat_fake_signal > 1);
+}
+
+static inline int
+lkpi_plat_getpid(void)
+{
+	return ((int)getpid());
+}
+
+static inline void
+lkpi_plat_getcomm(char *buf, size_t len)
+{
+	(void) snprintf(buf, len, "%s", "userland");
+}
+
+/*
+ * "User" memory is ordinary memory here; addresses below 4096 fault, so
+ * tests can exercise the -EFAULT paths.
+ */
+static inline int
+lkpi_plat_copyin(const void *uaddr, void *kaddr, size_t len, bool kernel)
+{
+	(void) kernel;
+	if (len != 0 && (uintptr_t)uaddr < 4096)
+		return (EFAULT);
+	if (len != 0)
+		memcpy(kaddr, uaddr, len);
+	return (0);
+}
+
+static inline int
+lkpi_plat_copyout(const void *kaddr, void *uaddr, size_t len, bool kernel)
+{
+	(void) kernel;
+	if (len != 0 && (uintptr_t)uaddr < 4096)
+		return (EFAULT);
+	if (len != 0)
+		memcpy(uaddr, kaddr, len);
+	return (0);
+}
+
+static inline long
+lkpi_plat_copyinstr(const char *uaddr, char *kbuf, size_t len, bool kernel)
+{
+	size_t i;
+
+	(void) kernel;
+	if (len == 0)
+		return (0);
+	if ((uintptr_t)uaddr < 4096)
+		return (-EFAULT);
+	for (i = 0; i < len; i++) {
+		kbuf[i] = uaddr[i];
+		if (uaddr[i] == '\0')
+			return ((long)i);
+	}
+	return (-ENAMETOOLONG);
 }
 
 static inline void *

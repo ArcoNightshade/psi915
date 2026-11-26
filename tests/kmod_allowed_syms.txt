@@ -87,3 +87,26 @@ __x86_indirect_thunk_r12
 __x86_indirect_thunk_r13
 __x86_indirect_thunk_r14
 __x86_indirect_thunk_r15
+# P1 second slice: high-resolution time, TSD, signals, user copies
+gethrtime
+gethrestime
+cv_timedwait_hires
+cv_timedwait_sig_hrtime
+kpreempt
+ncpus
+tsd_create
+tsd_destroy
+tsd_get
+tsd_set
+issig
+ddi_get_pid
+ddi_copyin
+ddi_copyout
+copyinstr
+copystr
+curcpup
+# driver.conf properties (module parameters)
+ddi_prop_exists
+ddi_prop_get_int
+ddi_prop_lookup_string
+ddi_prop_free

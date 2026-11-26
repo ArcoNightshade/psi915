@@ -1,0 +1,271 @@
+/*
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2026 The psi915 Authors. All rights reserved.
+ * See the LICENSE file at the top of the source tree for the full text.
+ */
+
+/*
+ * Linux file-layer types the DRM glue needs: struct file, struct inode,
+ * struct address_space, struct file_operations, poll_table. Clean-room,
+ * from the documented Linux 6.x kernel API; only the members DRM core,
+ * i915, dma-buf, sync_file and drm_syncobj use are present.
+ *
+ * REQUESTED CHANGE (docs/10, R1): these belong in the KPI as
+ * include/linux/fs.h, linux/poll.h and linux/kdev_t.h. They live here only
+ * because the KPI core files are being edited concurrently. When the KPI
+ * grows those headers this file must shrink to including them, keeping the
+ * f_lkpi_* members (or moving them behind one opaque pointer).
+ *
+ * Name clash: illumos <sys/file.h> defines struct file (file_t). As with
+ * struct mutex (include/linuxkpi/platform.h), every later use of the
+ * identifier "file" is renamed to lkpi_file, so illumos headers must be
+ * included before this one; file_t keeps its illumos meaning. Done in
+ * userland too, so tests see the same names. REQUESTED CHANGE (R2): move
+ * the rename into <linuxkpi/platform.h> next to the mutex one.
+ */
+#ifndef _DRMGLUE_LKPI_FS_H_
+#define	_DRMGLUE_LKPI_FS_H_
+
+#include <linux/types.h>
+#include <linux/atomic.h>
+#include <linux/mutex.h>
+#include <linux/rwsem.h>
+#include <linux/list.h>
+#include <linux/wait.h>
+#include <drmglue/itree.h>
+
+#ifdef LINUXKPI_ILLUMOS_KERNEL
+#include <sys/file.h>
+#include <sys/fcntl.h>
+#else
+#include <fcntl.h>
+#endif
+
+#define	file	lkpi_file
+
+typedef long long	lkpi_loff_t;
+#define	loff_t		lkpi_loff_t
+typedef unsigned int	fmode_t;
+typedef unsigned short	umode_t;
+typedef void		*fl_owner_t;
+
+/* Linux kdev_t: 12-bit major, 20-bit minor (in-kernel encoding). */
+#define	LKPI_MINORBITS		20
+#define	LKPI_MINORMASK		((1U << LKPI_MINORBITS) - 1)
+#define	LKPI_MKDEV(ma, mi)	(((uint32_t)(ma) << LKPI_MINORBITS) | (mi))
+#define	LKPI_MAJOR(d)		((uint32_t)(d) >> LKPI_MINORBITS)
+#define	LKPI_MINOR(d)		((uint32_t)(d) & LKPI_MINORMASK)
+
+#define	FMODE_READ		0x1U
+#define	FMODE_WRITE		0x2U
+#define	FMODE_LSEEK		0x4U
+#define	FMODE_PREAD		0x8U
+#define	FMODE_PWRITE		0x10U
+#define	FMODE_UNSIGNED_OFFSET	0x2000U
+
+struct lkpi_file;
+struct vm_area_struct;
+struct seq_file;
+struct module;
+struct poll_table_struct;
+
+/*
+ * The Linux mapping object of an inode. Only the mmap registry is
+ * emulated: i_mmap holds every live user mapping (struct lkpi_vma) of the
+ * file, keyed by page offset, so unmap_mapping_range() can find them
+ * (docs/10, section 3.5).
+ */
+struct address_space {
+	struct inode		*host;
+	struct rw_semaphore	i_mmap_rwsem;
+	struct lkpi_itree	i_mmap;
+};
+
+struct inode {
+	uint32_t		i_rdev;		/* LKPI_MKDEV encoding */
+	umode_t			i_mode;
+	loff_t			i_size;
+	atomic_t		i_count;
+	void			*i_private;
+	struct address_space	*i_mapping;
+	struct address_space	i_data;
+};
+
+struct file_operations {
+	struct module	*owner;
+	loff_t		(*llseek)(struct lkpi_file *, loff_t, int);
+	ssize_t		(*read)(struct lkpi_file *, char __user *, size_t,
+			    loff_t *);
+	ssize_t		(*write)(struct lkpi_file *, const char __user *,
+			    size_t, loff_t *);
+	__poll_t	(*poll)(struct lkpi_file *, struct poll_table_struct *);
+	long		(*unlocked_ioctl)(struct lkpi_file *, unsigned int,
+			    unsigned long);
+	long		(*compat_ioctl)(struct lkpi_file *, unsigned int,
+			    unsigned long);
+	int		(*mmap)(struct lkpi_file *, struct vm_area_struct *);
+	int		(*open)(struct inode *, struct lkpi_file *);
+	int		(*flush)(struct lkpi_file *, fl_owner_t);
+	int		(*release)(struct inode *, struct lkpi_file *);
+	int		(*fasync)(int, struct lkpi_file *, int);
+	void		(*show_fdinfo)(struct seq_file *, struct lkpi_file *);
+};
+
+/*
+ * Wait queues a file's f_op->poll passed to poll_wait(). Each gets one
+ * custom-function entry (KPI <linux/wait.h>) that forwards wake_up*() to
+ * the file's poll head; entries stay queued until the file is released
+ * (illumos poll heads are persistent, unlike Linux poll tables). See
+ * lkpi_file_poll() in src/file.c.
+ */
+#define	LKPI_FILE_MAX_POLLREG	4
+
+struct lkpi_file_pollreg {
+	struct wait_queue_head	*wq;
+	struct wait_queue_entry	we;
+	struct lkpi_file	*f;
+};
+
+/* Pending mmap(2) parameters, valid during segmap -> devmap (docs/10 3.3). */
+struct lkpi_mmap_req {
+	unsigned int		prot;		/* PROT_* of the request */
+	unsigned int		maxprot;
+	unsigned int		flags;		/* MAP_* */
+	struct lkpi_vma		*lv;		/* created by devmap(9E) */
+};
+
+enum lkpi_file_kind {
+	LKPI_FILE_CDEV = 1,	/* clone open of a /dev/dri node */
+	LKPI_FILE_ANON = 2	/* anon_inode_getfile(): dma-buf, sync_file, ... */
+};
+
+struct lkpi_file {
+	const struct file_operations	*f_op;
+	void				*private_data;
+	struct inode			*f_inode;
+	struct address_space		*f_mapping;
+	unsigned int			f_flags;	/* O_* */
+	fmode_t				f_mode;
+	loff_t				f_pos;
+	atomic_long_t			f_count;
+
+	/* psi915 glue state; never touched by Linux code. */
+	enum lkpi_file_kind		f_lkpi_kind;
+	struct mutex			f_lkpi_lock;	/* vnode, pollreg */
+	struct mutex			f_lkpi_mmap_lock; /* one mmap at a time */
+	struct lkpi_mmap_req		*f_lkpi_mmap;
+	void				*f_lkpi_vnode;	/* anon: backend vnode */
+	void				*f_lkpi_ph;	/* backend pollhead */
+	unsigned int			f_lkpi_npollreg;
+	struct lkpi_file_pollreg	f_lkpi_pollreg[LKPI_FILE_MAX_POLLREG];
+	uint32_t			f_lkpi_mmap_id;	/* anon mmap host id */
+	void				*f_lkpi_mmap_vp; /* backend: host snode */
+	struct inode			*f_lkpi_own_inode; /* freed with file */
+};
+
+typedef struct poll_table_struct {
+	void		(*_qproc)(struct lkpi_file *, struct wait_queue_head *,
+			    struct poll_table_struct *);
+	__poll_t	_key;
+} poll_table;
+
+static inline void
+poll_wait(struct lkpi_file *f, struct wait_queue_head *wq, poll_table *p)
+{
+	if (p != NULL && p->_qproc != NULL && wq != NULL)
+		p->_qproc(f, wq, p);
+}
+
+static inline bool
+poll_does_not_wait(const poll_table *p)
+{
+	return (p == NULL || p->_qproc == NULL);
+}
+
+static inline __poll_t
+poll_requested_events(const poll_table *p)
+{
+	return (p != NULL ? p->_key : ~(__poll_t)0);
+}
+
+static inline struct inode *
+file_inode(const struct lkpi_file *f)
+{
+	return (f->f_inode);
+}
+
+static inline unsigned int
+iminor(const struct inode *ip)
+{
+	return (LKPI_MINOR(ip->i_rdev));
+}
+
+static inline unsigned int
+imajor(const struct inode *ip)
+{
+	return (LKPI_MAJOR(ip->i_rdev));
+}
+
+static inline loff_t
+i_size_read(const struct inode *ip)
+{
+	return (ip->i_size);
+}
+
+static inline void
+i_size_write(struct inode *ip, loff_t sz)
+{
+	ip->i_size = sz;
+}
+
+static inline struct lkpi_file *
+get_file(struct lkpi_file *f)
+{
+	atomic_long_inc(&f->f_count);
+	return (f);
+}
+
+/* Takes a reference unless the count already dropped to zero. */
+static inline struct lkpi_file *
+get_file_active(struct lkpi_file **fp)
+{
+	struct lkpi_file *f = *fp;
+
+	if (f != NULL && !atomic_long_inc_not_zero(&f->f_count))
+		f = NULL;
+	return (f);
+}
+
+/* Drops a reference; the last one calls f_op->release (file.c). */
+void fput(struct lkpi_file *f);
+
+static inline int
+nonseekable_open(struct inode *ip, struct lkpi_file *f)
+{
+	f->f_mode &= ~(FMODE_LSEEK | FMODE_PREAD | FMODE_PWRITE);
+	return (0);
+}
+
+static inline int
+stream_open(struct inode *ip, struct lkpi_file *f)
+{
+	return (nonseekable_open(ip, f));
+}
+
+loff_t noop_llseek(struct lkpi_file *f, loff_t off, int whence);
+loff_t no_llseek(struct lkpi_file *f, loff_t off, int whence);
+
+/*
+ * Glue-internal file lifecycle (src/file.c).
+ */
+void lkpi_address_space_init(struct address_space *m, struct inode *host);
+struct inode *lkpi_inode_alloc(uint32_t rdev, umode_t mode);
+void lkpi_inode_put(struct inode *ip);
+struct lkpi_file *lkpi_file_alloc(enum lkpi_file_kind kind,
+    const struct file_operations *fops, struct inode *ip, unsigned int flags,
+    fmode_t mode);
+/* Free a file whose release never ran (open failed). */
+void lkpi_file_free(struct lkpi_file *f);
+
+#endif /* _DRMGLUE_LKPI_FS_H_ */

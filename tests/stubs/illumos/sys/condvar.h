@@ -20,4 +20,7 @@ extern clock_t cv_reltimedwait_sig(kcondvar_t *, kmutex_t *, clock_t,
     time_res_t);
 extern void cv_signal(kcondvar_t *);
 extern void cv_broadcast(kcondvar_t *);
+extern clock_t cv_timedwait_hires(kcondvar_t *, kmutex_t *, hrtime_t, hrtime_t,
+    int);
+extern int cv_timedwait_sig_hrtime(kcondvar_t *, kmutex_t *, hrtime_t);
 #endif

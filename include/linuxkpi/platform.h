@@ -33,6 +33,13 @@
  *   lkpi_plat_thread_*  service threads: thread_create / pthread_create
  *                       (out of line, in src/plat_illumos.c and
  *                       src/plat_userland.c)
+ *   lkpi_plat_nsec      monotonic ns clock: gethrtime / CLOCK_MONOTONIC
+ *   lkpi_plat_cv_timedwait_ns  absolute ns deadline waits
+ *   lkpi_plat_sleep_ns, lkpi_plat_udelay  sleeps and busy-waits
+ *   lkpi_plat_tsd_*     thread-specific data with exit destructor:
+ *                       tsd_create / pthread_key_create
+ *   lkpi_plat_signal_pending, lkpi_plat_getpid, lkpi_plat_getcomm
+ *   lkpi_plat_copyin/copyout/copyinstr  ddi_copyin / memcpy
  *
  * illumos headers must be included before any linux/ header: several
  * illumos names (min, max, ARRAY_SIZE, ffs, mutex_init, mutex_destroy,
@@ -73,24 +80,43 @@
 #endif
 
 /*
- * Struct tag clash: illumos <sys/mutex.h> defines kmutex_t as
- * "typedef struct mutex {...} kmutex_t", so Linux's struct mutex cannot use
- * that tag in the kernel. Every later use of the identifier "mutex" is
- * renamed to lkpi_mutex instead (struct tags, and also variables or members
- * called "mutex", consistently across all code built against the KPI).
- * The environment headers above are already parsed, so kmutex_t keeps its
- * real definition. Done in userland too, so tests see the same names.
- * Other illumos/Linux tag clashes to handle the same way when their
- * headers arrive: struct page (P2), struct file, struct module, struct
- * cred, struct pid (P3); see docs/03.
+ * Struct tag clashes. illumos defines these tags with its own meaning:
+ *
+ *   struct mutex   kmutex_t   <sys/mutex.h>
+ *   struct page    page_t     <vm/page.h>
+ *   struct file    file_t     <sys/file.h>
+ *   struct module  (krtld)    <sys/kobj.h>
+ *   struct cred    cred_t     <sys/cred.h>
+ *   struct pid     (proc)     <sys/proc.h>
+ *
+ * so Linux's structs of the same names cannot use those tags in the
+ * kernel. Every later use of each identifier is renamed to lkpi_<name>
+ * (struct tags, and also variables, members or parameters with that name,
+ * consistently across all code built against the KPI; for example
+ * `struct page *page` becomes `struct lkpi_page *lkpi_page` and
+ * `task->pid` becomes `task->lkpi_pid`). The environment headers above
+ * are already parsed, so kmutex_t, page_t, file_t and cred_t keep their
+ * illumos meaning, and KPI sources use those typedefs when they mean the
+ * illumos objects. Consequence: every illumos header must be included
+ * before the first linux/ header (an illumos header parsed later would
+ * have its own tags renamed). Done in userland too, so tests see the
+ * same names.
  */
 #define	mutex	lkpi_mutex
+#define	page	lkpi_page
+#define	file	lkpi_file
+#define	module	lkpi_module
+#define	cred	lkpi_cred
+#define	pid	lkpi_pid
 
 /* Service threads (src/plat_*.c). */
 struct lkpi_plat_thread;
 struct lkpi_plat_thread *lkpi_plat_thread_create(void (*fn)(void *),
     void *arg, const char *name);
 void lkpi_plat_thread_join(struct lkpi_plat_thread *t);
+/* A thread nobody joins; its resources go away when fn returns. 0 or errno. */
+int lkpi_plat_thread_create_detached(void (*fn)(void *), void *arg,
+    const char *name);
 
 static inline void
 lkpi_cpu_relax(void)
