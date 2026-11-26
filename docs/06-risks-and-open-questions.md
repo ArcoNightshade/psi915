@@ -30,3 +30,8 @@
 - illumos-gate has no in-tree DRM; confirmed by tree scan, but OpenIndiana may carry extra patches.
 - Exact firmware filenames/versions for KBL (DMC, GuC, HuC) per drm-kmod snapshot.
 - OpenIndiana's Mesa version and Gen9 driver availability.
+
+## Decision: GPL-only files (owner, 2026-11-26)
+GPL-2.0-only Linux files needed by the Gen9 build (sync_file.c, dma-fence-unwrap.c, drm_hdcp_helper.c, drm_writeback.c,
+intel_uncore_trace.c, and any found by later audits) ship as a separate GPL-2.0 module/package, not linked into BSD-2 KPI code.
+Open: confirm the module boundary is legally workable on illumos (CDDL kernel + GPL module) and that exported symbols are the only coupling.
