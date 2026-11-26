@@ -102,3 +102,4 @@ mdb -k   # ::findleaks, ::kmem_verify
 | install.sh layout / ips / svr4 output | exercised with `-R` staging dir | not run |
 | docs/08-kpi-requirements.md | Ranked missing-API list for DRM core + Gen9 i915, GPL module boundary |
 | docs/09-userland-stack.md | Userspace stack needs, distro gap list, uAPI conformance results |
+| docs/10-mmap-dmabuf-design.md | devmap GEM mmap, dma-buf/PRIME fds, DRM chardev glue design |
