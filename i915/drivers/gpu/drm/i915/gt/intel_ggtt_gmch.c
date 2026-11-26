@@ -5,7 +5,60 @@
 
 #include "intel_ggtt_gmch.h"
 
+#ifdef CONFIG_PSI915
+/*
+ * psi915: there is no intel-gtt (Gen2-5 GMCH GTT) driver on illumos and those platforms are
+ * unsupported.  These local stubs replace the intel-gtt interface (GPL-2.0 <drm/intel/intel-gtt.h>):
+ * probing fails with -ENODEV, so i915 refuses Gen2-5 devices cleanly; the rest are never reached.
+ */
+struct pci_dev;
+struct sg_table;
+
+static int intel_gmch_probe(struct pci_dev *bridge_pdev, struct pci_dev *gpu_pdev,
+			    void *bridge)
+{
+	return -ENODEV;
+}
+
+static void intel_gmch_gtt_get(u64 *gtt_total, phys_addr_t *mappable_base,
+			       resource_size_t *mappable_end)
+{
+	*gtt_total = 0;
+	*mappable_base = 0;
+	*mappable_end = 0;
+}
+
+static void intel_gmch_remove(void)
+{
+}
+
+static bool intel_gmch_enable_gtt(void)
+{
+	return false;
+}
+
+static void intel_gmch_gtt_flush(void)
+{
+}
+
+static void intel_gmch_gtt_insert_page(dma_addr_t addr, unsigned int pg,
+				       unsigned int flags)
+{
+}
+
+static void intel_gmch_gtt_insert_sg_entries(struct sg_table *st,
+					     unsigned int pg_start,
+					     unsigned int flags)
+{
+}
+
+static void intel_gmch_gtt_clear_range(unsigned int first_entry,
+				       unsigned int num_entries)
+{
+}
+#else
 #include <drm/intel/intel-gtt.h>
+#endif
 
 #include <linux/agp_backend.h>
 

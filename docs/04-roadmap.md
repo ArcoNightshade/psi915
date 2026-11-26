@@ -256,11 +256,13 @@ The 11 syntax-check failures that were outside the KPI are fixed (import/drm_bsd
   so scripts/gen-module-objs.sh, which compiles only core and link, no longer lists them.
 - [ ] Link check after these fixes (scripts/kpi-linkcheck.sh, 374 objects, 12 unresolved), new
   requests:
-  - Import/patch (mine): intel_gmch_* from intel_ggtt_gmch.c (Gen2-5, upstream from
-    drivers/char/agp/intel-gtt.c, not imported). Needs a stub patch or BSD stubs.
-  - Import (mine): intel_pxp_gsccs_is_ready_for_sessions from pxp/intel_pxp.c. Its only caller is
-    reached only for GSC0 engines (Gen12+); probably eliminated as dead code at -O2. Verify with
-    an optimised build, or stub it.
+  - [x] Import/patch (mine): intel_gmch_* from intel_ggtt_gmch.c (Gen2-5, upstream from
+    drivers/char/agp/intel-gtt.c, not imported). Fixed by patch 0004: local stubs, and probing
+    fails with -ENODEV. intel-gtt.h is now off the GPL allow list.
+  - [x] Import (mine): intel_pxp_gsccs_is_ready_for_sessions from pxp/intel_pxp.c. Not eliminated:
+    the illumos flags (-fno-inline-small-functions ...) keep the call. Fixed by patch 0005: an
+    inline "false" stub when PXP is off (upstream candidate).
+  - After 0004/0005: syntax-check 374/374, kpi-linkcheck 3 unresolved (the KPI items below).
   - KPI: intel_graphics_stolen_res (x86 early quirks resource; i915_gem_stolen.c) and
     register_/unregister_vmap_purge_notifier (i915_gem_shrinker.c).
 - [ ] Import (P3 loop only, set-dependent): drm/intel/i915_hdcp_interface.h, intel-gtt.h,

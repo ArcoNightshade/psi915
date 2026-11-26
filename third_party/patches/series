@@ -13,3 +13,5 @@
 0001-i915-gemfs-no-tmpfs-mount.patch
 0002-i915-rps-no-intel-ips-link.patch
 0003-i915-mm-remap-via-lkpi-vma-insert-pfns.patch
+0004-i915-ggtt-gmch-stub-intel-gtt.patch
+0005-i915-pxp-gsccs-ready-stub-without-pxp.patch
