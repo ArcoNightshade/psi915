@@ -71,6 +71,10 @@ is_vmalloc_addr(const void *p)
 struct page;
 struct page *lkpi_virt_to_page(const void *kva);
 #define	vmalloc_to_page(a)	lkpi_virt_to_page(a)
+struct notifier_block;
+/* Never called: illumos has no vmalloc purge event (linux_intel_gfx.c). */
+int register_vmap_purge_notifier(struct notifier_block *nb);
+int unregister_vmap_purge_notifier(struct notifier_block *nb);
 #define	is_vmalloc_addr(a)	((void)(a), false)
 
 #endif /* _LINUXKPI_LINUX_VMALLOC_H_ */

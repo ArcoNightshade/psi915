@@ -46,3 +46,6 @@ Upstream GPL files (gpl/) and MIT files (drm/, i915/) call each other in both di
 Recommended resolution: clean-room BSD rewrites of small coupled files (drm_managed, drm_sysfs, drm_lease, intel_acpi, cmdline, nomodeset, trace stubs),
 stub drm_writeback; keep a GPL module with one-way dependency (dma-buf, dma-fence*, sync_file, drm_hdcp_helper, drm_gem_framebuffer_helper).
 Also open: licence of drm_device.h and drm_gem_framebuffer_helper.h (no notice), and whether a CDDL kernel may load a GPL module (legal review).
+
+## Decision: gfx-drm package (owner, 2026-11-27)
+Exclude OpenIndiana's gfx-drm package (it registers an older driver named i915). Our driver keeps the name i915. Installer refuses `/` when gfx-drm's i915 is installed.

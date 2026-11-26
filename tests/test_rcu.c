@@ -252,7 +252,11 @@ rcu_list_thread(void *arg)
 		atomic_set(&r_stop, 1);
 		return;
 	}
-	while (!atomic_read(&r_stop)) {
+	/*
+	 * do/while: each reader looks up at least once, even if the updater
+	 * finished before it was scheduled (heavily loaded hosts).
+	 */
+	do {
 		rcu_read_lock();
 		keys = 0;
 		list_for_each_entry_rcu(pos, &rlist, node) {
@@ -268,7 +272,7 @@ rcu_list_thread(void *arg)
 		}
 		rcu_read_unlock();
 		atomic_long_inc(&r_lookups);
-	}
+	} while (!atomic_read(&r_stop));
 }
 
 static void

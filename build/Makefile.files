@@ -21,6 +21,7 @@ LINUXKPI_OBJS	+= linuxkpi_mod.o \
 		   linux_dmapool.o \
 		   linux_firmware.o \
 		   linux_i2c.o \
+		   linux_intel_gfx.o \
 		   linux_idr.o \
 		   linux_io.o \
 		   linux_irq.o \

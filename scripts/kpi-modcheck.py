@@ -27,7 +27,8 @@ Checks:
              TLS; R_X86_64_32 truncates kernel addresses silently)
   5. size    text/data/bss per module
   6. prefix  globals of linuxkpi that are neither Linux API names (present
-             in a Linux v6.14 header tree, -L, default ../ref/linux-hdrs)
+             in a Linux v6.14 header tree, -L, default ../ref/linux-hdrs,
+             or in the imported drm/, i915/, gpl/ headers)
              nor lkpi_/linuxkpi_/drmglue_ prefixed
 
 Output: tests/out/modcheck/report.txt (+ one file per check).
@@ -140,7 +141,7 @@ def illumos_syms(root):
                     text = f.read()
             except OSError:
                 continue
-            for m in re.finditer(r'^extern\b[^;(]*?\b(\w+)\s*(?:\(|;|\[)',
+            for m in re.finditer(r'^extern\b[^;(\n]*?\b(\w+)\s*(?:\(|;|\[)',
                                  text, re.M):
                 syms.setdefault(m.group(1), os.path.relpath(path, root))
     # Assembly entry points (string and copy routines, locks, ...).
@@ -163,7 +164,9 @@ def illumos_syms(root):
 def linux_identifiers(root):
     ids = set()
     for path in glob.glob(os.path.join(root, 'include/**/*.h'), recursive=True) + \
-            glob.glob(os.path.join(root, 'arch/x86/include/**/*.h'), recursive=True):
+            glob.glob(os.path.join(root, 'arch/x86/include/**/*.h'), recursive=True) + \
+            [p for d in ('drm/include', 'i915/include', 'gpl/include')
+             for p in glob.glob(os.path.join(TOP, d, '**/*.h'), recursive=True)]:
         try:
             with open(path, errors='replace') as f:
                 ids.update(re.findall(r'\b[A-Za-z_]\w*\b', f.read()))

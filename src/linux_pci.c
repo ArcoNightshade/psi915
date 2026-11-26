@@ -18,6 +18,7 @@
 
 #include <linux/kernel.h>
 #include <linux/pci.h>
+#include <linuxkpi/intel_gfx.h>
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/mutex.h>
@@ -1026,6 +1027,7 @@ lkpi_pci_probe(struct pci_dev *pdev)
 		return (-ENODEV);
 	pdev->driver = drv;
 	pdev->dev.driver = &drv->driver;
+	lkpi_intel_gfx_quirk(pdev);	/* early-quirk equivalent */
 	r = drv->probe(pdev, id);
 	if (r != 0) {
 		(void) lkpi_devres_release_all(&pdev->dev);

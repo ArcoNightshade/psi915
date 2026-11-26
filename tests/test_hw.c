@@ -36,6 +36,7 @@
 #include <asm/cpu_device_id.h>
 #include <linuxkpi/subsys.h>
 #include <linux/shmem_fs.h>
+#include <linuxkpi/intel_gfx.h>
 
 #include "harness.h"
 
@@ -901,8 +902,25 @@ TEST(shmem_cache)
 	kfree(ip);
 }
 
+TEST(intel_stolen)
+{
+	struct resource r;
+
+	memset(&r, 0, sizeof (r));
+	/* GMS 0x02: 64 MiB at BDSM 0x7b800000 (lock bit 0 set). */
+	CHECK(lkpi_intel_gen9_stolen(0x0200, 0x7b800001, &r));
+	CHECK(r.start == 0x7b800000ULL && resource_size(&r) == 64ULL << 20);
+	/* GMS 0xf1: 8 MiB. */
+	CHECK(lkpi_intel_gen9_stolen(0xf100, 0x80000000U, &r));
+	CHECK(resource_size(&r) == 8ULL << 20);
+	CHECK(!lkpi_intel_gen9_stolen(0x0000, 0x80000000U, &r));	/* none */
+	CHECK_EQ((int)resource_size(&intel_graphics_stolen_res), 0);
+	CHECK_EQ(intel_gmch_probe(NULL, NULL, NULL), 0);
+}
+
 LKPI_SUITE(hw)
 {
+	RUN(intel_stolen);
 	RUN(shmem_cache);
 #ifndef LKPI_KTEST
 	CHECK_EQ(lkpi_workqueue_init(), 0);
