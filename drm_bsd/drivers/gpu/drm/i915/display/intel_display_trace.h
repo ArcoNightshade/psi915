@@ -19,6 +19,11 @@ static inline void psi915_trace_noop(int unused, ...) { (void)unused; }
 #define PSI915_TRACE_NOOP(...)	psi915_trace_noop(0, ##__VA_ARGS__)
 #endif
 
+#include "i915_drv.h"
+#include "intel_crtc.h"
+#include "intel_display_types.h"
+#include "intel_vblank.h"
+
 #ifndef trace_g4x_wm
 #define trace_g4x_wm(...)	PSI915_TRACE_NOOP(__VA_ARGS__)
 #endif

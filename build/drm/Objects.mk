@@ -80,6 +80,7 @@ DRM_VIDEO_SRCS = \
 	drm/drivers/video/hdmi.c
 
 DRM_BSD_SRCS = \
+	drm_bsd/drivers/gpu/drm/drm_gem_atomic_helper.c \
 	drm_bsd/drivers/gpu/drm/drm_lease.c \
 	drm_bsd/drivers/gpu/drm/drm_managed.c \
 	drm_bsd/drivers/gpu/drm/drm_sysfs.c \
@@ -102,6 +103,7 @@ DRMGLUE_SRCS = \
 	drmglue/src/file.c \
 	drmglue/src/pseudofs.c \
 	drmglue/src/segdev_illumos.c \
+	drmglue/src/shmem.c \
 	drmglue/src/vma.c \
 	drmglue/src/vmoff.c \
 	drmglue/src/xlate.c

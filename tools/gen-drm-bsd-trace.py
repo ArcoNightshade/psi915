@@ -36,11 +36,26 @@ static inline void psi915_trace_noop(int unused, ...) {{ (void)unused; }}
 #endif
 
 '''
+# Headers each no-op trace header includes.  Units of the imported tree rely on getting these
+# declarations through the trace header (gen6/gen8/intel_ppgtt.c, intel_gtt.c, i915_gem_shrinker.c,
+# i9xx_wm.c, intel_pmdemand.c; docs/04).  The lists name what those units need, found by compiling
+# them, and are not taken from the upstream headers.
+INCLUDES = {
+    'drivers/gpu/drm/i915/i915_trace.h': ['"i915_drv.h"', '"i915_irq.h"', '"gt/intel_engine.h"'],
+    'drivers/gpu/drm/i915/display/intel_display_trace.h':
+        ['"i915_drv.h"', '"intel_crtc.h"', '"intel_display_types.h"', '"intel_vblank.h"'],
+}
+
 def gen(rel, guard, desc, lst):
     p = os.path.join(TOP, 'drm_bsd', rel)
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, 'w') as f:
         f.write(HDR.format(desc=desc, guard=guard))
+        incs = INCLUDES.get(rel, [])
+        for inc in incs:
+            f.write(f'#include {inc}\n')
+        if incs:
+            f.write('\n')
         for t in lst:
             f.write(f'#ifndef {t}\n#define {t}(...)\tPSI915_TRACE_NOOP(__VA_ARGS__)\n#endif\n')
         f.write(f'\n#endif /* {guard} */\n')

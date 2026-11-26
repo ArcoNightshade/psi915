@@ -11,7 +11,8 @@
 #                              resolved against the pinned Linux tag by
 #                              scripts/import-linux.sh, so it needs no Linux
 #                              clone. Files of sets "core" and "link" are
-#                              compiled; "extra" files only where a module
+#                              compiled; "inc" files (.c sources that another
+#                              file #includes) never are; "extra" files only where a module
 #                              asks for them (DRM scheduler, WITH_DRM_SCHED).
 #   drm_bsd/MANIFEST           BSD replacements: set "core" .c files
 #   third_party/gpl-policy.conf  G1/G2 allow-lists for gpl/

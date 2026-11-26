@@ -37,7 +37,7 @@ reviewed the detection file by file, so treat it as an index, not a legal determ
 
 The other GPL-only files of the Gen9 set have BSD-2-Clause clean-room replacements in **drm_bsd/** (psi915
 code; drm_bsd/MANIFEST lists them, and docs/08 section 5 explains them):
-- drm_managed, drm_sysfs, drm_lease, drm_writeback (stub);
+- drm_managed, drm_sysfs, drm_lease, drm_writeback (stub), drm_gem_atomic_helper (prepare_fb only);
 - i915 intel_acpi;
 - video cmdline and nomodeset;
 - the four trace headers.
@@ -49,7 +49,6 @@ GPL headers that MIT code still includes, allow-listed as debts in third_party/g
 - drm_mipi_dsi.h (6 includers, all DSI, link-only);
 - i915_hdcp_interface.h (4);
 - intel-gtt.h (3);
-- drm_gem_atomic_helper.h (2);
 - drm_accel.h, drm_of.h and drm_dp_mst_topology_internal.h (1 each).
 
 `scripts/import-linux.sh -c` fails if any other GPL header is included.

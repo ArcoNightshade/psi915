@@ -364,6 +364,8 @@ GPL policy / imports (third_party/):
   header that is not on the allow list. The build's allow-header include directory exposes the gap
   (drm_atomic_helper.c, i915 intel_atomic_plane.c fail on it). Either add it as a debt or replace
   drm_gem_atomic_helper.h with a BSD header in drm_bsd/.
+  Done 2026-11-26: drm_gem_atomic_helper.h is replaced by a BSD header plus drm_gem_plane_helper_prepare_fb()
+  in drm_bsd/, and the GPL pair is set "replaced" (docs/04).
 - R-P1..R-P3 i915 console patches (section 5.3).
 
 Build (build/Makefile, top-level Makefile):

@@ -2,12 +2,13 @@
 # Format: <set><TAB><upstream path><TAB><reason>.  A path ending in "/" covers everything below it; the longest
 # matching entry wins.  "scope" lines name the upstream directories that must be fully classified.
 # Destination: i915/<upstream path>.
-# Sets imported by default: core link hdr uapi extra aux.
+# Sets imported by default: core link hdr uapi extra aux inc.
 #   core   compiled for the Gen9 (KBL-R) target
 #   link   compiled only for link closure: code for non-Gen9 hardware (candidate for stub patches)
 #   hdr    header;  uapi  userspace ABI header
 #   extra  imported (requested subsystem or helper) but not compiled for the Gen9 target
 #   aux    non-compiled supporting source
+#   inc    C source #included by another file (imported, never compiled on its own)
 # Optional sets (import-linux.sh -s <set>): debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit
 #   edidfw auxdev cec replaced
 #   exclude never imported
@@ -394,7 +395,7 @@ core	drivers/gpu/drm/i915/gt/gen8_ppgtt.c	i915 (unconditional or CONFIG_X86/CONF
 hdr	drivers/gpu/drm/i915/gt/gen8_ppgtt.h	i915 header
 link	drivers/gpu/drm/i915/gt/gen8_renderstate.c	Gen8 render state; not used on KBL-R, compiled for link closure
 core	drivers/gpu/drm/i915/gt/gen9_renderstate.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
-link	drivers/gpu/drm/i915/gt/hsw_clear_kernel.c	HSW/IVB clear kernel, #included by gt/gen7_renderclear.c
+inc	drivers/gpu/drm/i915/gt/hsw_clear_kernel.c	HSW/IVB clear kernel: C source #included by gt/gen7_renderclear.c, not a translation unit
 core	drivers/gpu/drm/i915/gt/intel_breadcrumbs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_breadcrumbs.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_breadcrumbs_types.h	i915 header
@@ -505,7 +506,7 @@ hdr	drivers/gpu/drm/i915/gt/intel_wopcm.h	i915 header
 core	drivers/gpu/drm/i915/gt/intel_workarounds.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_workarounds.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_workarounds_types.h	i915 header
-link	drivers/gpu/drm/i915/gt/ivb_clear_kernel.c	HSW/IVB clear kernel, #included by gt/gen7_renderclear.c
+inc	drivers/gpu/drm/i915/gt/ivb_clear_kernel.c	HSW/IVB clear kernel: C source #included by gt/gen7_renderclear.c, not a translation unit
 selftest	drivers/gpu/drm/i915/gt/mock_engine.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/gt/mock_engine.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/gt/selftest_engine_heartbeat.c	CONFIG_DRM_I915_SELFTEST off

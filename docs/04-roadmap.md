@@ -138,6 +138,7 @@ illumos headers, so it measures KPI header coverage only; per-module pass counts
 | docs/11 snapshot (merge 9cfcdba) | 17/18 | 48/77 | 3/3 | 16/287 | 84/385 |
 | after batch 6, compiler_types.h, -DI915 in build/i915 | 17/18 | 73/77 | 3/3 | 259/287 | 352/385 |
 | after batch 7, drmglue in linuxkpi (R-K2: g1 loses 10 drmglue TUs) | 8/8 | 75/77 | 3/3 | 270/287 | 356/375 |
+| 2026-11-26 import/drm_bsd fixes below (2 non-units dropped, 1 drm_bsd unit added) | 8/8 | 78/78 | 3/3 | 285/285 | 374/374 |
 | after batch 8 (string helpers, sscanf, uuid, unaligned, of/mmap_lock stubs) | 8/8 | 76/77 | 3/3 | 273/287 | 360/375 |
 | after batch 9 (bitmap regions, anon_inode_getfd, DEFINE_SHOW_ATTRIBUTE, compiler_types.h without platform.h) | 8/8 | 76/77 | 3/3 | 277/287 | 364/375 |
 
@@ -228,17 +229,40 @@ Done:
   longer pulls in platform.h (it broke the illumos-first include rule of glue files such as
   i915_ddi.c under the force-include).
 
-Remaining syntax-check failures (11 of 375) are outside the KPI; requests:
-- [ ] Import (third_party/drm_bsd, R-G1): drm/drm_format_helper.h is not on the allow list
+The 11 syntax-check failures that were outside the KPI are fixed (import/drm_bsd, 2026-11-26).
+`scripts/build-gfx.sh syntax-check HOST_STUBS=1` now passes 374/374:
+- [x] Import (third_party/drm_bsd, R-G1): drm/drm_format_helper.h is not on the allow list
   (drm_atomic_helper.c, intel_atomic_plane.c).
-- [ ] drm_bsd: drm_bsd/drivers/gpu/drm/i915/i915_trace.h and display/intel_display_trace.h replace
+  Resolution: drm_format_helper.h really is GPL-2.0-or-later. It was reached only through the
+  upstream GPL drm_gem_atomic_helper.h, and the one function the MIT code calls,
+  drm_gem_plane_helper_prepare_fb, lived in the unbuilt GPL drm_gem_atomic_helper.c, so the link
+  would have failed as well. drm_bsd/ now carries a BSD clean-room drm_gem_atomic_helper.h/.c. The
+  GPL pair is set "replaced" and drm_gem_atomic_helper.h is off the allow list. gpl-policy.conf
+  records why drm_format_helper.h is not listed.
+- [x] drm_bsd: drm_bsd/drivers/gpu/drm/i915/i915_trace.h and display/intel_display_trace.h replace
   upstream headers that include "i915_drv.h", "gt/intel_engine.h", "i915_irq.h" (resp.
   "intel_crtc.h", "intel_display_types.h", ...); several units relied on that (gen6_ppgtt.c,
   gen8_ppgtt.c, intel_ppgtt.c, intel_gtt.c, i915_gem_shrinker.c, i9xx_wm.c, intel_pmdemand.c).
-- [ ] drm_bsd: drm_sysfs.c should define `struct class *drm_class` (referenced by the imported
+  Resolution: tools/gen-drm-bsd-trace.py now makes the no-op headers include "i915_drv.h",
+  "i915_irq.h" and "gt/intel_engine.h" (resp. "i915_drv.h", "intel_crtc.h", "intel_display_types.h"
+  and "intel_vblank.h").
+- [x] drm_bsd: drm_sysfs.c should define `struct class *drm_class` (referenced by the imported
   drm_privacy_screen.c; found by scripts/kpi-linkcheck.sh).
-- [ ] Module build: build/i915/Objects.mk lists gt/hsw_clear_kernel.c and gt/ivb_clear_kernel.c,
+  Resolution: defined in drm_bsd drm_sysfs.c and created by drm_sysfs_init() (class_create("drm")).
+  Minor and connector devices use it too.
+- [x] Module build: build/i915/Objects.mk lists gt/hsw_clear_kernel.c and gt/ivb_clear_kernel.c,
   which are #included by gen7_renderclear.c and are not translation units.
+  Resolution: new manifest set "inc" (imported by default, never compiled). The two files are in it,
+  so scripts/gen-module-objs.sh, which compiles only core and link, no longer lists them.
+- [ ] Link check after these fixes (scripts/kpi-linkcheck.sh, 374 objects, 12 unresolved), new
+  requests:
+  - Import/patch (mine): intel_gmch_* from intel_ggtt_gmch.c (Gen2-5, upstream from
+    drivers/char/agp/intel-gtt.c, not imported). Needs a stub patch or BSD stubs.
+  - Import (mine): intel_pxp_gsccs_is_ready_for_sessions from pxp/intel_pxp.c. Its only caller is
+    reached only for GSC0 engines (Gen12+); probably eliminated as dead code at -O2. Verify with
+    an optimised build, or stub it.
+  - KPI: intel_graphics_stolen_res (x86 early quirks resource; i915_gem_stolen.c) and
+    register_/unregister_vmap_purge_notifier (i915_gem_shrinker.c).
 - [ ] Import (P3 loop only, set-dependent): drm/intel/i915_hdcp_interface.h, intel-gtt.h,
   drm_mipi_dsi.h, drm_accel.h, drm_dp_mst_topology_internal.h, intel_acpi.h for the
   third_party/IMPORT_FILES layout used by scripts/p3-compile-check.py (the module build has them).
