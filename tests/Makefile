@@ -33,7 +33,7 @@ HDRS		= harness.h $(wildcard $(INCLUDE)/linux/*.h $(INCLUDE)/linuxkpi/*.h \
 		  $(INCLUDE)/asm/*.h)
 
 # KPI sources linked into every test program (userland configuration).
-LIB_SRCS	= $(wildcard $(SRC)/linux_*.c) $(SRC)/plat_userland.c
+LIB_SRCS	= $(wildcard $(SRC)/linux_*.c) $(SRC)/plat_userland.c $(SRC)/plat_userland_dev.c
 
 TESTS		= test_list test_kref test_kernel test_atomic test_bitops test_printk test_slab test_locks test_list_sort test_rbtree test_rcu test_xarray test_sched test_workqueue test_misc
 
@@ -49,7 +49,7 @@ KMOD_CFLAGS	= -std=gnu11 -fno-pic -fno-pie -m64 -mcmodel=kernel -mno-red-zone -f
 		  -D_DDI_STRICT -Dsun -D__sun -D__SVR4 \
 		  -I$(INCLUDE) -Istubs/illumos
 # Sources of the linuxkpi module (build/Makefile.files LINUXKPI_OBJS).
-KMOD_SRCS	= $(SRC)/linuxkpi_mod.c $(SRC)/plat_illumos.c $(wildcard $(SRC)/linux_*.c)
+KMOD_SRCS	= $(SRC)/linuxkpi_mod.c $(SRC)/plat_illumos.c $(SRC)/plat_illumos_dev.c $(wildcard $(SRC)/linux_*.c)
 KMOD_OBJS	= $(KMOD_SRCS:$(SRC)/%.c=$(OUT)/kmod_%.o)
 EXPECTED_EXPORTS = _fini _info _init linuxkpi_version
 # Kernel test module (build/lkpi_ktest): the unit tests with -DLKPI_KTEST.

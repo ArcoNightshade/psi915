@@ -133,6 +133,7 @@ u64 lkpi_plat_virt_to_phys(const void *kva);
 void *lkpi_plat_vmap(const u64 *phys, size_t npages, int cache);
 void lkpi_plat_vunmap(void *va, size_t npages);
 int lkpi_plat_set_cache(void *kva, size_t len, int cache);
+unsigned long lkpi_plat_physmem_pages(void);
 
 /* Files (firmware): whole file into lkpi_plat_alloc() memory. */
 int lkpi_plat_read_file(const char *path, void **buf, size_t *len);
