@@ -13,9 +13,14 @@
 #include <linux/err.h>
 
 struct gpio_desc;
-#define	GPIOD_OUT_LOW		0
-#define	GPIOD_OUT_HIGH		1
-#define	GPIOD_ASIS		2
+enum gpiod_flags {
+	GPIOD_ASIS = 0,
+	GPIOD_IN = 1,
+	GPIOD_OUT_LOW = 3,
+	GPIOD_OUT_HIGH = 7,
+	GPIOD_OUT_LOW_OPEN_DRAIN = 11,
+	GPIOD_OUT_HIGH_OPEN_DRAIN = 15
+};
 #define	gpiod_get(d, n, f)		((struct gpio_desc *)ERR_PTR(-ENOENT))
 #define	gpiod_get_index(d, n, i, f)	((struct gpio_desc *)ERR_PTR(-ENOENT))
 #define	gpiod_put(g)			do { (void)(g); } while (0)

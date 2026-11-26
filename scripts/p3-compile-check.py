@@ -72,8 +72,10 @@ def includes(path):
     flags = []
     for i in inc:
         flags += ['-I', i]
-    # As kbuild: linux/kconfig.h (which includes generated/autoconf.h).
+    # As kbuild: linux/kconfig.h (which includes generated/autoconf.h) and
+    # linux/compiler_types.h.
     flags += ['-include', os.path.join(TOP, 'include/linux/kconfig.h')]
+    flags += ['-include', os.path.join(TOP, 'include/linux/compiler_types.h')]
     return flags
 
 

@@ -25,6 +25,7 @@
 #include <linux/kref.h>
 #include <linux/list.h>
 #include <linux/sysfs.h>
+#include <linux/completion.h>
 
 struct kobject;
 struct kset;

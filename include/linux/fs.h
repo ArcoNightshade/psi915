@@ -278,4 +278,39 @@ stream_open(struct inode *ip, struct lkpi_file *f)
 loff_t noop_llseek(struct lkpi_file *f, loff_t off, int whence);
 loff_t no_llseek(struct lkpi_file *f, loff_t off, int whence);
 
+/*
+ * Pseudo file systems (anonymous inodes and files of dma-buf, sync_file
+ * and DRM); moved from drmglue (docs/10, R1). Implemented in
+ * drmglue/src/pseudofs.c.
+ */
+struct fs_context;
+struct super_operations;
+
+struct super_block {
+	unsigned long		s_magic;
+	const struct dentry_operations *s_d_op;
+	const struct super_operations *s_op;
+	struct file_system_type	*s_type;
+	atomic_long_t		s_lkpi_next_ino;
+};
+
+#define	FS_REQUIRES_DEV		1
+#define	FS_USERNS_MOUNT		8
+
+struct file_system_type {
+	const char	*name;
+	int		fs_flags;
+	int		(*init_fs_context)(struct fs_context *);
+	void		(*kill_sb)(struct super_block *);
+	struct lkpi_module *owner;
+};
+
+void kill_anon_super(struct super_block *sb);
+struct inode *alloc_anon_inode(struct super_block *sb);
+void iput(struct inode *ip);
+void ihold(struct inode *ip);
+void inode_set_bytes(struct inode *ip, loff_t bytes);
+struct lkpi_file *alloc_file_pseudo(struct inode *ip, struct vfsmount *mnt,
+    const char *name, int flags, const struct file_operations *fops);
+
 #endif /* _LINUXKPI_LINUX_FS_H_ */

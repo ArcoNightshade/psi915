@@ -74,8 +74,8 @@ typedef unsigned short	__kernel_mode_t;
 typedef __PTRDIFF_TYPE__	ptrdiff_t;
 #endif
 
-#define	BITS_PER_LONG		(sizeof(long) * 8)
-#define	BITS_PER_LONG_LONG	(sizeof(long long) * 8)
+#define	BITS_PER_LONG		(__SIZEOF_LONG__ * 8)
+#define	BITS_PER_LONG_LONG	(__SIZEOF_LONG_LONG__ * 8)
 
 #define	DECLARE_BITMAP(name, bits)					\
 	unsigned long name[((bits) + BITS_PER_LONG - 1) / BITS_PER_LONG]

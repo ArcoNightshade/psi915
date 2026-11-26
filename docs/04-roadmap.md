@@ -126,6 +126,7 @@ in a file hides later ones, so counts move in steps.
 | 2026-11-26 start | 2/374 | 2/69 | - | 0/19 | 0/184 | 0/100 |
 | after first header batches | 22/363 | 9/69 | - | 4/8 | 4/184 | 4/100 |
 | after hdmi.h, cache.h, seq/fs fixes | 46/370 | 25/69 | 4/7 | 5/8 | 5/184 | 6/100 |
+| after compiler_types.h, BITS_PER_LONG, pseudo_fs move, batch 4 | 80/370 | 53/69 | 4/7 | 6/8 | 9/184 | 7/100 |
 
 Done:
 - [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
@@ -145,12 +146,20 @@ Done:
   stubs for backlight, component, pm_qos, pwm, perf_event, stackdepot, dynamic_debug, vga_switcheroo,
   aperture, hypervisor, mmu_notifier, shmem_fs (declarations only), pagevec, pagemap, eventfd,
   platform_device, ref_tracker, relay, gpio, debugobjects, kmsg_dump, ...
+- [x] drmglue pseudo-fs types moved into include/linux (fs.h super_block/file_system_type,
+  dcache.h, mount.h, fs_context.h, pseudo_fs.h); drmglue/include/drmglue/pseudofs.h only gathers them.
+- [x] linux/compiler_types.h force-included like kbuild (-include), BITS_PER_LONG usable in #if,
+  mutex.h pulls list.h and kobject.h completion.h as in Linux; removed non-Linux tasklet_is_locked()
+  and __sg_next() that collided with i915's own.
+- [x] Batch 4: stat, prefetch, cpufeature, sysrq, vt, wait_bit, pnp, asm/intel-family,
+  asm/cpu_device_id (x86_match_cpu, tested), auxiliary_bus, mei_aux, device/bus, gpio/machine, cec,
+  media/cec-notifier, media-bus-format, asm/byteorder, video/of_display_timing; illumos EREMOTE,
+  ENOLINK, EBADMSG, EMSGSIZE, EBADSLT in the stub errno.h.
 
 Next (from tests/out/p3/summary.txt):
 - [ ] Import requests (third_party, not KPI): include/drm/intel/i915_hdcp_interface.h (blocks 96
   i915 units), intel-gtt.h, drm_mipi_dsi.h, drm_gem_atomic_helper.h, video/cmdline.h,
   drm_dp_mst_topology_internal.h.
-- [ ] drmglue pseudofs types into include/linux (linux/pseudo_fs.h, dcache.h, fs_context.h).
 - [ ] shmem file implementation (GEM backing store) in drmglue/KPI.
 - [ ] Remaining undeclared names in summary.txt (handle_simple_irq, PIDTYPE_PID, WB_SYNC_NONE,
   SWAP_CLUSTER_MAX, EREMOTE, EBADSLT, ...), then fix-ups once units compile further.

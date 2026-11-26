@@ -51,5 +51,10 @@
 #define	EMULTIHOP	74
 #define	ENOBUFS	132
 #define	ESTALE	151
+#define	EBADSLT	55
+#define	EREMOTE	66
+#define	ENOLINK	67
+#define	EBADMSG	77
+#define	EMSGSIZE	97
 #define	EPROTO	71
 #endif
