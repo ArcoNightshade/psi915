@@ -24,7 +24,9 @@
 #include "intel_pcode.h"
 #include "intel_rps.h"
 #include "vlv_sideband.h"
+#ifndef CONFIG_PSI915
 #include "../../../platform/x86/intel_ips.h"
+#endif
 
 #define BUSY_MAX_EI	20u /* ms */
 
@@ -2723,6 +2725,9 @@ static struct drm_i915_private __rcu *ips_mchdev;
 static void
 ips_ping_for_i915_load(void)
 {
+#ifdef CONFIG_PSI915
+	/* psi915: no intel_ips (Ironlake IPS) driver on illumos; nothing to notify. */
+#else
 	void (*link)(void);
 
 	link = symbol_get(ips_link_to_i915_driver);
@@ -2730,6 +2735,7 @@ ips_ping_for_i915_load(void)
 		link();
 		symbol_put(ips_link_to_i915_driver);
 	}
+#endif
 }
 
 void intel_rps_driver_register(struct intel_rps *rps)

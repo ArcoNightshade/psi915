@@ -231,15 +231,29 @@ gpl_checks() {
 	(cd "$R/gpl" && find . -name '*.h' | sed 's|^\./||') | sort | comm -23 - "$C/3allow" >"$C/3hdr"
 	awk '{ if ($0 ~ /^include\//) print "<" substr($0, 9); else { n = split($0, a, "/"); print "\"" a[n] } }' \
 		"$C/3hdr" | sort -u >"$C/3names"
-	xargs grep -H -E '^[[:space:]]*#[[:space:]]*include[[:space:]]*[<"]' <"$C/mitfiles" 2>/dev/null | awk -v names="$C/3names" '
+	# Includes inside "#ifndef CONFIG_PSI915" (or its #else of "#ifdef CONFIG_PSI915") are not compiled.
+	xargs awk -v names="$C/3names" '
 		BEGIN { while ((getline l < names) > 0) want[l] = 1 }
-		{
-			f = $0; sub(/:.*/, "", f); inc = $0; sub(/^[^:]*:/, "", inc)
-			if (match(inc, /<[^>]+>/)) key = "<" substr(inc, RSTART + 1, RLENGTH - 2)
-			else if (match(inc, /"[^"]+"/)) { q = substr(inc, RSTART + 1, RLENGTH - 2); n = split(q, a, "/"); key = "\"" a[n] }
+		FNR == 1 { depth = 0; off = 0 }
+		/^[[:space:]]*#[[:space:]]*if/ {
+			depth++; st[depth] = 0
+			if ($0 ~ /#[[:space:]]*ifndef[[:space:]]+CONFIG_PSI915/) st[depth] = 1
+			if ($0 ~ /#[[:space:]]*ifdef[[:space:]]+CONFIG_PSI915/) st[depth] = 2
+			if (st[depth] == 1) off++
+			next
+		}
+		/^[[:space:]]*#[[:space:]]*else/ {
+			if (st[depth] == 1) { off--; st[depth] = 2 } else if (st[depth] == 2) { off++; st[depth] = 1 }
+			next
+		}
+		/^[[:space:]]*#[[:space:]]*endif/ { if (depth > 0) { if (st[depth] == 1) off--; depth-- } ; next }
+		/^[[:space:]]*#[[:space:]]*include/ {
+			if (off > 0) next
+			if (match($0, /<[^>]+>/)) key = "<" substr($0, RSTART + 1, RLENGTH - 2)
+			else if (match($0, /"[^"]+"/)) { q = substr($0, RSTART + 1, RLENGTH - 2); n = split(q, a, "/"); key = "\"" a[n] }
 			else next
-			if (key in want) print f ": includes GPL header " key
-		}' | sed "s|$R/||; s|$TOP/||" >"$C/3"
+			if (key in want) print FILENAME ": includes GPL header " key
+		}' <"$C/mitfiles" 2>/dev/null | sed "s|$R/||; s|$TOP/||" >"$C/3"
 	report 3 "MIT/BSD files include no GPL header (except allow-header debts)" "$C/3"
 
 	# 4. G1 depends on the KPI only: no DRM headers and no includes outside its own directory.

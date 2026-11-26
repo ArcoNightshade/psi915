@@ -1,0 +1,39 @@
+i915: do not mount a private tmpfs for GEM objects on illumos
+
+i915_gemfs_init() mounts a tmpfs instance with huge-page options and GEM shmem objects are then
+created in it.  illumos has no Linux tmpfs or vfs_kern_mount(); with gemfs left NULL,
+i915_gem_shmem.c uses plain shmem_file_setup(), which the KPI/drmglue backing store provides.
+Upstream already skips the mount on Gen9 without VT-d, so KBL-R loses nothing.
+
+Upstream: not-applicable (illumos only; guarded by CONFIG_PSI915)
+
+diff --git a/i915/drivers/gpu/drm/i915/gem/i915_gemfs.c b/i915/drivers/gpu/drm/i915/gem/i915_gemfs.c
+index 46b9a17..1e859e6 100644
+--- a/i915/drivers/gpu/drm/i915/gem/i915_gemfs.c
++++ b/i915/drivers/gpu/drm/i915/gem/i915_gemfs.c
+@@ -11,6 +11,20 @@
+ #include "i915_gemfs.h"
+ #include "i915_utils.h"
+ 
++#ifdef CONFIG_PSI915
++/*
++ * psi915: illumos has no tmpfs to mount with huge-page options; GEM objects use the default
++ * shmem backing store (i915_gem_shmem.c falls back to shmem_file_setup() when gemfs is NULL).
++ */
++void i915_gemfs_init(struct drm_i915_private *i915)
++{
++	i915->mm.gemfs = NULL;
++}
++
++void i915_gemfs_fini(struct drm_i915_private *i915)
++{
++}
++#else
+ void i915_gemfs_init(struct drm_i915_private *i915)
+ {
+ 	char huge_opt[] = "huge=within_size"; /* r/w */
+@@ -58,3 +72,4 @@ void i915_gemfs_fini(struct drm_i915_private *i915)
+ {
+ 	kern_unmount(i915->mm.gemfs);
+ }
++#endif /* CONFIG_PSI915 */

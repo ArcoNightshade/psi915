@@ -3,7 +3,7 @@
 """Scan the imported DRM/i915 tree for the Linux kernel API it uses and compare with include/ (the KPI).
 
 Scope: every compiled file of the Gen9 build (sets "core" and "link" in third_party/IMPORT_FILES, in drm/, i915/
-and gpl/) plus every imported header they reach through #include.  Preprocessor conditionals are resolved where
+gpl/ and psi915's drm_bsd/) plus every imported header they reach through #include.  Preprocessor conditionals are resolved where
 they depend only on CONFIG_* (drm/include/generated/autoconf.h) and a few compiler/OS macros; anything else keeps
 all branches.
 
@@ -21,7 +21,7 @@ header's SPDX licence), in FreeBSD's LinuxKPI and in illumos sys/.  Heuristic, t
 preprocessing, so token-pasted names, macro arguments and members can produce false entries, and APIs used only
 through macros defined in KPI headers are not seen.  Counts are files, not call sites, unless stated.
 
-It also maps the boundary between gpl/ (the separate GPL-2.0 module) and drm/ + i915/.
+It also maps the boundary between gpl/ (the separate GPL-2.0 module) and drm/ + i915/ + drm_bsd/.
 
 Usage: tools/kpi-scan.py [--freebsd DIR] [--illumos DIR] [--linux-ref DIR] [--out DIR]
   --linux-ref defaults to $REF/linux-hdrs, created with scripts/import-linux.sh -R when missing.
@@ -436,7 +436,7 @@ def expanded_defs(include, stubs):
     return defs
 
 
-TREES = ('drm', 'i915', 'gpl')
+TREES = ('drm_bsd', 'drm', 'i915', 'gpl')   # drm_bsd first: its headers replace GPL ones
 I915_REL = 'drivers/gpu/drm/i915/'
 
 
@@ -504,6 +504,15 @@ def main():
         blob, path, st, lic = ln.rstrip('\n').split('\t')
         files[path] = st
         lic_of[path] = lic
+    # psi915's BSD replacements (not imported; listed in drm_bsd/MANIFEST).
+    man = os.path.join(TOP, 'drm_bsd/MANIFEST')
+    if os.path.exists(man):
+        for ln in open(man):
+            if ln.startswith('#') or '\t' not in ln:
+                continue
+            st, rel = ln.split('\t')[:2]
+            files['drm_bsd/' + rel] = st
+            lic_of['drm_bsd/' + rel] = 'BSD-2-Clause'
     cfg = load_config(os.path.join(TOP, 'drm/include/generated/autoconf.h'))
     ev = CondEval(cfg)
 

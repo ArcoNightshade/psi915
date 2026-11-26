@@ -11,6 +11,7 @@ Inputs and records for the scripted import of the Linux DRM stack from upstream 
 | patches/series, patches/*.patch | Quilt-style patch series applied in order after extraction; every change to an imported file lives here |
 | IMPORT_FILES | Generated: blob id, destination, set and detected licence of each imported pristine file |
 | LICENSES/README.md | Licence summary, the GPL module boundary and open licence questions |
+| gpl-policy.conf | GPL module policy (G1/G2 allow-lists, allowed GPL header debts) checked by `-c` |
 
 Sets:
 - Default: core, link, hdr, uapi, extra, aux.
@@ -30,5 +31,6 @@ REF=/home/user/ref scripts/import-linux.sh     # reuse the clone at $REF/linux (
 To re-pin: edit IMPORT_PIN, run `-m`, add every UNCLASSIFIED file to a manifest, then refresh the patches.
 The script refuses to put a GPL-only file outside gpl/.
 
+psi915's BSD replacements for GPL-only files live in drm_bsd/ (own MANIFEST), not here.
 drm-kmod and OpenBSD remain reference trees only (scripts/fetch-refs.sh). Nothing is imported from them.
 Imported files are never edited in place. No GPL-only Linux source may be placed in `include/` or `src/`.
