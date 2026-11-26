@@ -1,0 +1,32 @@
+#
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The psi915 Authors. All rights reserved.
+#
+# Install layout of the full psi915 module set, consumed by
+# scripts/install-all.sh (same columns as build/install.manifest plus a
+# module tag for -m). build/install.manifest stays the linuxkpi-only layout
+# used by scripts/install.sh.
+#
+# type: dir | file | ofile (optional file: skipped with a note when the
+#   source does not exist, e.g. firmware that was not fetched)
+# @OBJDIR@ = obj64|debug64, @FWDIR@ = firmware staging dir (-F, default
+#   build/i915/obj64/firmware, filled by scripts/fetch-i915-firmware.sh)
+#
+# type	mode	owner	group	path (relative to /)	source	module
+dir	0755	root	sys	usr/kernel	-	all
+dir	0755	root	sys	usr/kernel/misc	-	all
+dir	0755	root	sys	usr/kernel/misc/amd64	-	all
+dir	0755	root	sys	usr/kernel/drv	-	i915
+dir	0755	root	sys	usr/kernel/drv/amd64	-	i915
+file	0755	root	sys	usr/kernel/misc/amd64/linuxkpi	build/linuxkpi/@OBJDIR@/linuxkpi	linuxkpi
+file	0755	root	sys	usr/kernel/misc/amd64/linuxkpi_gpl_g1	build/linuxkpi_gpl_g1/@OBJDIR@/linuxkpi_gpl_g1	linuxkpi_gpl_g1
+file	0755	root	sys	usr/kernel/misc/amd64/linuxkpi_drm	build/drm/@OBJDIR@/linuxkpi_drm	linuxkpi_drm
+file	0755	root	sys	usr/kernel/misc/amd64/linuxkpi_gpl_g2	build/linuxkpi_gpl_g2/@OBJDIR@/linuxkpi_gpl_g2	linuxkpi_gpl_g2
+file	0755	root	sys	usr/kernel/drv/amd64/i915	build/i915/@OBJDIR@/i915	i915
+file	0644	root	sys	usr/kernel/drv/i915.conf	drivers/i915_glue/i915.conf	i915
+dir	0755	root	bin	usr/lib/firmware	-	firmware
+dir	0755	root	bin	usr/lib/firmware/i915	-	firmware
+ofile	0444	root	bin	usr/lib/firmware/i915/kbl_dmc_ver1_04.bin	@FWDIR@/i915/kbl_dmc_ver1_04.bin	firmware
+ofile	0444	root	bin	usr/lib/firmware/i915/kbl_guc_70.1.1.bin	@FWDIR@/i915/kbl_guc_70.1.1.bin	firmware
+ofile	0444	root	bin	usr/lib/firmware/i915/kbl_huc_4.0.0.bin	@FWDIR@/i915/kbl_huc_4.0.0.bin	firmware
+ofile	0444	root	bin	usr/lib/firmware/i915/WHENCE	@FWDIR@/WHENCE	firmware
