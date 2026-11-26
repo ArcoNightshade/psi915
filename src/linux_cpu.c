@@ -16,6 +16,7 @@
 #include <asm/cpufeature.h>
 #include <asm/cacheflush.h>
 #include <asm/cpu_device_id.h>
+#include <asm/fpu/api.h>
 #include <linuxkpi/plat_dev.h>
 
 static struct cpuinfo_x86 lkpi_cpu;
@@ -59,6 +60,15 @@ lkpi_cpu_identify(struct cpuinfo_x86 *ci)
 		ci->x86_clflush_size = (u16)(((b >> 8) & 0xff) * 8);
 		ci->x86_capability[0] = d;
 		ci->x86_capability[4] = c;
+#ifdef LINUXKPI_ILLUMOS_KERNEL
+		/*
+		 * Kernel SSE use (kernel_fpu_begin) is not supported yet, so
+		 * SSE4.1 is hidden: i915 and DRM then never take their
+		 * MOVNTDQA copy paths (i915_memcpy_from_wc() fails and the
+		 * callers fall back to plain copies).
+		 */
+		ci->x86_capability[4] &= ~(1U << (X86_FEATURE_XMM4_1 % 32));
+#endif
 	}
 	if (max >= 7) {
 		lkpi_cpuid(7, 0, &a, &b, &c, &d);
@@ -121,10 +131,11 @@ clflush_cache_range(void *addr, unsigned int size)
 	__asm__ __volatile__("mfence" : : : "memory");
 }
 
-void
+int
 wbinvd_on_all_cpus(void)
 {
 	lkpi_plat_wbinvd();
+	return (0);
 }
 
 /*
@@ -150,4 +161,17 @@ x86_match_cpu(const struct x86_cpu_id *match)
 		return (m);
 	}
 	return (NULL);
+}
+
+void
+lkpi_kernel_fpu_begin(void)
+{
+#ifdef LINUXKPI_ILLUMOS_KERNEL
+	lkpi_plat_panic("linuxkpi: kernel_fpu_begin() is not supported");
+#endif
+}
+
+void
+lkpi_kernel_fpu_end(void)
+{
 }

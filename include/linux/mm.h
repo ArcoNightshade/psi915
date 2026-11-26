@@ -43,6 +43,7 @@
 #include <linux/err.h>
 #include <linux/sizes.h>
 #include <linux/fs.h>
+#include <linux/shrinker.h>
 
 #define	MAX_PAGE_ORDER		10
 #define	MAX_ORDER		MAX_PAGE_ORDER

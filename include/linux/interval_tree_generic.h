@@ -21,7 +21,7 @@
     ITSTART, ITLAST, ITSTATIC, ITPREFIX)				\
 									\
 RB_DECLARE_CALLBACKS_MAX(static, ITPREFIX ## _augment, ITSTRUCT, ITRB,	\
-    ITTYPE, ITSUBTREE, ITLAST);						\
+    ITTYPE, ITSUBTREE, ITLAST)						\
 									\
 ITSTATIC void								\
 ITPREFIX ## _insert(ITSTRUCT *node, struct rb_root_cached *root)	\

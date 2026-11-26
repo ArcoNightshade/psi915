@@ -18,4 +18,11 @@
 
 #define	offsetofend(t, m)	(offsetof(t, m) + sizeof(((t *)0)->m))
 
+/* A flexible array member allowed in a union or as the only member. */
+#define	DECLARE_FLEX_ARRAY(type, name)					\
+	struct {							\
+		struct { } __empty_ ## name;				\
+		type name[];						\
+	}
+
 #endif /* _LINUXKPI_LINUX_STDDEF_H_ */

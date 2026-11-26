@@ -195,4 +195,25 @@ struct va_format {
 
 #include <linux/sprintf.h>
 
+/*
+ * Hex dumps (src/linux_printk.c). Groups of 2, 4 or 8 bytes are printed
+ * as host-order (little-endian) values, as in Linux.
+ */
+enum {
+	DUMP_PREFIX_NONE,
+	DUMP_PREFIX_ADDRESS,
+	DUMP_PREFIX_OFFSET
+};
+
+int hex_dump_to_buffer(const void *buf, size_t len, int rowsize,
+    int groupsize, char *linebuf, size_t linebuflen, bool ascii);
+void print_hex_dump(const char *level, const char *prefix_str,
+    int prefix_type, int rowsize, int groupsize, const void *buf,
+    size_t len, bool ascii);
+#define	print_hex_dump_bytes(prefix_str, prefix_type, buf, len)	\
+	print_hex_dump(KERN_DEBUG, prefix_str, prefix_type, 16, 1,	\
+	    buf, len, true)
+#define	print_hex_dump_debug(p, t, r, g, b, l, a)			\
+	print_hex_dump(KERN_DEBUG, p, t, r, g, b, l, a)
+
 #endif /* _LINUXKPI_LINUX_PRINTK_H_ */

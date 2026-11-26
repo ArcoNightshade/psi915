@@ -60,6 +60,17 @@ struct module {
 #define	module_exit(fn)							\
 	void lkpi_exitcall_##fn(void);					\
 	void lkpi_exitcall_##fn(void) { fn(); }
+/*
+ * Every initcall level maps to the same wrapper: the module linkage
+ * file calls lkpi_initcall_<fn>() explicitly, in the order it needs
+ * (docs/11). __exitcall(fn) likewise defines lkpi_exitcall_<fn>().
+ */
+#define	core_initcall(fn)	module_init(fn)
+#define	postcore_initcall(fn)	module_init(fn)
+#define	arch_initcall(fn)	module_init(fn)
+#define	fs_initcall(fn)		module_init(fn)
+#define	rootfs_initcall(fn)	module_init(fn)
+#define	__exitcall(fn)		module_exit(fn)
 #define	late_initcall(fn)	module_init(fn)
 #define	subsys_initcall(fn)	module_init(fn)
 #define	device_initcall(fn)	module_init(fn)

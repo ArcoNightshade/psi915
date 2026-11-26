@@ -12,6 +12,8 @@
 #include <linux/types.h>
 #include <linux/pgtable.h>
 
+/* illumos <sys/types.h> has its own pfn_t (a page frame number). */
+#define	pfn_t		lkpi_pfn_t
 typedef struct {
 	u64	val;
 } pfn_t;

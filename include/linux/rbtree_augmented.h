@@ -104,7 +104,7 @@ RBSTATIC const struct rb_augment_callbacks RBNAME = {			\
 	.propagate = RBNAME##_propagate,				\
 	.copy = RBNAME##_copy,						\
 	.rotate = RBNAME##_rotate					\
-}
+};
 
 /*
  * Callbacks for the common case where the augmented value is the maximum

@@ -22,7 +22,7 @@
 #include <asm/cpufeature.h>
 
 void clflush_cache_range(void *addr, unsigned int size);
-void wbinvd_on_all_cpus(void);
+int wbinvd_on_all_cpus(void);
 
 static inline void
 clflush(volatile void *p)

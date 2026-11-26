@@ -36,6 +36,9 @@
 #include <linux/nospec.h>
 #include <linux/circ_buf.h>
 #include <linux/kconfig.h>
+#include <linux/cleanup.h>
+#include <linux/jump_label.h>
+#include <linux/minmax.h>
 
 #include "harness.h"
 
@@ -745,8 +748,69 @@ TEST(p3_helpers)
 #endif
 }
 
+static int cleanup_frees;
+
+static void
+cleanup_free_int(int *p)
+{
+	cleanup_frees++;
+	kfree(p);
+}
+
+DEFINE_FREE(test_int, int *, if (_T != NULL) cleanup_free_int(_T))
+
+struct test_cnt {
+	int	*ctr;
+};
+
+DEFINE_CLASS(test_cnt, struct test_cnt, (*_T.ctr)--,
+    ({ (*c)++; (struct test_cnt){ c }; }), int *c)
+
+static DEFINE_STATIC_KEY_FALSE(test_key);
+
+static int *
+cleanup_keep(void)
+{
+	int *p __free(test_int) = kmalloc(sizeof (int), GFP_KERNEL);
+
+	return_ptr(p);
+}
+
+TEST(cleanup_classes)
+{
+	int ctr = 0, *kept;
+	char arr[MAX_T(int, 3, 5)];
+
+	cleanup_frees = 0;
+	{
+		int *p __free(test_int) = kmalloc(sizeof (int), GFP_KERNEL);
+
+		CHECK(p != NULL);
+	}
+	CHECK_EQ(cleanup_frees, 1);
+	kept = cleanup_keep();
+	CHECK(kept != NULL);
+	CHECK_EQ(cleanup_frees, 1);
+	kfree(kept);
+	{
+		CLASS(test_cnt, c)(&ctr);
+
+		CHECK_EQ(ctr, 1);
+		CHECK(c.ctr == &ctr);
+	}
+	CHECK_EQ(ctr, 0);
+	CHECK_EQ((int)sizeof (arr), 5);
+	CHECK(!static_branch_likely(&test_key));
+	static_branch_enable(&test_key);
+	CHECK(static_branch_unlikely(&test_key));
+	BUILD_BUG_ON(sizeof (int) != 4);
+	BUILD_BUG_ON(sizeof (arr) != 5 && ctr > 0);
+	CHECK(typecheck(int, ctr));
+}
+
 LKPI_SUITE(misc)
 {
+	RUN(cleanup_classes);
 	RUN(uaccess);
 	RUN(module_params);
 	RUN(ww_mutex_basic);

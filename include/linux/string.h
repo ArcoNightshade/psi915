@@ -33,7 +33,7 @@ void *kmemdup_array(const void *src, size_t count, size_t elsize, gfp_t gfp);
  * (if size > 0). Returns the length copied, or -E2BIG on truncation.
  */
 static inline ssize_t
-strscpy(char *dst, const char *src, size_t size)
+lkpi_strscpy(char *dst, const char *src, size_t size)
 {
 	size_t i;
 
@@ -50,15 +50,31 @@ strscpy(char *dst, const char *src, size_t size)
 
 /* strscpy, then zero the rest of dst. */
 static inline ssize_t
-strscpy_pad(char *dst, const char *src, size_t size)
+lkpi_strscpy_pad(char *dst, const char *src, size_t size)
 {
-	ssize_t r = strscpy(dst, src, size);
+	ssize_t r = lkpi_strscpy(dst, src, size);
 	size_t used = r < 0 ? size : (size_t)r + 1;
 
 	if (used < size)
 		memset(dst + used, 0, size - used);
 	return (r);
 }
+
+/*
+ * strscpy(dst, src) (dst an array: its size) or strscpy(dst, src, size),
+ * as in v6.14.
+ */
+#define	__lkpi_strscpy_sel(_1, _2, _3, n, ...)	n
+#define	__lkpi_strscpy2(d, s)		lkpi_strscpy((d), (s), sizeof (d))
+#define	__lkpi_strscpy3(d, s, n)	lkpi_strscpy((d), (s), (n))
+#define	strscpy(...)							\
+	__lkpi_strscpy_sel(__VA_ARGS__, __lkpi_strscpy3,		\
+	    __lkpi_strscpy2, 0)(__VA_ARGS__)
+#define	__lkpi_strscpy_pad2(d, s)	lkpi_strscpy_pad((d), (s), sizeof (d))
+#define	__lkpi_strscpy_pad3(d, s, n)	lkpi_strscpy_pad((d), (s), (n))
+#define	strscpy_pad(...)						\
+	__lkpi_strscpy_sel(__VA_ARGS__, __lkpi_strscpy_pad3,		\
+	    __lkpi_strscpy_pad2, 0)(__VA_ARGS__)
 
 static inline void
 memset32(uint32_t *s, uint32_t v, size_t count)

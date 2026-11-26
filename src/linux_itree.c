@@ -20,7 +20,7 @@
 #define	ITLAST(n)	((n)->last)
 
 RB_DECLARE_CALLBACKS_MAX(static, lkpi_itree_cb, struct lkpi_itree_node, rb,
-    unsigned long, subtree_last, ITLAST);
+    unsigned long, subtree_last, ITLAST)
 
 void
 lkpi_itree_insert(struct lkpi_itree *t, struct lkpi_itree_node *n)

@@ -288,7 +288,7 @@ TEST(cached_and_helpers)
 /* Augmented tree: subtree_max = max(val) over the subtree. */
 #define	TNODE_VAL(t)	((t)->val)
 RB_DECLARE_CALLBACKS_MAX(static, tnode_aug, struct tnode, rb, int,
-    subtree_max, TNODE_VAL);
+    subtree_max, TNODE_VAL)
 
 static void
 insert_aug(struct rb_root *root, struct tnode *t)

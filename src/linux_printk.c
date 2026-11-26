@@ -109,6 +109,18 @@ lkpi_vprintk_lp(const char *levelstr, const char *prefix, const char *fmt,
 		memcpy(buf + sizeof (buf) - 5, "...\n", 5);
 		n = sizeof (buf) - 1 - off;
 	}
+	/*
+	 * As in Linux, a level can also come from the formatted text, as in
+	 * printk("%s...", KERN_DEBUG) (print_hex_dump does this).
+	 */
+	if (levelstr == NULL && lc == 0 && n >= 2 &&
+	    buf[off] == KERN_SOH_ASCII) {
+		lc = buf[off + 1];
+		if (lc >= '0' && lc <= '7')
+			level = lc - '0';
+		memmove(buf + off, buf + off + 2, n - 1);
+		n -= 2;
+	}
 	lkpi_emit(level, buf, off + n);
 	return ((int)(off + n));
 }
@@ -208,6 +220,93 @@ dump_stack(void)
 	(void) lkpi_printk(KERN_DEBUG
 	    "linuxkpi: dump_stack: no unwinder; use DTrace stack() or mdb\n");
 #endif
+}
+
+/*
+ * One line of a hex dump into linebuf (always NUL-terminated when
+ * linebuflen > 0). Returns the length the full line would have, as
+ * snprintf does.
+ */
+int
+hex_dump_to_buffer(const void *buf, size_t len, int rowsize, int groupsize,
+    char *linebuf, size_t linebuflen, bool ascii)
+{
+	static const char hexd[] = "0123456789abcdef";
+	const u8 *p = buf;
+	size_t out = 0, i, ngroups, col;
+	int g, b;
+
+#define	LKPI_HD_PUT(c)	do {						\
+	if (out + 1 < linebuflen)					\
+		linebuf[out] = (c);					\
+	out++;								\
+} while (0)
+
+	if (rowsize != 16 && rowsize != 32)
+		rowsize = 16;
+	if (len > (size_t)rowsize)
+		len = (size_t)rowsize;
+	if (groupsize != 1 && groupsize != 2 && groupsize != 4 &&
+	    groupsize != 8)
+		groupsize = 1;
+	if (len % (size_t)groupsize != 0)
+		groupsize = 1;
+	ngroups = len / (size_t)groupsize;
+	for (i = 0; i < ngroups; i++) {
+		if (i != 0)
+			LKPI_HD_PUT(' ');
+		/* Most significant byte first: the value in host order. */
+		for (b = groupsize - 1; b >= 0; b--) {
+			u8 v = p[i * (size_t)groupsize + (size_t)b];
+
+			LKPI_HD_PUT(hexd[v >> 4]);
+			LKPI_HD_PUT(hexd[v & 0xf]);
+		}
+	}
+	if (ascii) {
+		col = (size_t)rowsize * 2 + (size_t)(rowsize / groupsize) + 1;
+		while (out < col)
+			LKPI_HD_PUT(' ');
+		for (i = 0; i < len; i++) {
+			g = p[i];
+			LKPI_HD_PUT(g >= 0x20 && g < 0x7f ? (char)g : '.');
+		}
+	}
+	if (linebuflen > 0)
+		linebuf[out < linebuflen ? out : linebuflen - 1] = '\0';
+#undef	LKPI_HD_PUT
+	return ((int)out);
+}
+
+void
+print_hex_dump(const char *level, const char *prefix_str, int prefix_type,
+    int rowsize, int groupsize, const void *buf, size_t len, bool ascii)
+{
+	const u8 *p = buf;
+	char line[32 * 3 + 2 + 32 + 1];
+	size_t off, n;
+
+	if (rowsize != 16 && rowsize != 32)
+		rowsize = 16;
+	for (off = 0; off < len; off += (size_t)rowsize) {
+		n = len - off < (size_t)rowsize ? len - off : (size_t)rowsize;
+		(void) hex_dump_to_buffer(p + off, n, rowsize, groupsize,
+		    line, sizeof (line), ascii);
+		switch (prefix_type) {
+		case DUMP_PREFIX_ADDRESS:
+			(void) lkpi_printk("%s%s%p: %s\n", level, prefix_str,
+			    (const void *)(p + off), line);
+			break;
+		case DUMP_PREFIX_OFFSET:
+			(void) lkpi_printk("%s%s%.8zx: %s\n", level,
+			    prefix_str, off, line);
+			break;
+		default:
+			(void) lkpi_printk("%s%s%s\n", level, prefix_str,
+			    line);
+			break;
+		}
+	}
 }
 
 #ifdef LINUXKPI_USERLAND

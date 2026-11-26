@@ -25,7 +25,25 @@
  */
 #define	BUILD_BUG_ON_ZERO(e)	((int)(sizeof(struct { int:(-!!(e)); })))
 
-#define	BUILD_BUG_ON_MSG(e, msg)	_Static_assert(!(e), msg)
+/*
+ * Statement form, as Linux's compiletime_assert(): when the condition is
+ * true after optimisation (constant folding and inlining), a call to a
+ * function carrying the error attribute survives and the compiler stops
+ * with msg. Conditions such as !__builtin_constant_p(arg) in an inline
+ * function therefore work as in Linux. Without optimisation (or with
+ * -fsyntax-only) nothing is checked; a surviving call in an unoptimised
+ * object shows up as an unresolved symbol (check-kmod).
+ */
+#define	__lkpi_bbo_cat2(a, b)	a ## b
+#define	__lkpi_bbo_cat(a, b)	__lkpi_bbo_cat2(a, b)
+#define	__lkpi_build_bug(e, msg, fn)	do {				\
+	extern void fn(void) __attribute__((__error__(msg)));		\
+	if (e)								\
+		fn();							\
+} while (0)
+#define	BUILD_BUG_ON_MSG(e, msg)					\
+	__lkpi_build_bug(e, msg,					\
+	    __lkpi_bbo_cat(__lkpi_build_bug_failed_, __COUNTER__))
 #define	BUILD_BUG_ON(e)		BUILD_BUG_ON_MSG(e, "BUILD_BUG_ON(" #e ")")
 #define	BUILD_BUG_ON_NOT_POWER_OF_2(n)				\
 	BUILD_BUG_ON((n) == 0 || (((n) & ((n) - 1)) != 0))

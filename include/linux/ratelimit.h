@@ -29,7 +29,14 @@ struct ratelimit_state {
 	unsigned long	begin;
 };
 
-#define	RATELIMIT_STATE_INIT(name, i, b)	{ .interval = (i), .burst = (b) }
+/*
+ * HZ is a run-time value here, so an interval such as 5 * HZ is not a
+ * constant and cannot initialise a static object; such intervals are
+ * stored as 0 and mean the default (5 s, resolved at use).
+ */
+#define	RATELIMIT_STATE_INIT(name, i, b)				\
+	{ .interval = __builtin_choose_expr(__builtin_constant_p(i),	\
+	    (i), 0), .burst = (b) }
 #define	RATELIMIT_STATE_INIT_DISABLED	{ .interval = -1 }
 #define	DEFINE_RATELIMIT_STATE(name, i, b)				\
 	struct ratelimit_state name = RATELIMIT_STATE_INIT(name, i, b)

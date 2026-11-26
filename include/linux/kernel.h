@@ -28,6 +28,8 @@
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <linux/kstrtox.h>
+#include <linux/typecheck.h>
+#include <linux/jump_label.h>
 
 /*
  * illumos <sys/sysmacros.h> defines ARRAY_SIZE without the array check

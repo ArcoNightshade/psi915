@@ -178,6 +178,9 @@ TEST(dup_and_string)
 	CHECK_EQ(strscpy(buf, "abcdefghij", sizeof (buf)), -E2BIG);
 	CHECK(strcmp(buf, "abcdefg") == 0);
 	CHECK_EQ(strscpy(buf, "x", 0), -E2BIG);
+	CHECK_EQ(strscpy(buf, "two-arg"), 7);		/* sizeof (buf) == 8 */
+	CHECK_EQ(strscpy(buf, "two-args"), -E2BIG);
+	CHECK(strcmp(buf, "two-arg") == 0);
 	memset(buf, 'z', sizeof (buf));
 	CHECK_EQ(strscpy_pad(buf, "ab", sizeof (buf)), 2);
 	CHECK(buf[2] == 0 && buf[7] == 0);

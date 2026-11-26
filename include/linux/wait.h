@@ -85,13 +85,16 @@ int woken_wake_function(struct wait_queue_entry *wq_entry,
 #define	DEFINE_WAIT(name)	DEFINE_WAIT_FUNC(name, autoremove_wake_function)
 
 static inline void
-__init_waitqueue_head(struct wait_queue_head *wq)
+lkpi_init_waitqueue_head(struct wait_queue_head *wq)
 {
 	spin_lock_init(&wq->lock);
 	INIT_LIST_HEAD(&wq->head);
 }
 
-#define	init_waitqueue_head(wq)		__init_waitqueue_head(wq)
+/* name and lockdep key are ignored (no lockdep). */
+#define	__init_waitqueue_head(wq, name, key)	\
+	((void)(name), (void)(key), lkpi_init_waitqueue_head(wq))
+#define	init_waitqueue_head(wq)		lkpi_init_waitqueue_head(wq)
 
 static inline void
 init_waitqueue_entry(struct wait_queue_entry *we, struct task_struct *t)

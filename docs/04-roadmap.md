@@ -127,6 +127,7 @@ in a file hides later ones, so counts move in steps.
 | after first header batches | 22/363 | 9/69 | - | 4/8 | 4/184 | 4/100 |
 | after hdmi.h, cache.h, seq/fs fixes | 46/370 | 25/69 | 4/7 | 5/8 | 5/184 | 6/100 |
 | after compiler_types.h, BITS_PER_LONG, pseudo_fs move, batch 4 | 80/370 | 53/69 | 4/7 | 6/8 | 9/184 | 7/100 |
+| after BUILD_BUG_ON as compiletime_assert, cleanup.h, batch 5 | 208/368 | 64/69 | 5/7 | 6/8 | 91/184 | 41/98 |
 
 Done:
 - [x] R1/R3: struct file (lkpi_file), inode, address_space, path, file_operations, poll_table,
@@ -155,6 +156,20 @@ Done:
   asm/cpu_device_id (x86_match_cpu, tested), auxiliary_bus, mei_aux, device/bus, gpio/machine, cec,
   media/cec-notifier, media-bus-format, asm/byteorder, video/of_display_timing; illumos EREMOTE,
   ENOLINK, EBADMSG, EMSGSIZE, EBADSLT in the stub errno.h.
+- [x] Batch 5 (docs/11 R-K5, R-K6): BUILD_BUG_ON in Linux's compiletime_assert form (error-attribute
+  call removed by the optimiser; static_assert stays _Static_assert), typecheck.h, jump_label.h
+  (static keys as booleans), cleanup.h (DEFINE_FREE/__free, DEFINE_CLASS/CLASS, guards) with
+  CLASS(fd), MIN_T/MAX_T, strscpy with 2 or 3 arguments, print_hex_dump/hex_dump_to_buffer (tested),
+  printk level taken from the formatted text as in Linux, asm/fpu/api.h (kernel SSE not supported:
+  SSE4.1 hidden in the kernel so MOVNTDQA paths are never taken), uapi/linux/dma-buf.h,
+  uapi/linux/magic.h, video/of_videomode.h, video/videomode.h, mfd/intel_soc_pmic.h, nomodeset.h
+  prototypes (video_bsd_set_firmware_drivers_only), aperture.h prototypes, pfn_t renamed away from
+  illumos pfn_t, DECLARE_FLEX_ARRAY, __init_waitqueue_head(wq, name, key), RB_DECLARE_CALLBACKS
+  ends with ';' as in Linux, shrinker.h from mm.h, seq_file.h/interrupt.h from perf_event.h.
+  The compile loop skips .c files that other units #include.
+- [x] docs/11 R-K1: core/postcore/arch/fs/rootfs_initcall and __exitcall in <linux/module.h>.
+- [x] docs/11 R-K3: LKPI_PCI_DRIVER_MODULE_OPS(name, desc, cbops, getinfo, attach, detach, init,
+  exit); LKPI_PCI_DRIVER_MODULE now accepts a cb_ops address (NULL told apart by type).
 
 Next (from tests/out/p3/summary.txt):
 - [ ] Import requests (third_party, not KPI): include/drm/intel/i915_hdcp_interface.h (blocks 96

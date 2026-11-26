@@ -47,6 +47,16 @@
 #define	max_t(t, x, y)	\
 	__lkpi_cmp_t(t, >, x, y, __UNIQUE_ID(maxt_x), __UNIQUE_ID(maxt_y))
 
+/* Constant-expression forms (usable for array sizes). */
+#define	MIN_T(t, a, b)		((t)(a) < (t)(b) ? (t)(a) : (t)(b))
+#define	MAX_T(t, a, b)		((t)(a) > (t)(b) ? (t)(a) : (t)(b))
+#ifndef MIN		/* illumos <sys/sysmacros.h> has the same */
+#define	MIN(a, b)		((a) < (b) ? (a) : (b))
+#endif
+#ifndef MAX
+#define	MAX(a, b)		((a) > (b) ? (a) : (b))
+#endif
+
 #define	clamp(v, lo, hi)	min((typeof(v))max(v, lo), hi)
 #define	clamp_t(t, v, lo, hi)	min_t(t, max_t(t, v, lo), hi)
 #define	clamp_val(v, lo, hi)	clamp_t(typeof(v), v, lo, hi)

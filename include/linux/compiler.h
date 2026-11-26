@@ -35,6 +35,9 @@
 #ifndef noinline
 #define	noinline		__attribute__((__noinline__))
 #endif
+#ifndef __deprecated
+#define	__deprecated
+#endif
 #ifndef __must_check
 #define	__must_check		__attribute__((__warn_unused_result__))
 #endif

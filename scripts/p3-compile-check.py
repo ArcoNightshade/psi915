@@ -131,6 +131,19 @@ def main():
                     p = 'drm_bsd/' + parts[1]
                     if not a.f or re.search(a.f, p):
                         files.append((p, parts[0]))
+    # Skip .c files that another unit #includes (e.g. gt/hsw_clear_kernel.c
+    # in gen7_renderclear.c): they are not translation units.
+    inc_re = re.compile(r'^\s*#\s*include\s+"([^"]+\.c)"', re.M)
+    included = set()
+    for p, _ in files:
+        try:
+            with open(os.path.join(TOP, p), errors='replace') as f:
+                for m in inc_re.finditer(f.read()):
+                    included.add(os.path.normpath(os.path.join(os.path.dirname(p), m.group(1))))
+        except OSError:
+            pass
+    skipped = [p for p, _ in files if os.path.normpath(p) in included]
+    files = [(p, s) for p, s in files if os.path.normpath(p) not in included]
     os.makedirs(a.o, exist_ok=True)
     results = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=a.j) as ex:
@@ -163,8 +176,10 @@ def main():
                     first_kind[re.sub(r"'[^']*'", "'X'", msg)[:60]] += 1
     nok = sum(v[1] for v in totals.values())
     with open(os.path.join(a.o, 'summary.txt'), 'w') as out:
-        out.write('P3 compile loop: %d/%d translation units compile (-fsyntax-only)\n\n'
+        out.write('P3 compile loop: %d/%d translation units compile (-fsyntax-only)\n'
                   % (nok, len(results)))
+        out.write('(%d .c files included by other units not counted: %s)\n\n'
+                  % (len(skipped), ' '.join(sorted(skipped))))
         for k in sorted(totals):
             out.write('  %-12s %4d/%4d ok\n' % (k, totals[k][1], totals[k][0]))
         out.write('\nMissing headers (files whose first errors include them):\n')

@@ -11,10 +11,11 @@
 
 #include <linux/types.h>
 
-static inline bool
-video_firmware_drivers_only(void)
-{
-	return (false);
-}
+/*
+ * Implemented by drm_bsd/drivers/video/nomodeset.c (BSD replacement of
+ * the GPL drivers/video/nomodeset.c); false unless the glue sets it.
+ */
+bool video_firmware_drivers_only(void);
+void video_bsd_set_firmware_drivers_only(bool on);
 
 #endif /* _LINUXKPI_VIDEO_NOMODESET_H_ */

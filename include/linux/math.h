@@ -14,6 +14,7 @@
 #include <linuxkpi/platform.h>
 #include <linux/compiler.h>
 #include <linux/types.h>
+#include <linux/bits.h>
 
 #ifndef DIV_ROUND_UP
 #define	DIV_ROUND_UP(n, d)	(((n) + (d) - 1) / (d))

@@ -57,13 +57,21 @@ int lkpi_ddi_getinfo(dev_info_t *dip, ddi_info_cmd_t cmd, void *arg,
 int lkpi_errno_to_illumos(int err);
 extern struct cb_ops lkpi_ddi_null_cb_ops;
 
-#define	LKPI_PCI_DRIVER_MODULE(_name, _desc, _cbops, _initfn, _exitfn)	\
+/*
+ * General form (docs/11 R-K3): every dev_ops entry point is an argument
+ * and must be non-NULL (pass lkpi_ddi_getinfo, lkpi_pci_attach,
+ * lkpi_pci_detach and &lkpi_ddi_null_cb_ops for the defaults). A driver
+ * with its own cb_ops, getinfo or attach/detach wrappers (that call
+ * lkpi_pci_attach/lkpi_pci_detach) uses this one.
+ */
+#define	LKPI_PCI_DRIVER_MODULE_OPS(_name, _desc, _cbops, _getinfo,	\
+    _attach, _detach, _initfn, _exitfn)					\
 int _initfn(void);							\
 void _exitfn(void);							\
 static struct dev_ops _name##_lkpi_dev_ops = {				\
-	DEVO_REV, 0, lkpi_ddi_getinfo, nulldev, nulldev,		\
-	lkpi_pci_attach, lkpi_pci_detach, nodev,			\
-	(_cbops) != NULL ? (_cbops) : &lkpi_ddi_null_cb_ops,		\
+	DEVO_REV, 0, _getinfo, nulldev, nulldev,			\
+	_attach, _detach, nodev,					\
+	_cbops,								\
 	NULL, NULL, ddi_quiesce_not_supported				\
 };									\
 static struct modldrv _name##_lkpi_modldrv = {				\
@@ -98,5 +106,19 @@ _fini(void)								\
 		_exitfn();						\
 	return (r);							\
 }
+
+/*
+ * Short form: default getinfo/attach/detach; _cbops is NULL (no device
+ * nodes) or a cb_ops address. (A ternary on an address is not a constant
+ * initialiser for gcc, so NULL, which has type void *, is told apart
+ * from a struct cb_ops pointer by its type.)
+ */
+#define	LKPI_PCI_DRIVER_MODULE(_name, _desc, _cbops, _initfn, _exitfn)	\
+	LKPI_PCI_DRIVER_MODULE_OPS(_name, _desc,			\
+	    __builtin_choose_expr(__builtin_types_compatible_p(		\
+	    __typeof__(_cbops), void *),				\
+	    &lkpi_ddi_null_cb_ops, (_cbops)),				\
+	    lkpi_ddi_getinfo, lkpi_pci_attach, lkpi_pci_detach,		\
+	    _initfn, _exitfn)
 
 #endif /* _LINUXKPI_DDI_H_ */

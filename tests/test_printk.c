@@ -357,6 +357,30 @@ TEST(linux_formats)
 	}
 }
 
+TEST(hex_dump)
+{
+	static const u8 d[] = { 0x01, 0x02, 0x03, 0x04, 'A', 'b', 0x7f, 0x00 };
+	char line[128];
+	int n;
+
+	n = hex_dump_to_buffer(d, 4, 16, 1, line, sizeof (line), false);
+	CHECK_EQ(strcmp(line, "01 02 03 04"), 0);
+	CHECK_EQ(n, 11);
+	(void) hex_dump_to_buffer(d, 8, 16, 4, line, sizeof (line), false);
+	CHECK_EQ(strcmp(line, "04030201 007f6241"), 0);
+	(void) hex_dump_to_buffer(d, 6, 16, 4, line, sizeof (line), false);
+	CHECK_EQ(strcmp(line, "01 02 03 04 41 62"), 0);	/* 6 % 4: bytes */
+	(void) hex_dump_to_buffer(d, 8, 16, 1, line, sizeof (line), true);
+	/* ascii column at 16 * 2 + 16 + 1 = 49 */
+	CHECK_EQ(strlen(line), 49 + 8);
+	CHECK_EQ(strcmp(line + 49, "....Ab.."), 0);
+	n = hex_dump_to_buffer(d, 8, 16, 1, line, 5, false);
+	CHECK_EQ(n, 23);
+	CHECK_EQ(strcmp(line, "01 0"), 0);
+	print_hex_dump(KERN_DEBUG, "t: ", DUMP_PREFIX_OFFSET, 16, 1, d,
+	    sizeof (d), true);
+}
+
 LKPI_SUITE(printk)
 {
 	RUN(levels);
@@ -370,4 +394,5 @@ LKPI_SUITE(printk)
 	RUN(err_ptr);
 	RUN(jiffies);
 	RUN(linux_formats);
+	RUN(hex_dump);
 }
