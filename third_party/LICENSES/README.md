@@ -48,7 +48,6 @@ replacement.
 GPL headers that MIT code still includes, allow-listed as debts in third_party/gpl-policy.conf:
 - drm_mipi_dsi.h (6 includers, all DSI, link-only);
 - i915_hdcp_interface.h (4);
-- intel-gtt.h (3);
 - drm_accel.h, drm_of.h and drm_dp_mst_topology_internal.h (1 each).
 
 `scripts/import-linux.sh -c` fails if any other GPL header is included.

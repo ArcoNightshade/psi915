@@ -11,6 +11,7 @@ CONFIG_DRM_I915_DEBUG_RUNTIME_PM	unset	8	i915/drivers/gpu/drm/i915/display/intel
 CONFIG_OF	unset	8	drm/drivers/gpu/drm/drm_bridge.c drm/drivers/gpu/drm/drm_mipi_dsi.c drm/drivers/gpu/drm/drm_modes.c drm/drivers/gpu/drm/drm_panel.c drm/include/drm/drm_bridge.h drm/include/drm/drm_modes.h drm/include/drm/drm_panel.h gpl/include/drm/drm_of.h
 CONFIG_DRM_I915_PXP	unset	7	i915/drivers/gpu/drm/i915/i915_drv.h i915/drivers/gpu/drm/i915/pxp/intel_pxp.c i915/drivers/gpu/drm/i915/pxp/intel_pxp_debugfs.h i915/drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.h i915/drivers/gpu/drm/i915/pxp/intel_pxp_irq.h i915/drivers/gpu/drm/i915/pxp/intel_pxp_pm.h i915/drivers/gpu/drm/i915/pxp/intel_pxp_session.h
 CONFIG_BACKLIGHT_CLASS_DEVICE	unset	6	drm/drivers/gpu/drm/display/drm_dp_helper.c drm/drivers/gpu/drm/drm_panel.c drm/include/drm/display/drm_dp_helper.h drm/include/drm/drm_panel.h i915/drivers/gpu/drm/i915/display/intel_backlight.c i915/drivers/gpu/drm/i915/display/intel_backlight.h
+CONFIG_PSI915	1	6	i915/drivers/gpu/drm/i915/gem/i915_gemfs.c i915/drivers/gpu/drm/i915/gt/intel_ggtt.c i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c i915/drivers/gpu/drm/i915/gt/intel_gt.c i915/drivers/gpu/drm/i915/gt/intel_rps.c i915/drivers/gpu/drm/i915/i915_mm.c
 CONFIG_DRM_I915_DEBUG_GUC	unset	5	i915/drivers/gpu/drm/i915/gt/uc/intel_guc_ct.c i915/drivers/gpu/drm/i915/gt/uc/intel_guc_ct.h i915/drivers/gpu/drm/i915/gt/uc/intel_guc_log.c i915/drivers/gpu/drm/i915/gt/uc/intel_uc_fw.c i915/drivers/gpu/drm/i915/gt/uc/intel_uc_fw.h
 CONFIG_MMU_NOTIFIER	unset	5	drm/drivers/dma-buf/dma-resv.c i915/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c i915/drivers/gpu/drm/i915/gem/i915_gem_object.h i915/drivers/gpu/drm/i915/gem/i915_gem_object_types.h i915/drivers/gpu/drm/i915/gem/i915_gem_userptr.c
 CONFIG_PROC_FS	unset	5	i915/drivers/gpu/drm/i915/gem/i915_gem_object.c i915/drivers/gpu/drm/i915/gem/i915_gem_object_types.h i915/drivers/gpu/drm/i915/i915_driver.c i915/drivers/gpu/drm/i915/i915_drm_client.c i915/drivers/gpu/drm/i915/i915_drm_client.h
@@ -23,7 +24,6 @@ CONFIG_DRM_I915_FORCE_PROBE	""	3	i915/drivers/gpu/drm/i915/i915_params.c i915/dr
 CONFIG_DRM_I915_PREEMPT_TIMEOUT	640	3	i915/drivers/gpu/drm/i915/gt/intel_engine.h i915/drivers/gpu/drm/i915/gt/intel_engine_cs.c i915/drivers/gpu/drm/i915/gt/intel_execlists_submission.c
 CONFIG_DRM_I915_REQUEST_TIMEOUT	20000	3	i915/drivers/gpu/drm/i915/gem/i915_gem_context.c i915/drivers/gpu/drm/i915/i915_params.c i915/drivers/gpu/drm/i915/i915_params.h
 CONFIG_DRM_I915_TIMESLICE_DURATION	1	3	i915/drivers/gpu/drm/i915/gt/intel_engine_cs.c i915/drivers/gpu/drm/i915/gt/intel_engine_types.h i915/drivers/gpu/drm/i915/gt/intel_execlists_submission.c
-CONFIG_PSI915	1	3	i915/drivers/gpu/drm/i915/gem/i915_gemfs.c i915/drivers/gpu/drm/i915/gt/intel_rps.c i915/drivers/gpu/drm/i915/i915_mm.c
 CONFIG_COMPAT	unset	2	drm/include/drm/drm_ioctl.h i915/drivers/gpu/drm/i915/i915_ioc32.h
 CONFIG_DRM_ACCEL	unset	2	drm/drivers/gpu/drm/drm_drv.c gpl/include/drm/drm_accel.h
 CONFIG_DRM_CLIENT	unset	2	drm/drivers/gpu/drm/drm_internal.h drm/include/drm/drm_client_event.h
