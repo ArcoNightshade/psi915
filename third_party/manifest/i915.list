@@ -1,18 +1,22 @@
 # psi915 import manifest: i915.list
-# Format: <set><TAB><upstream path in drm-kmod><TAB><reason>.  A path ending in "/" covers everything below it;
-# the longest matching entry wins.  Destination: i915/<upstream path>.
-# Sets imported by default: core link hdr uapi extra aux kpi-ref.
-#   core    compiled for the Gen9 (KBL-R) target
-#   link    compiled only for link closure: code paths for non-Gen9 hardware (candidates for stub patches)
-#   hdr     header (imported whole; use is decided by the compiler, not per file here)
-#   uapi    userspace ABI header
-#   extra   imported (requested subsystem or helper) but not compiled for the Gen9 target
-#   aux     non-compiled supporting source
-#   kpi-ref drm-kmod-carried LinuxKPI headers, reference only
-# Optional sets (import-linux.sh -s <set>): debugfs fbdev compat capture perf selftest gen12 hwmon lpe auxdev
+# Format: <set><TAB><upstream path><TAB><reason>.  A path ending in "/" covers everything below it; the longest
+# matching entry wins.  "scope" lines name the upstream directories that must be fully classified.
+# Destination: i915/<upstream path>.
+# Sets imported by default: core link hdr uapi extra aux.
+#   core   compiled for the Gen9 (KBL-R) target
+#   link   compiled only for link closure: code for non-Gen9 hardware (candidate for stub patches)
+#   hdr    header;  uapi  userspace ABI header
+#   extra  imported (requested subsystem or helper) but not compiled for the Gen9 target
+#   aux    non-compiled supporting source
+# Optional sets (import-linux.sh -s <set>): debugfs fbdev compat capture perf selftest gen12 hwmon gvt kunit
+#   edidfw auxdev cec
 #   exclude never imported
-exclude	drivers/gpu/drm/i915/.gitignore	not source
-exclude	drivers/gpu/drm/i915/TODO.txt	not source
+exclude	drivers/gpu/drm/i915/.gitignore	Kconfig/Makefile/TODO
+exclude	drivers/gpu/drm/i915/Kconfig	Kconfig/Makefile/TODO
+exclude	drivers/gpu/drm/i915/Kconfig.debug	Kconfig/Makefile/TODO
+exclude	drivers/gpu/drm/i915/Kconfig.profile	Kconfig/Makefile/TODO
+exclude	drivers/gpu/drm/i915/Makefile	Kconfig/Makefile/TODO
+exclude	drivers/gpu/drm/i915/TODO.txt	Kconfig/Makefile/TODO
 hdr	drivers/gpu/drm/i915/display/bxt_dpio_phy_regs.h	i915 header
 link	drivers/gpu/drm/i915/display/dvo_ch7017.c	Gen2-4 DVO; not used on KBL-R, compiled for link closure
 link	drivers/gpu/drm/i915/display/dvo_ch7xxx.c	Gen2-4 DVO; not used on KBL-R, compiled for link closure
@@ -26,9 +30,9 @@ link	drivers/gpu/drm/i915/display/g4x_hdmi.c	G4X/VLV/CHV HDMI; not used on KBL-R
 hdr	drivers/gpu/drm/i915/display/g4x_hdmi.h	i915 header
 link	drivers/gpu/drm/i915/display/hsw_ips.c	HSW/BDW IPS; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/hsw_ips.h	i915 header
-link	drivers/gpu/drm/i915/display/i9xx_display_sr.c	pre-SKL display self-refresh; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/i9xx_display_sr.c	pre-SKL self-refresh; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/i9xx_display_sr.h	i915 header
-link	drivers/gpu/drm/i915/display/i9xx_plane.c	pre-SKL primary planes; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/i9xx_plane.c	pre-SKL planes; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/i9xx_plane.h	i915 header
 hdr	drivers/gpu/drm/i915/display/i9xx_plane_regs.h	i915 header
 link	drivers/gpu/drm/i915/display/i9xx_wm.c	pre-SKL watermarks; not used on KBL-R, compiled for link closure
@@ -37,132 +41,130 @@ hdr	drivers/gpu/drm/i915/display/i9xx_wm_regs.h	i915 header
 link	drivers/gpu/drm/i915/display/icl_dsi.c	Gen11+ DSI; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/icl_dsi.h	i915 header
 hdr	drivers/gpu/drm/i915/display/icl_dsi_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_acpi.c	i915 display
 hdr	drivers/gpu/drm/i915/display/intel_acpi.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_alpm.c	Gen12+/LNL ALPM (PSR2/LOBF); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_alpm.c	Gen12+ ALPM; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_alpm.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_atomic.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_atomic.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_atomic.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_atomic_plane.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_atomic_plane.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_atomic_plane.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_audio.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_audio.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_audio.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_audio_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_backlight.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_backlight.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_backlight.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_backlight_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_bios.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_bios.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_bios.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_bo.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_bo.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_bo.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_bw.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_bw.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_bw.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_cdclk.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_cdclk.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_cdclk.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_color.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_color.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_color.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_color_regs.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_combo_phy.c	ICL+ combo PHY; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_combo_phy.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_combo_phy_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_connector.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_connector.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_connector.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_crt.c	analog VGA (no CRT on SKL+ PCH); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_crt.c	analog VGA (none on SKL+ PCH); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_crt.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_crt_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_crtc.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_crtc.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_crtc.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_crtc_state_dump.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_crtc_state_dump.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_crtc_state_dump.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_cursor.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_cursor.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_cursor.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_cursor_regs.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_cx0_phy.c	MTL+ C10/C20 PHY; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_cx0_phy.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_cx0_phy_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_ddi.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_ddi.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_ddi.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_ddi_buf_trans.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_ddi_buf_trans.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_ddi_buf_trans.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_de.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_conversion.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_conversion.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_conversion.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_display_core.h	i915 header
 debugfs	drivers/gpu/drm/i915/display/intel_display_debugfs.c	CONFIG_DEBUG_FS off
 hdr	drivers/gpu/drm/i915/display/intel_display_debugfs.h	i915 header
 debugfs	drivers/gpu/drm/i915/display/intel_display_debugfs_params.c	CONFIG_DEBUG_FS off
 hdr	drivers/gpu/drm/i915/display/intel_display_debugfs_params.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_device.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_device.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_device.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_driver.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_driver.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_driver.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_irq.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_irq.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_irq.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_display_limits.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_params.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_params.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_params.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_power.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_power.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_power.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_power_map.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_power_map.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_power_map.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_power_well.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_power_well.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_power_well.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_display_reg_defs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_reset.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_reset.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_reset.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_rps.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_rps.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_rps.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_snapshot.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_snapshot.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_snapshot.h	i915 header
-hdr	drivers/gpu/drm/i915/display/intel_display_trace.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_display_types.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_display_wa.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_display_wa.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_display_wa.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_dkl_phy.c	TGL+ Dekel PHY; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dkl_phy.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_dkl_phy_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dmc.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dmc.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dmc.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_dmc_regs.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_dmc_wl.c	Xe2LPD DMC wakelock; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dmc_wl.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dp.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dp.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dp.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dp_aux.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dp_aux.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dp_aux.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dp_aux_backlight.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dp_aux_backlight.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dp_aux_backlight.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_dp_aux_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dp_hdcp.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dp_hdcp.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dp_hdcp.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dp_link_training.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dp_link_training.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dp_link_training.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dp_mst.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dp_mst.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dp_mst.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dp_test.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dp_test.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dp_test.h	i915 header
-gen12	drivers/gpu/drm/i915/display/intel_dp_tunnel.c	DP tunnel BW allocation (Gen12+/USB4); CONFIG_DRM_I915_DP_TUNNEL off
+gen12	drivers/gpu/drm/i915/display/intel_dp_tunnel.c	CONFIG_DRM_I915_DP_TUNNEL off
 hdr	drivers/gpu/drm/i915/display/intel_dp_tunnel.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_dpio_phy.c	VLV/CHV/BXT/GLK DPIO PHY (Gen9 LP, not KBL); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_dpio_phy.c	VLV/CHV/BXT/GLK DPIO PHY; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dpio_phy.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dpll.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dpll.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dpll.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_dpll_mgr.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_dpll_mgr.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_dpll_mgr.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_dpt.c	Gen13+ display page tables; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_dpt.c	Gen13+ DPT; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dpt.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_dpt_common.c	Gen13+ display page tables; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_dpt_common.c	Gen13+ DPT; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dpt_common.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_drrs.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_drrs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_drrs.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_dsb.c	Gen12+ display state buffer; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_dsb.c	Gen12+ DSB; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dsb.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_dsb_buffer.c	Gen12+ display state buffer; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_dsb_buffer.c	Gen12+ DSB; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dsb_buffer.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_dsb_regs.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_dsi.c	DSI (VLV/BXT/GLK/ICL+); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_dsi.c	DSI; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dsi.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.c	DSI DCS backlight; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_dsi_dcs_backlight.h	i915 header
@@ -172,15 +174,15 @@ link	drivers/gpu/drm/i915/display/intel_dvo.c	Gen2-4 DVO; not used on KBL-R, com
 hdr	drivers/gpu/drm/i915/display/intel_dvo.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_dvo_dev.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_dvo_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_encoder.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_encoder.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_encoder.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_fb.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_fb.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_fb.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_fb_bo.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_fb_bo.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_fb_bo.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_fb_pin.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_fb_pin.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_fb_pin.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_fbc.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_fbc.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_fbc.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_fbc_regs.h	i915 header
 fbdev	drivers/gpu/drm/i915/display/intel_fbdev.c	CONFIG_DRM_FBDEV_EMULATION off
@@ -190,17 +192,17 @@ hdr	drivers/gpu/drm/i915/display/intel_fbdev_fb.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_fdi.c	ILK-BDW FDI; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_fdi.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_fdi_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_fifo_underrun.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_fifo_underrun.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_fifo_underrun.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_fixed.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_frontbuffer.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_frontbuffer.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_frontbuffer.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_global_state.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_global_state.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_global_state.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_gmbus.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_gmbus.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_gmbus.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_gmbus_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_hdcp.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_hdcp.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_hdcp.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_hdcp_gsc.c	MTL+ HDCP via GSC; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_hdcp_gsc.h	i915 header
@@ -208,61 +210,61 @@ link	drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.c	MTL+ HDCP via GSC; no
 hdr	drivers/gpu/drm/i915/display/intel_hdcp_gsc_message.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_hdcp_regs.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_hdcp_shim.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_hdmi.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_hdmi.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_hdmi.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_hotplug.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_hotplug.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_hotplug.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_hotplug_irq.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_hotplug_irq.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_hotplug_irq.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_hti.c	ADL-P+ HTI; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_hti.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_hti_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_link_bw.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_link_bw.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_link_bw.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_load_detect.c	CRT/TV load detection; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_load_detect.c	CRT/TV load detect; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_load_detect.h	i915 header
-lpe	drivers/gpu/drm/i915/display/intel_lpe_audio.c	VLV/CHV LPE audio; drm-kmod does not build it
+core	drivers/gpu/drm/i915/display/intel_lpe_audio.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_lpe_audio.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_lspcon.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_lspcon.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_lspcon.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_lvds.c	LVDS (pre-SKL); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_lvds.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_lvds_regs.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_mg_phy_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_modeset_lock.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_modeset_lock.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_modeset_lock.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_modeset_setup.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_modeset_setup.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_modeset_setup.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_modeset_verify.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_modeset_verify.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_modeset_verify.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_opregion.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_opregion.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_opregion.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_overlay.c	Gen2-4 video overlay; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_overlay.c	Gen2-4 overlay; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_overlay.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_panel.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_panel.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_panel.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_pch_display.c	ILK-BDW PCH transcoders; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_pch_display.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_pch_refclk.c	ILK-BDW PCH refclk; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_pch_refclk.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_pfit.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_pfit.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_pfit.h	i915 header
-debugfs	drivers/gpu/drm/i915/display/intel_pipe_crc.c	pipe CRC is a debugfs interface; CONFIG_DEBUG_FS off
+debugfs	drivers/gpu/drm/i915/display/intel_pipe_crc.c	CONFIG_DEBUG_FS off
 hdr	drivers/gpu/drm/i915/display/intel_pipe_crc.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_pipe_crc_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_plane_initial.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_plane_initial.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_plane_initial.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_pmdemand.c	MTL+ PM demand; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_pmdemand.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_pps.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_pps.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_pps.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_pps_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_psr.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_psr.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_psr.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_psr_regs.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_qp_tables.c	DSC QP tables (Gen11+ DSC); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_qp_tables.c	DSC QP tables; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_qp_tables.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_quirks.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_quirks.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_quirks.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_sdvo.c	SDVO (pre-SKL); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_sdvo.h	i915 header
@@ -270,37 +272,37 @@ hdr	drivers/gpu/drm/i915/display/intel_sdvo_regs.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_snps_phy.c	DG2 SNPS PHY; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_snps_phy.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_snps_phy_regs.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_sprite.c	pre-SKL sprite planes; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_sprite.c	pre-SKL sprites; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_sprite.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_sprite_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_sprite_uapi.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_sprite_uapi.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_sprite_uapi.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_tc.c	ICL+ Type-C ports; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_tc.c	ICL+ Type-C; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_tc.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_tdf.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_tv.c	Gen3-4 TV-out; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_tv.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_tv_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_vblank.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_vblank.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_vblank.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_vbt_defs.h	i915 header
-link	drivers/gpu/drm/i915/display/intel_vdsc.c	DSC (Gen11+, GLK partial); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/display/intel_vdsc.c	DSC (Gen11+); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_vdsc.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_vdsc_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_vga.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_vga.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_vga.h	i915 header
 link	drivers/gpu/drm/i915/display/intel_vrr.c	Gen11+ VRR; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/display/intel_vrr.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_vrr_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/intel_wm.c	i915 display
+core	drivers/gpu/drm/i915/display/intel_wm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/intel_wm.h	i915 header
 hdr	drivers/gpu/drm/i915/display/intel_wm_types.h	i915 header
-core	drivers/gpu/drm/i915/display/skl_scaler.c	i915 display
+core	drivers/gpu/drm/i915/display/skl_scaler.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/skl_scaler.h	i915 header
-core	drivers/gpu/drm/i915/display/skl_universal_plane.c	i915 display
+core	drivers/gpu/drm/i915/display/skl_universal_plane.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/skl_universal_plane.h	i915 header
 hdr	drivers/gpu/drm/i915/display/skl_universal_plane_regs.h	i915 header
-core	drivers/gpu/drm/i915/display/skl_watermark.c	i915 display
+core	drivers/gpu/drm/i915/display/skl_watermark.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/display/skl_watermark.h	i915 header
 hdr	drivers/gpu/drm/i915/display/skl_watermark_regs.h	i915 header
 hdr	drivers/gpu/drm/i915/display/vlv_dpio_phy_regs.h	i915 header
@@ -310,191 +312,231 @@ link	drivers/gpu/drm/i915/display/vlv_dsi_pll.c	VLV/CHV/BXT/GLK DSI PLL; not use
 hdr	drivers/gpu/drm/i915/display/vlv_dsi_pll.h	i915 header
 hdr	drivers/gpu/drm/i915/display/vlv_dsi_pll_regs.h	i915 header
 hdr	drivers/gpu/drm/i915/display/vlv_dsi_regs.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_busy.c	i915 GEM
-core	drivers/gpu/drm/i915/gem/i915_gem_clflush.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_busy.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gem/i915_gem_clflush.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_clflush.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_context.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_context.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_context.h	i915 header
 hdr	drivers/gpu/drm/i915/gem/i915_gem_context_types.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_create.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_create.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_create.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_dmabuf.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_dmabuf.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_dmabuf.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_domain.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_domain.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_domain.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c	i915 GEM
-core	drivers/gpu/drm/i915/gem/i915_gem_internal.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gem/i915_gem_internal.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_internal.h	i915 header
 hdr	drivers/gpu/drm/i915/gem/i915_gem_ioctls.h	i915 header
 link	drivers/gpu/drm/i915/gem/i915_gem_lmem.c	discrete LMEM objects; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gem/i915_gem_lmem.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_mman.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_mman.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_mman.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_object.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_object.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_object.h	i915 header
 hdr	drivers/gpu/drm/i915/gem/i915_gem_object_frontbuffer.h	i915 header
 hdr	drivers/gpu/drm/i915/gem/i915_gem_object_types.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_pages.c	i915 GEM
-link	drivers/gpu/drm/i915/gem/i915_gem_phys.c	phys objects (Gen2-4 cursors/overlay); not used on KBL-R, compiled for link closure
-core	drivers/gpu/drm/i915/gem/i915_gem_pm.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_pages.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+link	drivers/gpu/drm/i915/gem/i915_gem_phys.c	phys objects (Gen2-4); not used on KBL-R, compiled for link closure
+core	drivers/gpu/drm/i915/gem/i915_gem_pm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_pm.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_region.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_region.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_region.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_shmem.c	i915 GEM
-core	drivers/gpu/drm/i915/gem/i915_gem_shrinker.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_shmem.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gem/i915_gem_shrinker.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_shrinker.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_stolen.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_stolen.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_stolen.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_throttle.c	i915 GEM
-core	drivers/gpu/drm/i915/gem/i915_gem_tiling.c	i915 GEM
+core	drivers/gpu/drm/i915/gem/i915_gem_throttle.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gem/i915_gem_tiling.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gem/i915_gem_tiling.h	i915 header
-link	drivers/gpu/drm/i915/gem/i915_gem_ttm.c	TTM object backend (discrete only; integrated uses shmem); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gem/i915_gem_ttm.c	TTM object backend (discrete); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gem/i915_gem_ttm.h	i915 header
 link	drivers/gpu/drm/i915/gem/i915_gem_ttm_move.c	TTM moves (discrete); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gem/i915_gem_ttm_move.h	i915 header
 link	drivers/gpu/drm/i915/gem/i915_gem_ttm_pm.c	TTM suspend backup (discrete); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gem/i915_gem_ttm_pm.h	i915 header
-core	drivers/gpu/drm/i915/gem/i915_gem_userptr.c	i915 GEM
-core	drivers/gpu/drm/i915/gem/i915_gem_wait.c	i915 GEM
-exclude	drivers/gpu/drm/i915/gem/i915_gemfs.c	Linux tmpfs huge-page mount for shmem objects; drm-kmod does not build it; illumos needs its own backing store
+core	drivers/gpu/drm/i915/gem/i915_gem_userptr.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gem/i915_gem_wait.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gem/i915_gemfs.c	tmpfs huge-page mount for shmem objects; built unconditionally upstream; illumos needs a patch
 hdr	drivers/gpu/drm/i915/gem/i915_gemfs.h	i915 header
-link	drivers/gpu/drm/i915/gt/gen2_engine_cs.c	Gen2-5 engine command streams; not used on KBL-R, compiled for link closure
+selftest	drivers/gpu/drm/i915/gem/selftests/huge_gem_object.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/huge_gem_object.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/huge_pages.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_client_blt.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_coherency.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_context.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_dmabuf.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_migrate.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_mman.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_object.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/i915_gem_phys.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/igt_gem_utils.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/igt_gem_utils.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/mock_context.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/mock_context.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/mock_dmabuf.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gem/selftests/mock_gem_object.h	CONFIG_DRM_I915_SELFTEST off
+link	drivers/gpu/drm/i915/gt/gen2_engine_cs.c	Gen2-5 command streams; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/gen2_engine_cs.h	i915 header
-link	drivers/gpu/drm/i915/gt/gen6_engine_cs.c	Gen6-7 engine command streams; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/gen6_engine_cs.c	Gen6-7 command streams; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/gen6_engine_cs.h	i915 header
 link	drivers/gpu/drm/i915/gt/gen6_ppgtt.c	Gen6-7 PPGTT; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/gen6_ppgtt.h	i915 header
-link	drivers/gpu/drm/i915/gt/gen6_renderstate.c	Gen6 golden render state; not used on KBL-R, compiled for link closure
-link	drivers/gpu/drm/i915/gt/gen7_renderclear.c	Gen7 residual-clear (CVE-2019-14615); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/gen6_renderstate.c	Gen6 render state; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/gen7_renderclear.c	Gen7 residual clear; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/gen7_renderclear.h	i915 header
-link	drivers/gpu/drm/i915/gt/gen7_renderstate.c	Gen7 golden render state; not used on KBL-R, compiled for link closure
-core	drivers/gpu/drm/i915/gt/gen8_engine_cs.c	i915 GT
+link	drivers/gpu/drm/i915/gt/gen7_renderstate.c	Gen7 render state; not used on KBL-R, compiled for link closure
+core	drivers/gpu/drm/i915/gt/gen8_engine_cs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/gen8_engine_cs.h	i915 header
-core	drivers/gpu/drm/i915/gt/gen8_ppgtt.c	i915 GT
+core	drivers/gpu/drm/i915/gt/gen8_ppgtt.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/gen8_ppgtt.h	i915 header
-link	drivers/gpu/drm/i915/gt/gen8_renderstate.c	Gen8 golden render state; not used on KBL-R, compiled for link closure
-core	drivers/gpu/drm/i915/gt/gen9_renderstate.c	i915 GT
-link	drivers/gpu/drm/i915/gt/hsw_clear_kernel.c	HSW clear kernel; #included by gen7_renderclear.c; not used on KBL-R, compiled for link closure
-core	drivers/gpu/drm/i915/gt/intel_breadcrumbs.c	i915 GT
+link	drivers/gpu/drm/i915/gt/gen8_renderstate.c	Gen8 render state; not used on KBL-R, compiled for link closure
+core	drivers/gpu/drm/i915/gt/gen9_renderstate.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+link	drivers/gpu/drm/i915/gt/hsw_clear_kernel.c	HSW/IVB clear kernel, #included by gt/gen7_renderclear.c
+core	drivers/gpu/drm/i915/gt/intel_breadcrumbs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_breadcrumbs.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_breadcrumbs_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_context.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_context.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_context.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_context_param.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_context_sseu.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_context_sseu.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_context_types.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_engine.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_engine_cs.c	i915 GT
-core	drivers/gpu/drm/i915/gt/intel_engine_heartbeat.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_engine_cs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gt/intel_engine_heartbeat.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_engine_heartbeat.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_engine_pm.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_engine_pm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_engine_pm.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_engine_regs.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_engine_stats.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_engine_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_engine_user.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_engine_user.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_engine_user.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_execlists_submission.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_execlists_submission.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_execlists_submission.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_ggtt.c	i915 GT
-core	drivers/gpu/drm/i915/gt/intel_ggtt_fencing.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_ggtt.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gt/intel_ggtt_fencing.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_ggtt_fencing.h	i915 header
 link	drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c	Gen2-5 GGTT via intel-gtt; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/intel_ggtt_gmch.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_gpu_commands.h	i915 header
-link	drivers/gpu/drm/i915/gt/intel_gsc.c	DG1/DG2/MTL GSC; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/intel_gsc.c	DG1+/MTL GSC; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/intel_gsc.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_buffer_pool.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_buffer_pool.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_buffer_pool.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_gt_buffer_pool_types.h	i915 header
 link	drivers/gpu/drm/i915/gt/intel_gt_ccs_mode.c	DG2+ CCS mode; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/intel_gt_ccs_mode.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_clock_utils.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_clock_utils.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_clock_utils.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/intel_gt_debugfs.c	CONFIG_DEBUG_FS off
+core	drivers/gpu/drm/i915/gt/intel_gt_debugfs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_debugfs.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_gt_defines.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/intel_gt_engines_debugfs.c	CONFIG_DEBUG_FS off
+core	drivers/gpu/drm/i915/gt/intel_gt_engines_debugfs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_engines_debugfs.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_irq.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_irq.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_irq.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_mcr.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_mcr.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_mcr.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_pm.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_pm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_pm.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/intel_gt_pm_debugfs.c	CONFIG_DEBUG_FS off
+core	drivers/gpu/drm/i915/gt/intel_gt_pm_debugfs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_pm_debugfs.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_pm_irq.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_pm_irq.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_pm_irq.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_gt_print.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_gt_regs.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_requests.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_requests.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_requests.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_sysfs.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_sysfs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_sysfs.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gt_sysfs_pm.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gt_sysfs_pm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gt_sysfs_pm.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_gt_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_gtt.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_gtt.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_gtt.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_hwconfig.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_llc.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_llc.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_llc.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_llc_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_lrc.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_lrc.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_lrc.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_lrc_reg.h	i915 header
-link	drivers/gpu/drm/i915/gt/intel_migrate.c	blitter migration (LMEM/flat-CCS); not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/intel_migrate.c	LMEM/flat-CCS migration; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/intel_migrate.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_migrate_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_mocs.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_mocs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_mocs.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_ppgtt.c	i915 GT
-core	drivers/gpu/drm/i915/gt/intel_rc6.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_ppgtt.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/gt/intel_rc6.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_rc6.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_rc6_types.h	i915 header
-link	drivers/gpu/drm/i915/gt/intel_region_lmem.c	discrete LMEM region; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/intel_region_lmem.c	discrete LMEM; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/intel_region_lmem.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_renderstate.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_renderstate.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_renderstate.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_reset.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_reset.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_reset.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_reset_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_ring.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_ring.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_ring.h	i915 header
-link	drivers/gpu/drm/i915/gt/intel_ring_submission.c	legacy ringbuffer submission (Gen2-7); Gen9 uses execlists; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/intel_ring_submission.c	legacy ring submission (Gen2-7); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/intel_ring_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_rps.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_rps.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_rps.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_rps_types.h	i915 header
-link	drivers/gpu/drm/i915/gt/intel_sa_media.c	MTL standalone media GT; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/intel_sa_media.c	MTL standalone media; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/intel_sa_media.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_sseu.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_sseu.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_sseu.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/intel_sseu_debugfs.c	CONFIG_DEBUG_FS off
+core	drivers/gpu/drm/i915/gt/intel_sseu_debugfs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_sseu_debugfs.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_timeline.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_timeline.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_timeline.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_timeline_types.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_tlb.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_tlb.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_tlb.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_wopcm.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_wopcm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_wopcm.h	i915 header
-core	drivers/gpu/drm/i915/gt/intel_workarounds.c	i915 GT
+core	drivers/gpu/drm/i915/gt/intel_workarounds.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/intel_workarounds.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/intel_workarounds_types.h	i915 header
-link	drivers/gpu/drm/i915/gt/ivb_clear_kernel.c	IVB clear kernel; #included by gen7_renderclear.c; not used on KBL-R, compiled for link closure
+link	drivers/gpu/drm/i915/gt/ivb_clear_kernel.c	HSW/IVB clear kernel, #included by gt/gen7_renderclear.c
 selftest	drivers/gpu/drm/i915/gt/mock_engine.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/gt/mock_engine.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_engine_heartbeat.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_engine_heartbeat.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_execlists.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_gt_pm.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_hangcheck.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_llc.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_llc.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/gt/selftest_lrc.c	CONFIG_DRM_I915_SELFTEST off
-aux	drivers/gpu/drm/i915/gt/shaders/README	assembler source of the generated *_clear_kernel.c (preferred form for modification)
-aux	drivers/gpu/drm/i915/gt/shaders/clear_kernel/hsw.asm	assembler source of the generated *_clear_kernel.c (preferred form for modification)
-aux	drivers/gpu/drm/i915/gt/shaders/clear_kernel/ivb.asm	assembler source of the generated *_clear_kernel.c (preferred form for modification)
-core	drivers/gpu/drm/i915/gt/shmem_utils.c	i915 GT
+selftest	drivers/gpu/drm/i915/gt/selftest_migrate.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_mocs.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_rc6.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_rc6.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_reset.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_ring_submission.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_rps.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_rps.h	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_slpc.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_timeline.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_tlb.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftest_workarounds.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftests/mock_timeline.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/gt/selftests/mock_timeline.h	CONFIG_DRM_I915_SELFTEST off
+aux	drivers/gpu/drm/i915/gt/shaders/README	assembler source of the generated *_clear_kernel.c
+aux	drivers/gpu/drm/i915/gt/shaders/clear_kernel/hsw.asm	assembler source of the generated *_clear_kernel.c
+aux	drivers/gpu/drm/i915/gt/shaders/clear_kernel/ivb.asm	assembler source of the generated *_clear_kernel.c
+core	drivers/gpu/drm/i915/gt/shmem_utils.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/shmem_utils.h	i915 header
-core	drivers/gpu/drm/i915/gt/sysfs_engines.c	i915 GT
+selftest	drivers/gpu/drm/i915/gt/st_shmem_utils.c	CONFIG_DRM_I915_SELFTEST off
+core	drivers/gpu/drm/i915/gt/sysfs_engines.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/gt/sysfs_engines.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/abi/guc_actions_abi.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/abi/guc_actions_slpc_abi.h	i915 header
@@ -505,216 +547,249 @@ hdr	drivers/gpu/drm/i915/gt/uc/abi/guc_klvs_abi.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/abi/guc_messages_abi.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/guc_capture_fwif.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/intel_gsc_binary_headers.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_gsc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_gsc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_gsc_fw.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_gsc_proxy.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_gsc_proxy.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_gsc_proxy.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc_debugfs.c	CONFIG_DEBUG_FS off
+link	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc_debugfs.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc_debugfs.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc_heci_cmd_submit.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc_heci_cmd_submit.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_gsc_uc_heci_cmd_submit.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_ads.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_ads.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_ads.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_capture.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_capture.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_capture.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_ct.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_ct.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_ct.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/uc/intel_guc_debugfs.c	CONFIG_DEBUG_FS off
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_debugfs.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_debugfs.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_fw.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_fwif.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_hwconfig.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_log.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_hwconfig.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_log.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_log.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/uc/intel_guc_log_debugfs.c	CONFIG_DEBUG_FS off
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_log_debugfs.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_log_debugfs.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_print.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_rc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_rc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_rc.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_reg.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_slpc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_slpc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_slpc.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_slpc_types.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_guc_submission.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_guc_submission.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_guc_submission.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_huc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_huc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_huc.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/uc/intel_huc_debugfs.c	CONFIG_DEBUG_FS off
+link	drivers/gpu/drm/i915/gt/uc/intel_huc_debugfs.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_huc_debugfs.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_huc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_huc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_huc_fw.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/intel_huc_print.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_uc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_uc.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_uc.h	i915 header
-debugfs	drivers/gpu/drm/i915/gt/uc/intel_uc_debugfs.c	CONFIG_DEBUG_FS off
+link	drivers/gpu/drm/i915/gt/uc/intel_uc_debugfs.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_uc_debugfs.h	i915 header
-link	drivers/gpu/drm/i915/gt/uc/intel_uc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12, so unused on KBL-R; compiled for link closure
+link	drivers/gpu/drm/i915/gt/uc/intel_uc_fw.c	GuC/HuC/GSC: intel_uc.c sets enable_guc=0 below Gen12; compiled for link closure
 hdr	drivers/gpu/drm/i915/gt/uc/intel_uc_fw.h	i915 header
 hdr	drivers/gpu/drm/i915/gt/uc/intel_uc_fw_abi.h	i915 header
 selftest	drivers/gpu/drm/i915/gt/uc/selftest_guc.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/gt/uc/selftest_guc_hangcheck.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/gt/uc/selftest_guc_multi_lrc.c	CONFIG_DRM_I915_SELFTEST off
-core	drivers/gpu/drm/i915/i915_active.c	i915 core
+gvt	drivers/gpu/drm/i915/gvt/aperture_gm.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/cfg_space.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/cmd_parser.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/cmd_parser.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/debug.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/debugfs.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/display.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/display.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/dmabuf.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/dmabuf.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/edid.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/edid.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/execlist.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/execlist.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/fb_decoder.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/fb_decoder.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/firmware.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/gtt.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/gtt.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/gvt.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/handlers.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/interrupt.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/interrupt.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/kvmgt.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/mmio.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/mmio.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/mmio_context.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/mmio_context.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/opregion.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/page_track.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/page_track.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/reg.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/sched_policy.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/sched_policy.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/scheduler.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/scheduler.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/trace.h	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/trace_points.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+gvt	drivers/gpu/drm/i915/gvt/vgpu.c	GVT-g host (CONFIG_DRM_I915_GVT off)
+core	drivers/gpu/drm/i915/i915_active.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_active.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_active_types.h	i915 header
-core	drivers/gpu/drm/i915/i915_cmd_parser.c	i915 core
+core	drivers/gpu/drm/i915/i915_cmd_parser.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_cmd_parser.h	i915 header
-core	drivers/gpu/drm/i915/i915_config.c	i915 core
+core	drivers/gpu/drm/i915/i915_config.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_config.h	i915 header
 debugfs	drivers/gpu/drm/i915/i915_debugfs.c	CONFIG_DEBUG_FS off
 hdr	drivers/gpu/drm/i915/i915_debugfs.h	i915 header
 debugfs	drivers/gpu/drm/i915/i915_debugfs_params.c	CONFIG_DEBUG_FS off
 hdr	drivers/gpu/drm/i915/i915_debugfs_params.h	i915 header
-core	drivers/gpu/drm/i915/i915_deps.c	i915 core
+core	drivers/gpu/drm/i915/i915_deps.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_deps.h	i915 header
-core	drivers/gpu/drm/i915/i915_driver.c	i915 core
+core	drivers/gpu/drm/i915/i915_driver.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_driver.h	i915 header
-core	drivers/gpu/drm/i915/i915_drm_client.c	i915 core
+core	drivers/gpu/drm/i915/i915_drm_client.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_drm_client.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_drv.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_file_private.h	i915 header
-core	drivers/gpu/drm/i915/i915_gem.c	i915 core
+core	drivers/gpu/drm/i915/i915_gem.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_gem.h	i915 header
-core	drivers/gpu/drm/i915/i915_gem_evict.c	i915 core
+core	drivers/gpu/drm/i915/i915_gem_evict.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_gem_evict.h	i915 header
-core	drivers/gpu/drm/i915/i915_gem_gtt.c	i915 core
+core	drivers/gpu/drm/i915/i915_gem_gtt.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_gem_gtt.h	i915 header
-core	drivers/gpu/drm/i915/i915_gem_ww.c	i915 core
+core	drivers/gpu/drm/i915/i915_gem_ww.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_gem_ww.h	i915 header
-core	drivers/gpu/drm/i915/i915_getparam.c	i915 core
+core	drivers/gpu/drm/i915/i915_getparam.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_getparam.h	i915 header
-capture	drivers/gpu/drm/i915/i915_gpu_error.c	CONFIG_DRM_I915_CAPTURE_ERROR off initially (GPU error state capture; needs zlib, sysfs bin attrs)
+capture	drivers/gpu/drm/i915/i915_gpu_error.c	CONFIG_DRM_I915_CAPTURE_ERROR off
 hdr	drivers/gpu/drm/i915/i915_gpu_error.h	i915 header
-hwmon	drivers/gpu/drm/i915/i915_hwmon.c	hwmon is DG1/DG2 only; CONFIG_HWMON off
+hwmon	drivers/gpu/drm/i915/i915_hwmon.c	CONFIG_HWMON off
 hdr	drivers/gpu/drm/i915/i915_hwmon.h	i915 header
-compat	drivers/gpu/drm/i915/i915_ioc32.c	CONFIG_COMPAT off initially
+compat	drivers/gpu/drm/i915/i915_ioc32.c	CONFIG_COMPAT off
 hdr	drivers/gpu/drm/i915/i915_ioc32.h	i915 header
-core	drivers/gpu/drm/i915/i915_ioctl.c	i915 core
+core	drivers/gpu/drm/i915/i915_ioctl.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_ioctl.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_iosf_mbi.h	i915 header
-core	drivers/gpu/drm/i915/i915_irq.c	i915 core
+core	drivers/gpu/drm/i915/i915_irq.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_irq.h	i915 header
-core	drivers/gpu/drm/i915/i915_memcpy.c	i915 core
+core	drivers/gpu/drm/i915/i915_memcpy.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_memcpy.h	i915 header
-core	drivers/gpu/drm/i915/i915_mitigations.c	i915 core
+core	drivers/gpu/drm/i915/i915_mitigations.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_mitigations.h	i915 header
-core	drivers/gpu/drm/i915/i915_mm.c	i915 core
+core	drivers/gpu/drm/i915/i915_mm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_mm.h	i915 header
-core	drivers/gpu/drm/i915/i915_module.c	i915 core
-core	drivers/gpu/drm/i915/i915_params.c	i915 core
+core	drivers/gpu/drm/i915/i915_module.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
+core	drivers/gpu/drm/i915/i915_params.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_params.h	i915 header
-core	drivers/gpu/drm/i915/i915_pci.c	i915 core
+core	drivers/gpu/drm/i915/i915_pci.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_pci.h	i915 header
-perf	drivers/gpu/drm/i915/i915_perf.c	OA perf stream (CONFIG_PERF_EVENTS off); drm-kmod does not build it
+core	drivers/gpu/drm/i915/i915_perf.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_perf.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_perf_oa_regs.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_perf_types.h	i915 header
-perf	drivers/gpu/drm/i915/i915_pmu.c	perf PMU (CONFIG_PERF_EVENTS off)
+perf	drivers/gpu/drm/i915/i915_pmu.c	CONFIG_PERF_EVENTS off
 hdr	drivers/gpu/drm/i915/i915_pmu.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_priolist_types.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_pvinfo.h	i915 header
-core	drivers/gpu/drm/i915/i915_query.c	i915 core
+core	drivers/gpu/drm/i915/i915_query.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_query.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_reg.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_reg_defs.h	i915 header
-core	drivers/gpu/drm/i915/i915_request.c	i915 core
+core	drivers/gpu/drm/i915/i915_request.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_request.h	i915 header
-core	drivers/gpu/drm/i915/i915_scatterlist.c	i915 core
+core	drivers/gpu/drm/i915/i915_scatterlist.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_scatterlist.h	i915 header
-core	drivers/gpu/drm/i915/i915_scheduler.c	i915 core
+core	drivers/gpu/drm/i915/i915_scheduler.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_scheduler.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_scheduler_types.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_selftest.h	i915 header
-core	drivers/gpu/drm/i915/i915_sw_fence.c	i915 core
+core	drivers/gpu/drm/i915/i915_sw_fence.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_sw_fence.h	i915 header
-core	drivers/gpu/drm/i915/i915_sw_fence_work.c	i915 core
+core	drivers/gpu/drm/i915/i915_sw_fence_work.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_sw_fence_work.h	i915 header
-link	drivers/gpu/drm/i915/i915_switcheroo.c	vga_switcheroo hybrid graphics; KBL-R iGPU-only target; link closure
+link	drivers/gpu/drm/i915/i915_switcheroo.c	vga_switcheroo hybrid graphics; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/i915_switcheroo.h	i915 header
-core	drivers/gpu/drm/i915/i915_syncmap.c	i915 core
+core	drivers/gpu/drm/i915/i915_syncmap.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_syncmap.h	i915 header
-core	drivers/gpu/drm/i915/i915_sysfs.c	i915 core
+core	drivers/gpu/drm/i915/i915_sysfs.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_sysfs.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_tasklet.h	i915 header
-hdr	drivers/gpu/drm/i915/i915_trace.h	i915 header
-link	drivers/gpu/drm/i915/i915_ttm_buddy_manager.c	TTM buddy manager for LMEM regions (discrete); link closure
+link	drivers/gpu/drm/i915/i915_ttm_buddy_manager.c	TTM buddy manager (discrete LMEM); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/i915_ttm_buddy_manager.h	i915 header
-core	drivers/gpu/drm/i915/i915_user_extensions.c	i915 core
+core	drivers/gpu/drm/i915/i915_user_extensions.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_user_extensions.h	i915 header
-core	drivers/gpu/drm/i915/i915_utils.c	i915 core
+core	drivers/gpu/drm/i915/i915_utils.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_utils.h	i915 header
-core	drivers/gpu/drm/i915/i915_vgpu.c	i915 core
+core	drivers/gpu/drm/i915/i915_vgpu.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_vgpu.h	i915 header
-core	drivers/gpu/drm/i915/i915_vma.c	i915 core
+core	drivers/gpu/drm/i915/i915_vma.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_vma.h	i915 header
-core	drivers/gpu/drm/i915/i915_vma_resource.c	i915 core
+core	drivers/gpu/drm/i915/i915_vma_resource.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/i915_vma_resource.h	i915 header
 hdr	drivers/gpu/drm/i915/i915_vma_types.h	i915 header
-core	drivers/gpu/drm/i915/intel_clock_gating.c	i915 core
+core	drivers/gpu/drm/i915/intel_clock_gating.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_clock_gating.h	i915 header
-core	drivers/gpu/drm/i915/intel_cpu_info.c	i915 core
+core	drivers/gpu/drm/i915/intel_cpu_info.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_cpu_info.h	i915 header
-core	drivers/gpu/drm/i915/intel_device_info.c	i915 core
+core	drivers/gpu/drm/i915/intel_device_info.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_device_info.h	i915 header
-exclude	drivers/gpu/drm/i915/intel_freebsd.c	FreeBSD glue (AGP/GTT, bus resources)
+gvt	drivers/gpu/drm/i915/intel_gvt.c	GVT-g host (CONFIG_DRM_I915_GVT off)
 hdr	drivers/gpu/drm/i915/intel_gvt.h	i915 header
+gvt	drivers/gpu/drm/i915/intel_gvt_mmio_table.c	GVT-g host (CONFIG_DRM_I915_GVT off)
 hdr	drivers/gpu/drm/i915/intel_mchbar_regs.h	i915 header
-core	drivers/gpu/drm/i915/intel_memory_region.c	i915 core
+core	drivers/gpu/drm/i915/intel_memory_region.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_memory_region.h	i915 header
 hdr	drivers/gpu/drm/i915/intel_pci_config.h	i915 header
-core	drivers/gpu/drm/i915/intel_pcode.c	i915 core
+core	drivers/gpu/drm/i915/intel_pcode.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_pcode.h	i915 header
-core	drivers/gpu/drm/i915/intel_region_ttm.c	i915 core
+core	drivers/gpu/drm/i915/intel_region_ttm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_region_ttm.h	i915 header
-core	drivers/gpu/drm/i915/intel_runtime_pm.c	i915 core
+core	drivers/gpu/drm/i915/intel_runtime_pm.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_runtime_pm.h	i915 header
-link	drivers/gpu/drm/i915/intel_sbi.c	LPT PCH sideband (HSW/BDW); link closure
+link	drivers/gpu/drm/i915/intel_sbi.c	LPT PCH sideband (HSW/BDW); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/intel_sbi.h	i915 header
-core	drivers/gpu/drm/i915/intel_step.c	i915 core
+core	drivers/gpu/drm/i915/intel_step.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_step.h	i915 header
-core	drivers/gpu/drm/i915/intel_uncore.c	i915 core
+core	drivers/gpu/drm/i915/intel_uncore.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_uncore.h	i915 header
-core	drivers/gpu/drm/i915/intel_uncore_trace.c	i915 core
-hdr	drivers/gpu/drm/i915/intel_uncore_trace.h	i915 header
-core	drivers/gpu/drm/i915/intel_wakeref.c	i915 core
+core	drivers/gpu/drm/i915/intel_wakeref.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/intel_wakeref.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+link	drivers/gpu/drm/i915/pxp/intel_pxp.c	PXP base (Gen12+; built unconditionally upstream); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_cmd.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+gen12	drivers/gpu/drm/i915/pxp/intel_pxp_cmd.c	CONFIG_DRM_I915_PXP off
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_cmd.h	i915 header
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_cmd_interface_42.h	i915 header
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_cmd_interface_43.h	i915 header
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_cmd_interface_cmn.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_debugfs.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+gen12	drivers/gpu/drm/i915/pxp/intel_pxp_debugfs.c	CONFIG_DRM_I915_PXP off
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_debugfs.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+gen12	drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.c	CONFIG_DRM_I915_PXP off
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_huc.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+link	drivers/gpu/drm/i915/pxp/intel_pxp_huc.c	PXP HuC (Gen12+); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_huc.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_irq.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+gen12	drivers/gpu/drm/i915/pxp/intel_pxp_irq.c	CONFIG_DRM_I915_PXP off
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_irq.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_pm.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+gen12	drivers/gpu/drm/i915/pxp/intel_pxp_pm.c	CONFIG_DRM_I915_PXP off
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_pm.h	i915 header
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_regs.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_session.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+gen12	drivers/gpu/drm/i915/pxp/intel_pxp_session.c	CONFIG_DRM_I915_PXP off
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_session.h	i915 header
-gen12	drivers/gpu/drm/i915/pxp/intel_pxp_tee.c	PXP protected content (Gen12+); CONFIG_DRM_I915_PXP off
+link	drivers/gpu/drm/i915/pxp/intel_pxp_tee.c	PXP TEE (Gen12+); not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_tee.h	i915 header
 hdr	drivers/gpu/drm/i915/pxp/intel_pxp_types.h	i915 header
 selftest	drivers/gpu/drm/i915/selftests/i915_active.c	CONFIG_DRM_I915_SELFTEST off
-selftest	drivers/gpu/drm/i915/selftests/i915_buddy.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/i915_gem.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/i915_gem_evict.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/i915_gem_gtt.c	CONFIG_DRM_I915_SELFTEST off
-selftest	drivers/gpu/drm/i915/selftests/i915_live_selftests.h	CONFIG_DRM_I915_SELFTEST off
-selftest	drivers/gpu/drm/i915/selftests/i915_mock_selftests.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/i915_perf.c	CONFIG_DRM_I915_SELFTEST off
-selftest	drivers/gpu/drm/i915/selftests/i915_perf_selftests.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/i915_random.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/i915_random.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/i915_request.c	CONFIG_DRM_I915_SELFTEST off
@@ -735,14 +810,14 @@ selftest	drivers/gpu/drm/i915/selftests/igt_reset.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/igt_spinner.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/igt_spinner.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/intel_memory_region.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/selftests/intel_scheduler_helpers.c	CONFIG_DRM_I915_SELFTEST off
+selftest	drivers/gpu/drm/i915/selftests/intel_scheduler_helpers.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/intel_uncore.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/lib_sw_fence.c	CONFIG_DRM_I915_SELFTEST off
-selftest	drivers/gpu/drm/i915/selftests/lib_sw_fence.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/librapl.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/librapl.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/mock_drm.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/mock_gem_device.c	CONFIG_DRM_I915_SELFTEST off
-selftest	drivers/gpu/drm/i915/selftests/mock_gem_device.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/mock_gtt.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/mock_gtt.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/mock_region.c	CONFIG_DRM_I915_SELFTEST off
@@ -752,24 +827,22 @@ selftest	drivers/gpu/drm/i915/selftests/mock_request.h	CONFIG_DRM_I915_SELFTEST 
 selftest	drivers/gpu/drm/i915/selftests/mock_uncore.c	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/mock_uncore.h	CONFIG_DRM_I915_SELFTEST off
 selftest	drivers/gpu/drm/i915/selftests/scatterlist.c	CONFIG_DRM_I915_SELFTEST off
-core	drivers/gpu/drm/i915/soc/intel_dram.c	i915 SoC helpers (DRAM, GMCH, PCH, ROM)
+core	drivers/gpu/drm/i915/soc/intel_dram.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/soc/intel_dram.h	i915 header
-core	drivers/gpu/drm/i915/soc/intel_gmch.c	i915 SoC helpers (DRAM, GMCH, PCH, ROM)
+core	drivers/gpu/drm/i915/soc/intel_gmch.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/soc/intel_gmch.h	i915 header
-core	drivers/gpu/drm/i915/soc/intel_pch.c	i915 SoC helpers (DRAM, GMCH, PCH, ROM)
+core	drivers/gpu/drm/i915/soc/intel_pch.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/soc/intel_pch.h	i915 header
-core	drivers/gpu/drm/i915/soc/intel_rom.c	i915 SoC helpers (DRAM, GMCH, PCH, ROM)
+core	drivers/gpu/drm/i915/soc/intel_rom.c	i915 (unconditional or CONFIG_X86/CONFIG_ACPI in the upstream Makefile)
 hdr	drivers/gpu/drm/i915/soc/intel_rom.h	i915 header
-link	drivers/gpu/drm/i915/vlv_sideband.c	VLV/CHV sideband (IOSF); link closure
+link	drivers/gpu/drm/i915/vlv_sideband.c	VLV/CHV sideband; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/vlv_sideband.h	i915 header
 hdr	drivers/gpu/drm/i915/vlv_sideband_reg.h	i915 header
-link	drivers/gpu/drm/i915/vlv_suspend.c	VLV suspend; link closure
+link	drivers/gpu/drm/i915/vlv_suspend.c	VLV suspend; not used on KBL-R, compiled for link closure
 hdr	drivers/gpu/drm/i915/vlv_suspend.h	i915 header
-hdr	include/drm/intel/i915_component.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
-hdr	include/drm/intel/i915_drm.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
-hdr	include/drm/intel/i915_gsc_proxy_mei_interface.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
-hdr	include/drm/intel/i915_hdcp_interface.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
-hdr	include/drm/intel/i915_pxp_tee_interface.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
-hdr	include/drm/intel/intel-gtt.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
-hdr	include/drm/intel/intel_lpe_audio.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
-hdr	include/drm/intel/pciids.h	Intel shared headers (pciids.h, i915 component interfaces, intel-gtt.h)
+hdr	include/drm/intel/i915_component.h	DRM kernel header
+hdr	include/drm/intel/i915_drm.h	DRM kernel header
+hdr	include/drm/intel/i915_gsc_proxy_mei_interface.h	DRM kernel header
+hdr	include/drm/intel/i915_pxp_tee_interface.h	DRM kernel header
+hdr	include/drm/intel/intel_lpe_audio.h	DRM kernel header
+hdr	include/drm/intel/pciids.h	DRM kernel header
