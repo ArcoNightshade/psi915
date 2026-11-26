@@ -1,6 +1,6 @@
 # DRM character device, GEM mmap and dma-buf on illumos (drmglue)
 
-Status 2026-11-25: designed and implemented in `drmglue/`. The portable core is unit-tested in
+Status 2026-11-26: designed and implemented in `drmglue/`; aligned with docs/09 section 9 (illumos ioctl encoding decoded in the kernel, illumos O_* and errno values, minor = (clone_id << 8) | node, ddi_display:drm nodes, anonymous-file vnodes, 32-bit callers refused) and with the v6.14 GPL dma-buf in gpl/. The portable core is unit-tested in
 userland against a simulated illumos layer; the illumos backends are compile-checked against
 stub headers only. **Nothing here has been built or run on illumos.** Section 6 lists exactly
 what is and is not tested; section 3.7 lists the illumos behaviours the design relies on that
@@ -14,8 +14,7 @@ must be confirmed on a real system.
 | VMA emulation (mmap, fault, zap, fork, split) | `src/vma.c`, `include/drmglue/lkpi_mm.h` | userland, simulated segdev incl. a race test |
 | interval tree, fake-offset manager | `src/itree.c`, `src/vmoff.c` | userland unit tests |
 | anonymous files, fd plumbing | `src/anonfile.c`, `include/drmglue/anonfile.h` | userland, simulated fd/vnode layer |
-| dma-buf core | `src/dma_buf.c`, `include/linux/dma-buf.h` | userland |
-| sync_file | `src/sync_file.c`, `include/linux/sync_file.h` | userland, with a test-only dma_fence |
+| pseudo-fs objects for upstream dma-buf.c (dentry, alloc_file_pseudo, kern_mount, ...) | `src/pseudofs.c`, `include/drmglue/pseudofs.h` | userland, with a test exporter following dma-buf.c's lifecycle |
 | cb_ops, minor nodes, poll heads | `src/cdev_illumos.c`, `include/drmglue/illumos.h` | stub compile only |
 | devmap/segdev backend | `src/segdev_illumos.c` | stub compile only |
 | pseudo vnodes for anonymous files | `src/anonfs_illumos.c` | stub compile only |
@@ -26,8 +25,12 @@ must be confirmed on a real system.
 ## 1. Constraints and approach
 
 - Licence: all drmglue code is BSD-2-Clause and clean-room from documented Linux API behaviour.
-  Linux's `dma-buf.c`, `sync_file.c` and `include/linux/dma-buf.h` are GPL-2.0-only and were not
-  used. illumos-gate (CDDL) and illumos/gfx-drm (MIT) sources were read to learn the illumos
+  Upstream v6.14 `dma-buf.c`, `dma-fence*.c` and `sync_file.c` are GPL-2.0-only; per docs/08
+  section 5 they are built unchanged as the separate GPL module from `gpl/`, and drmglue only
+  provides the file, descriptor and pseudo-filesystem objects they call, with upstream member
+  names (section 4). An earlier drmglue revision carried clean-room BSD dma-buf and sync_file
+  cores (git history, commit b6504d5); they were dropped when the import moved to upstream and
+  could be revived if the GPL-module question (docs/08 5, item 4) is answered "no". illumos-gate (CDDL) and illumos/gfx-drm (MIT) sources were read to learn the illumos
   interfaces and the gfx-drm precedent; no code was copied from either. Where the design follows
   gfx-drm (`drm_sunmod.c` clone opens, `drm_gem.c`/`i915_gem.c` GTT kernel window) the source
   files say so.
@@ -128,7 +131,11 @@ driver expects:
   EINVAL rather than a guess. The kernel definition comes from a per-node callback (`kcmd`)
   that the DRM adapter implements from `drm_ioctls[]` and `driver->ioctls[]` (R11).
 
-32-bit callers: when `ddi_model_convert_from(mode & FMODELS) == DDI_MODEL_ILP32` the call goes to
+32-bit callers: by default (`drmglue_allow_ilp32 = 0`, the docs/09 section 5.9 request) ioctls
+from 32-bit processes are refused with EINVAL and one log line, because nothing in scope needs a
+32-bit Mesa and the compat converters (`drm_ioc32.c`, `i915_ioc32.c`) are not built
+(CONFIG_COMPAT off, docs/08). With the tunable set to 1, when
+`ddi_model_convert_from(mode & FMODELS) == DDI_MODEL_ILP32` the call goes to
 `f_op->compat_ioctl` (DRM's `drm_compat_ioctl`, i915's `i915_ioc32_compat_ioctl`), which converts
 the layouts that differ; a NULL `compat_ioctl` is ENOTTY, as on Linux. `in_compat_syscall()` must
 answer true there; requested from the KPI as "current process data model is ILP32" (R6), which
@@ -171,10 +178,18 @@ it (`cdev_illumos.c`).
 because illumos `<sys/file.h>` owns the tag) carries the Linux members DRM uses plus glue state.
 `f_count` counts Linux references: the clone table or the anon vnode holds one, VMAs hold one
 each through `vm_file`, kernel users (`fget`, `dma_buf_get`, prime caches) hold their own.
-`fput()` of the last reference removes the poll entries, calls `f_op->release` and frees.
-Unlike Linux, which defers the final `__fput` to task work, the release runs synchronously in
-the thread dropping the reference. A driver that calls `fput()` while holding a lock its own
-release takes would deadlock; none is known in DRM/i915 6.x (risk K3, section 7).
+`fput()` of the last reference removes the poll entries, calls `f_op->release`, then drops
+`f_path.dentry` (for `alloc_file_pseudo` files the last `dput` runs `d_op->d_release`, where
+upstream dma-buf.c frees the dma_buf) and frees. Linux defers every final `__fput` to task work
+or a workqueue; drmglue defers only from interrupt context (upstream `dma_buf_poll_cb` drops a
+file reference from a fence callback), onto the KPI system workqueue, and otherwise releases
+synchronously in the thread dropping the reference. A driver that calls `fput()` while holding a
+lock its own release takes would deadlock; none is known in DRM/i915 6.x (risk K3, section 7).
+
+Open-flag values: `O_CLOEXEC`, `O_RDWR`, `O_NONBLOCK` are the environment's (illumos values in
+the kernel, docs/09 section 5.2); the flags that arrive in `PRIME_HANDLE_TO_FD` and
+`SYNCOBJ_HANDLE_TO_FD` are illumos values and reach `get_unused_fd_flags`/`fd_install` unchanged.
+The KPI must define `O_*` (and hence `DRM_CLOEXEC`) with illumos values too.
 
 ## 3. GEM mmap over devmap/segdev
 
@@ -390,38 +405,46 @@ vnode hold and drops the caller's Linux reference; the vnode holds exactly one. 
   reference, `releasef`. DRM/i915 only `fget` dma-buf, sync_file and syncobj descriptors; a DRM
   device fd returns NULL (a documented narrowing).
 
-### 4.3 dma-buf core
+### 4.3 Upstream dma-buf.c on drmglue
 
-drm-kmod's BSD `dma-buf.c` is built on FreeBSD file objects (`falloc_noinstall`, `finit`,
-`fileops`) and cannot be used; Linux's is GPL-2.0-only. `drmglue/src/dma_buf.c` is a clean-room
-implementation over anonymous files: `dma_buf_export` (validates ops, allocates a reservation
-object through the KPI if the exporter passes none, R8), `dma_buf_fd`, `dma_buf_get` (EBADF/
-EINVAL), `dma_buf_put`, `get_dma_buf`, `dma_buf_[dynamic_]attach`, `detach`, `pin`/`unpin`,
-`map_attachment`/`unmap_attachment` with `cache_sgt_mapping`, `begin/end_cpu_access`,
-`dma_buf_mmap` (bounds-checked, `vma_set_file`), `vmap`/`vunmap`, and the file operations:
-release, mmap (bounds check against the size), llseek, poll, `DMA_BUF_IOCTL_SYNC`,
-`DMA_BUF_SET_NAME`.
+The kernel builds upstream v6.14 `gpl/drivers/dma-buf/dma-buf.c` unchanged in the GPL module
+(docs/08 section 5). What it needs from the file layer, and where drmglue provides it:
 
-Gaps against Linux 6.x (G items):
-- G1 attachment list and vmap counter are protected by a dma-buf mutex, not by the reservation
-  lock; `dma_resv_assert_held` is not checked.
-- G2 `dma_buf_vmap` does not cache the mapping (needs `struct iosys_map` from the KPI).
-- G3 dma-buf `poll()` reports ready immediately (no implicit-fence wait); affects only clients
-  that poll dma-bufs for implicit sync (some Wayland compositors). Needs dma_resv fence
-  iteration and callbacks (R10).
-- G4 `DMA_BUF_IOCTL_EXPORT_SYNC_FILE`/`IMPORT_SYNC_FILE` return ENOTTY (same dependency).
-- G5 no move_notify for dynamic importers; no debugfs/sysfs statistics.
+| dma-buf.c use | drmglue |
+|---------------|---------|
+| `kern_mount(&dma_buf_fs_type)`, `init_fs_context` -> `init_pseudo(fc, magic)`, `ctx->dops` | `pseudofs.c`: builds a superblock whose `s_d_op` is the context's dentry ops |
+| `alloc_anon_inode(mnt->mnt_sb)`, `inode->i_size`, `inode_set_bytes`, `i_ino` | `pseudofs.c`; `i_size` is what the vnode reports as `va_size`, so `lseek(fd, 0, SEEK_END)` returns the dma-buf size |
+| `alloc_file_pseudo(inode, mnt, "dmabuf", flags, &dma_buf_fops)` | creates a dentry (takes over the inode reference, gets `s_d_op`) and an anonymous `struct file` with `f_path` set |
+| `file->f_path.dentry->d_fsdata = dmabuf` | `struct dentry` with upstream member names |
+| `dma_buf_release(dentry)` as `d_release`, after `dma_buf_file_release` | final `fput`: `f_op->release`, then `dput(f_path.dentry)`, whose last reference calls `d_release` and drops the inode (tested: order and single call) |
+| `dmabuffs_dname` -> `dynamic_dname` | `pseudofs.c` |
+| `get_unused_fd_flags`, `fd_install`, `fget`, `fput`, `get_file`, `file_count`, `f_op ==` checks | `anonfile.c`, `file.c` (section 4.1, 4.2) |
+| `poll_wait(file, &dmabuf->poll, ...)`, `wake_up_locked_poll` | section 2.5 wait-queue forwarding |
+| `get_file` in `dma_buf_poll`, `fput` in `dma_buf_poll_cb` (fence callback, may be in interrupt context) | `fput` defers the final release to the system workqueue when called in interrupt context (section 2.6) |
+| `dma_buf_mmap_internal` via `f_op->mmap`, `dma_buf_mmap` -> `vma_set_file` | section 3 and 4.6 |
+
+The struct layouts dma-buf.c compiles against (`struct dma_buf`, `dma_buf_ops`, `dma_resv`,
+`dma_fence`) are the KPI's BSD headers (docs/08 5, item 3); drmglue provides only the file-side
+types (`struct file`, `inode`, `dentry`, `path`, `super_block`, `vfsmount`, `fs_context`,
+`pseudo_fs_context`, `file_system_type`), whose member names follow v6.14 and whose layouts are
+drmglue's own; dma-buf.c only uses members by name. Not yet verified by compiling dma-buf.c
+against drmglue (needs the KPI dma-resv/dma-fence/seq_file/debugfs headers first, G1).
+
+Gaps (G items):
+- G1 `gpl/drivers/dma-buf/*.c` has not been compiled against drmglue + KPI headers yet.
+- G2 `inode_set_bytes`, `i_ino` and `d_dname` are stored or provided but have no illumos-visible
+  effect (no /proc/<pid>/fd names, no dmabuf sysfs statistics).
+- G3 `file_system_type.kill_sb` is called at `kern_unmount`; nothing else of a superblock's
+  lifecycle (no `s_op`) is emulated, which dma-buf.c does not need.
 
 ### 4.4 sync_file
 
-Clean-room `src/sync_file.c`: `sync_file_create`, `sync_file_get_fence`, `sync_file_get_name`,
-poll (arms one fence callback on the first poll; the callback wakes the file's poll head from
-fence-signal context; release removes the callback before freeing), `SYNC_IOC_FILE_INFO`
-(one fence; status from `dma_fence_get_status`; timestamp 0) and `SYNC_IOC_MERGE` for the cases
-that need no fence array (same fence, or one side already signaled; otherwise ENOTSUP, G6).
-`SYNC_IOC_SET_DEADLINE` is ENOTTY. The GPL-2.0-only `drm/drivers/dma-buf/sync_file.c` that came
-with the import must not be built (R9). sync_file needs the KPI `<linux/dma-fence.h>` (R10); the
-tests use a minimal stand-in (`drmglue/tests/fakes/linux/dma-fence.h`, never for real builds).
+Upstream `sync_file.c` (GPL module) uses `anon_inode_getfile("sync_file", ...)`,
+`get_unused_fd_flags(O_CLOEXEC)`, `fd_install`, `fget`/`fput`, an f_op comparison and
+`poll_wait` on its own wait queue, all provided. Its ioctls (`SYNC_IOC_MERGE`,
+`SYNC_IOC_FILE_INFO`, `SYNC_IOC_SET_DEADLINE`, type '>') and dma-buf's (type 'b') arrive in the
+illumos encoding and are decoded by the same adapter as DRM ioctls (section 2.4); their argument
+structs are all under 256 bytes, so the encoded size is exact.
 
 ### 4.5 syncobj
 
@@ -429,7 +452,7 @@ tests use a minimal stand-in (`drmglue/tests/fakes/linux/dma-fence.h`, never for
 `fd_install`, `fget`/`fput` and the f_op comparison, plus `sync_file_create`/
 `sync_file_get_fence` for the sync_file import/export ioctls; all are provided.
 `DRM_IOCTL_SYNCOBJ_EVENTFD` needs `eventfd_ctx_fdget` on illumos eventfd descriptors (a
-character device, not an anonymous file); not provided (G7). anv uses it only when available.
+character device, not an anonymous file); not provided (G4). anv uses it only when available.
 
 ### 4.6 mmap of anonymous files
 
@@ -451,28 +474,26 @@ the shmem emulation find it.
 
 KPI (include/, src/):
 
-- R1 Move the Linux file-layer types from `drmglue/include/drmglue/lkpi_fs.h` and `anonfile.h`
-  into `include/linux/fs.h`, `poll.h`, `kdev_t.h`, `file.h`, `anon_inodes.h` (keeping the
-  `f_lkpi_*` members or one opaque pointer for them); drmglue then includes those.
+- R1 Move the Linux file-layer types from `drmglue/include/drmglue/lkpi_fs.h`, `anonfile.h` and
+  `pseudofs.h` into `include/linux/fs.h`, `poll.h`, `kdev_t.h`, `file.h`, `anon_inodes.h`,
+  `dcache.h`, `mount.h`, `fs_context.h`, `pseudo_fs.h` (keeping the `f_lkpi_*` members or one
+  opaque pointer for them); drmglue then includes those. Until then nothing else may define
+  `struct file`, `inode`, `dentry`, `path`, `address_space`.
 - R2 Move `#define file lkpi_file` into `<linuxkpi/platform.h>` next to the mutex rename.
-- R3 Move the Linux-named parts of `lkpi_mm.h` (`vm_area_struct`, `vm_fault`, `vm_operations_struct`,
-  `pgprot_t`, VM_*, insertion functions) into `linux/mm.h`, `mm_types.h`, `pgtable.h`; the
-  implementation stays in drmglue (it needs the backend). `pgprot_t` must carry the cache mode
-  as defined there.
-- R4 (done by the KPI meanwhile) custom-function wait-queue entries; drmglue uses them. Keep
-  `struct wait_queue_head` as the tag name.
-- R5 Provide `unsigned long lkpi_page_to_pfn(struct page *)` and `void lkpi_put_page(struct page
-  *)` with the P2 `struct page` (used for `vm_insert_page` and `vmf->page` faults).
-- R6 `in_compat_syscall()`/`is_compat_task()` = current process data model is ILP32
-  (`get_udatamodel() == DATAMODEL_ILP32`); `compat_ptr()`.
-- R8 Provide `lkpi_dma_resv_alloc()`/`lkpi_dma_resv_free()` (dma_resv init/fini in an allocated
-  object) for exporters that pass no reservation object.
-- R10 Provide `<linux/dma-fence.h>` (and dma-fence-unwrap/array for full `SYNC_IOC_MERGE`), with
-  the documented semantics drmglue relies on: callbacks run once under the fence lock;
-  `dma_fence_add_callback` returns -ENOENT when signaled; `dma_fence_remove_callback` excludes a
-  concurrent callback. Then G3/G4/G6 can be closed in drmglue.
-- `fput()` is synchronous here (section 2.6); if a deadlock appears, the KPI workqueue can defer
-  the final release.
+- R3 Move the Linux-named parts of `lkpi_mm.h` (`vm_area_struct`, `vm_fault`,
+  `vm_operations_struct`, VM_*, insertion functions) into `linux/mm.h`/`mm_types.h`; the
+  implementation stays in drmglue (it needs the backend). Done for `pgprot_t` (KPI
+  `pgtable.h`, which drmglue now uses).
+- R4 Done: custom-function wait-queue entries; drmglue uses them. Keep `struct wait_queue_head`
+  as the tag name.
+- R5 Done: `page_to_pfn`/`put_page` in KPI `mm.h`, used by drmglue. `lkpi_page_release`
+  (`src/linux_page.c`) must land for the kmod to link.
+- R6 Only if 32-bit callers are ever allowed: `in_compat_syscall()` = current process data
+  model is ILP32, `compat_ptr()`.
+- R8 `O_*` constants with illumos values (docs/09 5.2), so `DRM_CLOEXEC` matches what userland
+  passes.
+- R10 BSD `<linux/dma-fence.h>`, `dma-resv.h`, `dma-buf.h`, `sync_file.h` with upstream layouts
+  (docs/08 5, item 3) so the GPL module and drmglue's G1 compile check can proceed.
 
 drm/ and i915/ imports:
 
@@ -480,10 +501,11 @@ drm/ and i915/ imports:
   `apply_to_page_range`) with loops over `lkpi_vma_insert_pfns()`; take the `#ifdef __linux__`
   branches of `i915_gem_mman.c` (anon_inode mapping for `drm_vma_node_unmap`, the mmap singleton
   `f_mapping`), not the FreeBSD ones, and the `unmap_mapping_range` branch in `drm_dev_unplug`.
-- R9 Do not build drm-kmod's `drivers/dma-buf/dma-buf.c` (FreeBSD file objects) or
-  `drivers/dma-buf/sync_file.c` (GPL-2.0-only); `drmglue/src/dma_buf.c` and `sync_file.c` provide
-  the API, with `drmglue/include/linux/dma-buf.h` and `sync_file.h` ahead of the imported
-  headers in the include path.
+- R9 The GPL module (gpl/) must link against drmglue's file-layer symbols (`fd_install`,
+  `get_unused_fd_flags`, `fget`, `fput`, `anon_inode_getfile`, `alloc_file_pseudo`,
+  `alloc_anon_inode`, `kern_mount`, `init_pseudo`, `dput`, `iput`, `dynamic_dname`,
+  `poll_wait` machinery), i.e. drmglue must live in a module the GPL module depends on
+  (linuxkpi_drm or linuxkpi), which fits option (b) of docs/08 5 (one-way gpl -> drm).
 - R11 DRM adapter: call `drmglue_attach_node()` for each registered DRM minor (from attach after
   `drm_dev_register`, or from the KPI's `device_add` for DRM minors), with `drm_stub_fops` or the
   driver fops and a `kcmd` callback returning `drm_ioctls[nr].cmd` /
@@ -503,9 +525,11 @@ Userland (oi-userland):
 | ioctl translation, errno and poll maps | `tests/test_xlate.c` | pass (gcc, ASan/UBSan, clang) |
 | interval tree vs brute force; offset manager | `tests/test_vmoff.c` | pass |
 | mmap, fault, zap, partial munmap, fork, release deferral, error paths, fault-vs-zap race (5 threads, 3000 zaps) | `tests/test_vma.c` on the simulated segdev | pass; race test fails as expected when `devmap_load` is moved outside `lv->lock` |
-| anonymous files: release timing, dup, SCM_RIGHTS, repeated install, O_CLOEXEC, install/close race; dma-buf; sync_file | `tests/test_anonfile.c` on the simulated fd/vnode layer | pass |
-| clone opens, failed open, ioctl dispatch (illumos encoding, large structs, ilp32, FKIOCTL, errno), read, poll forwarding | `tests/test_cdev.c` | pass |
-| illumos backends and core with kernel flags | `make -C drmglue check-kmod` against `drmglue/stubs` | compiles; 92 undefined symbols all in the allowlist |
+| anonymous files: release timing, dup, SCM_RIGHTS, repeated install, O_CLOEXEC, install/close race; the upstream dma-buf.c file lifecycle (pseudo mount, alloc_anon_inode, alloc_file_pseudo, d_fsdata, d_release after release, size via getattr, mmap, poll) with a test exporter | `tests/test_anonfile.c` on the simulated fd/vnode layer | pass |
+| clone opens, failed open, ioctl dispatch (illumos encoding, large structs, ilp32 refusal and compat routing, FKIOCTL, errno), read, poll forwarding | `tests/test_cdev.c` | pass |
+| illumos backends and core with kernel flags | `make -C drmglue check-kmod` against `drmglue/stubs` | compiles; 89 undefined symbols all in the allowlist |
+| upstream gpl/drivers/dma-buf/*.c against drmglue | not attempted (G1, needs KPI dma-resv/dma-fence headers) | - |
+| deferred final `fput` from interrupt context | not exercised (userland has no interrupt context) | - |
 
 What the simulation proves: the core's state machines, reference counting and lock ordering
 are consistent under the stated semantics of the illumos interfaces (section 3.7). What it does
@@ -516,7 +540,7 @@ all of `src/*_illumos.c`, the devlink entry, 32-bit compat ioctls with real stru
 over real sockets, process-exit ordering.
 
 First tests to run on illumos, once the DRM adapter (R11) exists: open/close/ioctl
-`DRM_IOCTL_VERSION` from 64- and 32-bit processes; dumb-buffer create + mmap + write + read
+`DRM_IOCTL_VERSION` from a 64-bit process (and EINVAL from a 32-bit one); dumb-buffer create + mmap + write + read
 back; `kmscube`; igt `gem_mmap`, `gem_mmap_gtt` (including the eviction tests, which exercise
 zaps), `gem_mmap_offset`, `prime_self_import`, `prime_mmap`, `syncobj_basic`; pass a dma-buf
 over a socket between two processes and mmap it in the receiver; run with `kmem_flags=0xf` and
@@ -532,4 +556,4 @@ over a socket between two processes and mmap it in the receiver; run with `kmem_
 - K5 Clone-id range: >1023 opens of one node break 32-bit `fstat` on the extra fds (section 2.1).
 - K6 `drmglue_detach_node` keeps the first dip as anonymous mmap host until module unload;
   multi-GPU hot-unplug of that GPU while other GPUs' dma-bufs are mapped is not handled.
-- G1-G7 functional gaps listed in sections 4.3-4.5.
+- G1-G4 gaps listed in sections 4.3-4.5.
