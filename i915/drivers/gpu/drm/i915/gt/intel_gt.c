@@ -4,7 +4,9 @@
  */
 
 #include <drm/drm_managed.h>
+#ifndef CONFIG_PSI915	/* psi915: intel-gtt stubs live in intel_ggtt_gmch.c */
 #include <drm/intel/intel-gtt.h>
+#endif
 
 #include "gem/i915_gem_internal.h"
 #include "gem/i915_gem_lmem.h"

@@ -1,0 +1,105 @@
+i915: stub the intel-gtt (Gen2-5 GMCH) interface on illumos
+
+gt/intel_ggtt_gmch.c drives the GGTT of Gen2-5 through the intel-gtt functions in
+drivers/char/agp/intel-gtt.c.  That driver is not imported (and is GPL), so the module did not link
+(scripts/kpi-linkcheck.sh: intel_gmch_probe, _remove, _enable_gtt, _gtt_get, _gtt_flush,
+_gtt_insert_page, _gtt_insert_sg_entries, _gtt_clear_range).  Gen2-5 are unsupported: local static stubs
+make intel_gmch_probe() fail with -ENODEV (i915 then refuses the device) and do nothing otherwise.
+intel_ggtt.c and intel_gt.c included <drm/intel/intel-gtt.h> without using it; under CONFIG_PSI915 they
+no longer do.  So the GPL header has no MIT includer left and comes off the gpl-policy allow list.
+
+Upstream: not-applicable (illumos only; guarded by CONFIG_PSI915)
+
+diff --git a/i915/drivers/gpu/drm/i915/gt/intel_ggtt.c b/i915/drivers/gpu/drm/i915/gt/intel_ggtt.c
+index f6c59f2..151cb9c 100644
+--- a/i915/drivers/gpu/drm/i915/gt/intel_ggtt.c
++++ b/i915/drivers/gpu/drm/i915/gt/intel_ggtt.c
+@@ -10,7 +10,9 @@
+ 
+ #include <drm/drm_managed.h>
+ #include <drm/intel/i915_drm.h>
++#ifndef CONFIG_PSI915	/* psi915: intel-gtt stubs live in intel_ggtt_gmch.c */
+ #include <drm/intel/intel-gtt.h>
++#endif
+ 
+ #include "gem/i915_gem_lmem.h"
+ 
+diff --git a/i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c b/i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c
+index 59eed0a..7cedc57 100644
+--- a/i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c
++++ b/i915/drivers/gpu/drm/i915/gt/intel_ggtt_gmch.c
+@@ -5,7 +5,60 @@
+ 
+ #include "intel_ggtt_gmch.h"
+ 
++#ifdef CONFIG_PSI915
++/*
++ * psi915: there is no intel-gtt (Gen2-5 GMCH GTT) driver on illumos and those platforms are
++ * unsupported.  These local stubs replace the intel-gtt interface (GPL-2.0 <drm/intel/intel-gtt.h>):
++ * probing fails with -ENODEV, so i915 refuses Gen2-5 devices cleanly; the rest are never reached.
++ */
++struct pci_dev;
++struct sg_table;
++
++static int intel_gmch_probe(struct pci_dev *bridge_pdev, struct pci_dev *gpu_pdev,
++			    void *bridge)
++{
++	return -ENODEV;
++}
++
++static void intel_gmch_gtt_get(u64 *gtt_total, phys_addr_t *mappable_base,
++			       resource_size_t *mappable_end)
++{
++	*gtt_total = 0;
++	*mappable_base = 0;
++	*mappable_end = 0;
++}
++
++static void intel_gmch_remove(void)
++{
++}
++
++static bool intel_gmch_enable_gtt(void)
++{
++	return false;
++}
++
++static void intel_gmch_gtt_flush(void)
++{
++}
++
++static void intel_gmch_gtt_insert_page(dma_addr_t addr, unsigned int pg,
++				       unsigned int flags)
++{
++}
++
++static void intel_gmch_gtt_insert_sg_entries(struct sg_table *st,
++					     unsigned int pg_start,
++					     unsigned int flags)
++{
++}
++
++static void intel_gmch_gtt_clear_range(unsigned int first_entry,
++				       unsigned int num_entries)
++{
++}
++#else
+ #include <drm/intel/intel-gtt.h>
++#endif
+ 
+ #include <linux/agp_backend.h>
+ 
+diff --git a/i915/drivers/gpu/drm/i915/gt/intel_gt.c b/i915/drivers/gpu/drm/i915/gt/intel_gt.c
+index c4a351e..b26a3a3 100644
+--- a/i915/drivers/gpu/drm/i915/gt/intel_gt.c
++++ b/i915/drivers/gpu/drm/i915/gt/intel_gt.c
+@@ -4,7 +4,9 @@
+  */
+ 
+ #include <drm/drm_managed.h>
++#ifndef CONFIG_PSI915	/* psi915: intel-gtt stubs live in intel_ggtt_gmch.c */
+ #include <drm/intel/intel-gtt.h>
++#endif
+ 
+ #include "gem/i915_gem_internal.h"
+ #include "gem/i915_gem_lmem.h"

@@ -1,0 +1,29 @@
+i915: provide intel_pxp_gsccs_is_ready_for_sessions() when PXP is disabled
+
+intel_pxp.c (built unconditionally upstream) calls intel_pxp_gsccs_is_ready_for_sessions(), defined only
+in intel_pxp_gsccs.c, which is built with CONFIG_DRM_I915_PXP.  Upstream links because the caller sits
+behind intel_pxp_is_enabled(), which is constant false without PXP, and gcc inlines it and removes the
+call.  The illumos kernel flags (-fno-inline-small-functions -fno-inline-functions-called-once,
+build/Makefile.master) keep the call, so the symbol stays unresolved.  The header now gives the function
+a static inline "false" body when PXP is off, as it already does for intel_pxp_gsccs_init() and _fini().
+
+Upstream: candidate (fixes builds that do not inline across the PXP-disabled path)
+
+diff --git a/i915/drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.h b/i915/drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.h
+index 9aae779..fc95b27 100644
+--- a/i915/drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.h
++++ b/i915/drivers/gpu/drm/i915/pxp/intel_pxp_gsccs.h
+@@ -36,6 +36,13 @@ static inline int intel_pxp_gsccs_init(struct intel_pxp *pxp)
+ 
+ #endif
+ 
++#ifdef CONFIG_DRM_I915_PXP
+ bool intel_pxp_gsccs_is_ready_for_sessions(struct intel_pxp *pxp);
++#else
++static inline bool intel_pxp_gsccs_is_ready_for_sessions(struct intel_pxp *pxp)
++{
++	return false;
++}
++#endif
+ 
+ #endif /*__INTEL_PXP_GSCCS_H__ */
