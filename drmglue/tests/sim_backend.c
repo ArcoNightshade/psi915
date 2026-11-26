@@ -319,16 +319,28 @@ sim_init(void)
 	lkpi_glue_set_backend(&sim_be);
 }
 
-unsigned long
-lkpi_page_to_pfn(struct page *page)
+/*
+ * Pages: a struct page with one reference whose put_page() lands in this
+ * test double of the KPI's page release (the KPI page allocator is not in
+ * the userland library yet).
+ */
+struct page *
+sim_page(unsigned long pfn)
 {
-	return ((uintptr_t)page >> 4);
+	struct page *p = kzalloc(sizeof (*p), GFP_KERNEL);
+
+	p->lkpi_phys = (phys_addr_t)pfn << PAGE_SHIFT;
+	atomic_set(&p->_refcount, 1);
+	return (p);
 }
 
+void lkpi_page_release(struct page *head);
+
 void
-lkpi_put_page(struct page *page)
+lkpi_page_release(struct page *head)
 {
 	SIM_ADD(sim_page_puts, 1);
+	kfree(head);
 }
 
 /*
@@ -582,25 +594,13 @@ sim_fd_size(int fd)
 	return (sz);
 }
 
-/*
- * Test doubles for KPI hooks the glue declares but does not own
- * (docs/10, R8): an opaque reservation object.
- */
-struct dma_resv;
-struct dma_resv *lkpi_dma_resv_alloc(void);
-void lkpi_dma_resv_free(struct dma_resv *resv);
-long sim_live_resv;
+/* Test double for a KPI platform hook. */
+void lkpi_plat_uevent(void *dip, const char *action, const char *devpath,
+    char *const *envp, int nenv) __attribute__((weak));
 
-struct dma_resv *
-lkpi_dma_resv_alloc(void)
-{
-	SIM_ADD(sim_live_resv, 1);
-	return (kzalloc(16, GFP_KERNEL));
-}
-
+/* plat_userland.c lacks it at the time of writing; linux_device.c uses it. */
 void
-lkpi_dma_resv_free(struct dma_resv *resv)
+lkpi_plat_uevent(void *dip, const char *action, const char *devpath,
+    char *const *envp, int nenv)
 {
-	SIM_ADD(sim_live_resv, -1);
-	kfree(resv);
 }

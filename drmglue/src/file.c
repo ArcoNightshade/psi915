@@ -106,6 +106,7 @@ lkpi_file_unregister_polls(struct lkpi_file *f)
 }
 
 void lkpi_anon_file_released(struct lkpi_file *f);	/* anonfile.c */
+void dput(struct dentry *d);				/* pseudofs.c */
 
 void
 lkpi_file_free(struct lkpi_file *f)
@@ -117,16 +118,36 @@ lkpi_file_free(struct lkpi_file *f)
 		lkpi_glue_be->file_fini(f);
 	lkpi_glue_be->ph_free(f->f_lkpi_ph);
 	lkpi_inode_put(f->f_lkpi_own_inode);
+	/* alloc_file_pseudo files: the last dput runs d_op->d_release. */
+	dput(f->f_path.dentry);
 	mutex_destroy(&f->f_lkpi_lock);
 	mutex_destroy(&f->f_lkpi_mmap_lock);
 	kfree(f);
 }
 
+static void
+lkpi_file_final(struct lkpi_file *f)
+{
+	/* Stop poll forwarding before release frees the wait queues. */
+	lkpi_file_unregister_polls(f);
+	if (f->f_op != NULL && f->f_op->release != NULL)
+		(void) f->f_op->release(f->f_inode, f);
+	lkpi_file_free(f);
+}
+
+static void
+lkpi_file_final_work(struct work_struct *w)
+{
+	lkpi_file_final(container_of(w, struct lkpi_file, f_lkpi_free_work));
+}
+
 /*
- * Final release runs synchronously in the thread dropping the last
- * reference. Linux defers __fput() to task work or a workqueue; drivers
- * that fput() while holding a lock their own release takes would deadlock
- * here. None are known in DRM/i915 6.x (docs/10, section 2.6 and risk K3).
+ * The final release runs synchronously in the thread dropping the last
+ * reference, except in interrupt context (e.g. upstream dma-buf.c's fence
+ * callback dma_buf_poll_cb() drops a file reference), where it is queued
+ * on the system workqueue. Linux defers every final __fput() to task work
+ * or a workqueue; a driver that fput()s while holding a lock its own
+ * release takes would deadlock here (docs/10, section 2.6, risk K3).
  */
 void
 fput(struct lkpi_file *f)
@@ -135,12 +156,12 @@ fput(struct lkpi_file *f)
 		return;
 	if (!atomic_long_dec_and_test(&f->f_count))
 		return;
-	might_sleep();
-	/* Stop poll forwarding before release frees the wait queues. */
-	lkpi_file_unregister_polls(f);
-	if (f->f_op != NULL && f->f_op->release != NULL)
-		(void) f->f_op->release(f->f_inode, f);
-	lkpi_file_free(f);
+	if (lkpi_plat_in_interrupt()) {
+		INIT_WORK(&f->f_lkpi_free_work, lkpi_file_final_work);
+		schedule_work(&f->f_lkpi_free_work);
+		return;
+	}
+	lkpi_file_final(f);
 }
 
 loff_t

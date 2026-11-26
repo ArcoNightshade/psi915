@@ -26,10 +26,11 @@ void sim_init(void);
 
 /* Counters for assertions. */
 extern long sim_win_loads, sim_win_unloads, sim_user_unloads, sim_ph_wakes;
-extern long sim_live_wins, sim_live_vnodes, sim_live_phs, sim_live_resv;
+extern long sim_live_wins, sim_live_vnodes, sim_live_phs;
 
 /* Fake struct page: pfn encoded in the pointer. */
-#define	SIM_PAGE(pfn)	((struct page *)(uintptr_t)(((pfn) << 4) | 0x8))
+struct page *sim_page(unsigned long pfn);
+#define	SIM_PAGE(pfn)	sim_page(pfn)
 extern long sim_page_puts;
 
 /*

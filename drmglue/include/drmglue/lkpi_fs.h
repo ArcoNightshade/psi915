@@ -33,6 +33,7 @@
 #include <linux/rwsem.h>
 #include <linux/list.h>
 #include <linux/wait.h>
+#include <linux/workqueue.h>
 #include <drmglue/itree.h>
 
 #ifdef LINUXKPI_ILLUMOS_KERNEL
@@ -82,14 +83,31 @@ struct address_space {
 	struct lkpi_itree	i_mmap;
 };
 
+struct super_block;
+struct dentry;
+struct vfsmount;
+
+/*
+ * Member names follow upstream Linux 6.14 so the GPL dma-buf.c,
+ * sync_file.c and the MIT drm_syncobj.c compile unchanged; the layout
+ * (order, padding) is the glue's own and is never relied on by them.
+ */
 struct inode {
+	unsigned long		i_ino;
 	uint32_t		i_rdev;		/* LKPI_MKDEV encoding */
 	umode_t			i_mode;
 	loff_t			i_size;
+	loff_t			i_lkpi_bytes;	/* inode_set_bytes() */
 	atomic_t		i_count;
 	void			*i_private;
+	struct super_block	*i_sb;
 	struct address_space	*i_mapping;
 	struct address_space	i_data;
+};
+
+struct path {
+	struct vfsmount		*mnt;
+	struct dentry		*dentry;
 };
 
 struct file_operations {
@@ -143,6 +161,7 @@ enum lkpi_file_kind {
 struct lkpi_file {
 	const struct file_operations	*f_op;
 	void				*private_data;
+	struct path			f_path;		/* alloc_file_pseudo */
 	struct inode			*f_inode;
 	struct address_space		*f_mapping;
 	unsigned int			f_flags;	/* O_* */
@@ -162,7 +181,14 @@ struct lkpi_file {
 	uint32_t			f_lkpi_mmap_id;	/* anon mmap host id */
 	void				*f_lkpi_mmap_vp; /* backend: host snode */
 	struct inode			*f_lkpi_own_inode; /* freed with file */
+	struct work_struct		f_lkpi_free_work; /* deferred release */
 };
+
+static inline long
+file_count(struct lkpi_file *f)
+{
+	return (atomic_long_read(&f->f_count));
+}
 
 typedef struct poll_table_struct {
 	void		(*_qproc)(struct lkpi_file *, struct wait_queue_head *,

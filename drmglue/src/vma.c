@@ -18,6 +18,30 @@
 #include <linux/bitmap.h>
 #include <linux/bitops.h>
 #include <linux/printk.h>
+#include <linux/mm_types.h>
+
+/*
+ * page_to_pfn()/put_page() as defined by the KPI's <linux/mm.h>. That
+ * header does not compile yet (its block comment contains "*" "/" in
+ * "set_pages_*" + "/set_memory_*", docs/10 R12), so the two definitions
+ * are restated here; switch to #include <linux/mm.h> once it is fixed.
+ */
+void lkpi_page_release(struct page *head);
+
+static inline unsigned long
+lkpi_vma_page_pfn(struct page *p)
+{
+	return ((unsigned long)(p->lkpi_phys >> PAGE_SHIFT));
+}
+
+static inline void
+lkpi_vma_put_page(struct page *p)
+{
+	struct page *h = p->lkpi_head != NULL ? p->lkpi_head : p;
+
+	if (atomic_dec_and_test(&h->_refcount))
+		lkpi_page_release(h);
+}
 #include <drmglue/lkpi_mm.h>
 #include <drmglue/backend.h>
 #include <drmglue/xlate.h>
@@ -182,7 +206,7 @@ int
 vm_insert_page(struct vm_area_struct *vma, unsigned long addr,
     struct page *page)
 {
-	return (lkpi_vma_insert_pfns(vma, addr, NULL, lkpi_page_to_pfn(page),
+	return (lkpi_vma_insert_pfns(vma, addr, NULL, lkpi_vma_page_pfn(page),
 	    1, vma->vm_page_prot));
 }
 
@@ -446,9 +470,9 @@ lkpi_vma_fault(struct lkpi_vma *lv, uint64_t off, size_t len, int type,
 			if (!(ret & VM_FAULT_NOPAGE) && vmf.page != NULL) {
 				r = lkpi_vma_insert_pfns(&lv->vma,
 				    vmf.address, NULL,
-				    lkpi_page_to_pfn(vmf.page), 1,
+				    lkpi_vma_page_pfn(vmf.page), 1,
 				    lv->vma.vm_page_prot);
-				lkpi_put_page(vmf.page);
+				lkpi_vma_put_page(vmf.page);
 				if (r != 0)
 					return (EFAULT);
 			}

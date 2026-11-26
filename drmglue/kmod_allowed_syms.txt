@@ -48,8 +48,10 @@ rw_destroy
 rw_enter
 rw_exit
 rw_init
+servicing_interrupt
 setf
 snprintf
+strlen
 taskq_create
 taskq_destroy
 taskq_dispatch_ent
@@ -57,6 +59,7 @@ taskq_wait
 threadp
 ufalloc
 vfs_freevfsops
+vsnprintf
 vfs_init
 vfs_makefsops
 vn_alloc
@@ -97,10 +100,10 @@ lkpi_rb_insert_augmented
 lkpi_warn_slowpath
 rb_first
 rb_next
+queue_work_on
 remove_wait_queue
+system_wq
 #
-# REQUESTED from the KPI, not yet provided (docs/10, R5 and R8).
-lkpi_dma_resv_alloc
-lkpi_dma_resv_free
-lkpi_page_to_pfn
-lkpi_put_page
+# KPI symbols declared by include/linux/mm.h whose implementation
+# (src/linux_page.c) is not in the tree yet.
+lkpi_page_release

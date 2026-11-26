@@ -32,62 +32,12 @@
 #include <linux/mutex.h>
 #include <drmglue/lkpi_fs.h>
 #include <drmglue/itree.h>
+/* pgprot_t, cache modes and PAGE_* (KPI, from drmglue R3); struct page. */
+#include <linux/pgtable.h>
+#include <linux/mm_types.h>
 
-#ifndef PAGE_SHIFT
-#define	PAGE_SHIFT	12
-#endif
-#ifndef PAGE_SIZE
-#define	PAGE_SIZE	(1UL << PAGE_SHIFT)
-#endif
-#ifndef PAGE_MASK
-#define	PAGE_MASK	(~(PAGE_SIZE - 1))
-#endif
-#ifndef PAGE_ALIGN
-#define	PAGE_ALIGN(x)	(((x) + PAGE_SIZE - 1) & PAGE_MASK)
-#endif
-
-struct page;		/* KPI struct page (P2) */
 struct mm_struct;
 
-/*
- * Page protection: protection bits plus a cache mode. Only the cache mode
- * is honoured per mapping (illumos devmap handles carry one attribute).
- */
-enum lkpi_cache_mode {
-	LKPI_CACHE_WB = 0,	/* write-back (vm_get_page_prot) */
-	LKPI_CACHE_WC = 1,	/* write-combining (pgprot_writecombine) */
-	LKPI_CACHE_UC = 2	/* uncached (pgprot_noncached) */
-};
-
-typedef struct {
-	unsigned long	pgprot;
-} pgprot_t;
-
-#define	LKPI_PGPROT_CACHE_MASK	0x3UL
-#define	LKPI_PGPROT_READ	0x10UL
-#define	LKPI_PGPROT_WRITE	0x20UL
-#define	LKPI_PGPROT_EXEC	0x40UL
-
-#define	__pgprot(x)		((pgprot_t){ (x) })
-#define	pgprot_val(p)		((p).pgprot)
-
-static inline enum lkpi_cache_mode
-lkpi_pgprot_cache(pgprot_t p)
-{
-	return ((enum lkpi_cache_mode)(p.pgprot & LKPI_PGPROT_CACHE_MASK));
-}
-
-static inline pgprot_t
-lkpi_pgprot_set_cache(pgprot_t p, enum lkpi_cache_mode c)
-{
-	return (__pgprot((p.pgprot & ~LKPI_PGPROT_CACHE_MASK) |
-	    (unsigned long)c));
-}
-
-#define	pgprot_writecombine(p)	lkpi_pgprot_set_cache((p), LKPI_CACHE_WC)
-#define	pgprot_noncached(p)	lkpi_pgprot_set_cache((p), LKPI_CACHE_UC)
-#define	pgprot_device(p)	lkpi_pgprot_set_cache((p), LKPI_CACHE_UC)
-#define	pgprot_decrypted(p)	(p)
 
 typedef unsigned long vm_flags_t;
 
@@ -236,9 +186,6 @@ int lkpi_vma_insert_pfns(struct vm_area_struct *vma, unsigned long addr,
     const unsigned long *pfns, unsigned long pfn_base, unsigned long n,
     pgprot_t prot);
 
-/* KPI hooks this file needs (requested change R5; struct page is P2). */
-unsigned long lkpi_page_to_pfn(struct page *page);
-void lkpi_put_page(struct page *page);
 
 /*
  * The glue's VMA object (src/vma.c). One per user mapping piece.

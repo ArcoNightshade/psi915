@@ -23,17 +23,23 @@ CLANG		= $(shell command -v clang 2>/dev/null)
 WARN		= -Wall -Wextra -Werror -Wshadow -Wno-unused-parameter \
 		  -Wno-missing-field-initializers
 INCS		= -Iinclude -I$(KPI_INC)
-TEST_CFLAGS	= -std=gnu11 $(WARN) -O2 -g $(INCS) -Itests -Itests/fakes \
+TEST_CFLAGS	= -std=gnu11 $(WARN) -O2 -g $(INCS) -Itests \
 		  -I$(TOP)/tests -pthread
 SAN_FLAGS	= -fsanitize=address,undefined -fno-sanitize-recover=all -O1
 
 CORE_SRCS	= src/xlate.c src/itree.c src/vmoff.c src/file.c src/vma.c \
-		  src/anonfile.c src/cdev.c src/dma_buf.c src/sync_file.c
+		  src/anonfile.c src/cdev.c src/pseudofs.c
 ILLUMOS_SRCS	= src/cdev_illumos.c src/segdev_illumos.c src/anonfs_illumos.c
-KPI_LIB		= $(wildcard $(KPI_SRC)/linux_*.c) $(KPI_SRC)/plat_userland.c
+# Only the KPI sources drmglue needs, so WIP elsewhere in src/ cannot break
+# the drmglue tests.
+KPI_LIB		= $(addprefix $(KPI_SRC)/,linux_idr.c linux_lock.c linux_printk.c \
+		  linux_rbtree.c linux_rcu.c linux_sched.c linux_slab.c linux_wait.c \
+		  linux_xarray.c linux_kthread.c linux_timer.c linux_workqueue.c \
+		  linux_device.c linux_devres.c \
+		  plat_userland.c)
 TEST_LIB	= tests/sim_backend.c $(CORE_SRCS) $(KPI_LIB)
 HDRS		= $(wildcard include/*/*.h include/linux/*.h tests/*.h \
-		  tests/fakes/linux/*.h $(KPI_INC)/linux/*.h $(KPI_INC)/linuxkpi/*.h)
+		  $(KPI_INC)/linux/*.h $(KPI_INC)/linuxkpi/*.h)
 
 TESTS		= test_xlate test_vmoff test_vma test_anonfile test_cdev
 
@@ -48,7 +54,7 @@ KMOD_CFLAGS	= -std=gnu11 -fno-pic -fno-pie -m64 -mcmodel=kernel -mno-red-zone \
 		  -Wno-missing-field-initializers -Wno-sign-compare \
 		  -nostdinc -D_KERNEL -D_SYSCALL32 -D_SYSCALL32_IMPL -D_ELF64 \
 		  -D_DDI_STRICT -Dsun -D__sun -D__SVR4 \
-		  $(INCS) -Itests/fakes -Istubs/illumos
+		  $(INCS) -Istubs/illumos
 KMOD_OBJS	= $(CORE_SRCS:src/%.c=$(OUT)/kmod_%.o) \
 		  $(ILLUMOS_SRCS:src/%.c=$(OUT)/kmod_%.o)
 ALLOWED		= kmod_allowed_syms.txt
