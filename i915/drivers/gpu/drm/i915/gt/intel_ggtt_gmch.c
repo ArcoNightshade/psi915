@@ -15,10 +15,6 @@
 #include "intel_gt_regs.h"
 #include "intel_gt.h"
 
-#ifdef __FreeBSD__
-#include <dev/agp/agpvar.h>
-#endif
-
 static void gmch_ggtt_insert_page(struct i915_address_space *vm,
 				  dma_addr_t addr,
 				  u64 offset,

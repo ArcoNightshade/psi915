@@ -138,22 +138,14 @@ struct drm_master *drm_master_create(struct drm_device *dev)
 		return NULL;
 
 	kref_init(&master->refcount);
-#ifdef __linux__
 	idr_init_base(&master->magic_map, 1);
-#elif defined(__FreeBSD__)
-	idr_init(&master->magic_map);
-#endif
 	master->dev = dev;
 
 	/* initialize the tree of output resource lessees */
 	INIT_LIST_HEAD(&master->lessees);
 	INIT_LIST_HEAD(&master->lessee_list);
 	idr_init(&master->leases);
-#ifdef __linux__
 	idr_init_base(&master->lessee_idr, 1);
-#elif defined(__FreeBSD__)
-	idr_init(&master->lessee_idr);
-#endif
 
 	return master;
 }
@@ -241,13 +233,8 @@ static int drm_new_set_master(struct drm_device *dev, struct drm_file *fpriv)
 static int
 drm_master_check_perm(struct drm_device *dev, struct drm_file *file_priv)
 {
-#ifdef __linux__
 	if (file_priv->was_master &&
 	    rcu_access_pointer(file_priv->pid) == task_tgid(current))
-#elif defined(__FreeBSD__)
-	if (file_priv->was_master &&
-	    file_priv->pid == task_pid(current))
-#endif
 		return 0;
 
 	if (!capable(CAP_SYS_ADMIN))

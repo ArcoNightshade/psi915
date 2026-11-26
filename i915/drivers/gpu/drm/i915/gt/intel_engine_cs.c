@@ -557,9 +557,7 @@ static int intel_engine_setup(struct intel_gt *gt, enum intel_engine_id id,
 
 	ewma__engine_latency_init(&engine->latency);
 
-#ifdef __linux__
 	ATOMIC_INIT_NOTIFIER_HEAD(&engine->context_status_notifier);
-#endif
 
 	/* Scrub mmio state on takeover */
 	intel_engine_sanitize_mmio(engine);
@@ -1612,11 +1610,7 @@ u64 intel_engine_get_last_batch_head(const struct intel_engine_cs *engine)
 
 static unsigned long stop_timeout(const struct intel_engine_cs *engine)
 {
-#ifdef __linux__
 	if (in_atomic() || irqs_disabled()) /* inside atomic preempt-reset? */
-#elif defined (__FreeBSD__)
-	if (!drm_can_sleep())
-#endif
 		return 0;
 
 	/*
@@ -2040,12 +2034,7 @@ static int print_ring(char *buf, int sz, struct i915_request *rq)
 	return len;
 }
 
-#ifdef __linux__
 static void hexdump(struct drm_printer *m, const void *buf, size_t len)
-#elif defined(__FreeBSD__)
-#define	hexdump linux_hexdump
-static void linux_hexdump(struct drm_printer *m, const void *buf, size_t len)
-#endif
 {
 	const size_t rowsize = 8 * sizeof(u32);
 	const void *prev = NULL;
@@ -2063,12 +2052,10 @@ static void linux_hexdump(struct drm_printer *m, const void *buf, size_t len)
 			continue;
 		}
 
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600008
 		WARN_ON_ONCE(hex_dump_to_buffer(buf + pos, len - pos,
 						rowsize, sizeof(u32),
 						line, sizeof(line),
 						false) >= sizeof(line));
-#endif
 		drm_printf(m, "[%04zx] %s\n", pos, line);
 
 		prev = buf + pos;
@@ -2076,7 +2063,6 @@ static void linux_hexdump(struct drm_printer *m, const void *buf, size_t len)
 	}
 }
 
-#ifdef __linux__
 static const char *repr_timer(const struct timer_list *t)
 {
 	if (!READ_ONCE(t->expires))
@@ -2087,7 +2073,6 @@ static const char *repr_timer(const struct timer_list *t)
 
 	return "expired";
 }
-#endif
 
 static void intel_engine_print_registers(struct intel_engine_cs *engine,
 					 struct drm_printer *m)
@@ -2162,14 +2147,11 @@ static void intel_engine_print_registers(struct intel_engine_cs *engine,
 		unsigned int idx;
 		u8 read, write;
 
-#ifdef __linux__
-		/* BSDFIXME: We don't have a tasklet.state or tasklet.count */
 		drm_printf(m, "\tExeclist tasklet queued? %s (%s), preempt? %s, timeslice? %s\n",
 			   str_yes_no(test_bit(TASKLET_STATE_SCHED, &engine->sched_engine->tasklet.state)),
 			   str_enabled_disabled(!atomic_read(&engine->sched_engine->tasklet.count)),
 			   repr_timer(&engine->execlists.preempt),
 			   repr_timer(&engine->execlists.timer));
-#endif
 
 		read = execlists->csb_head;
 		write = READ_ONCE(*execlists->csb_write);

@@ -11,10 +11,6 @@
 
 #include "intel_display_params.h"
 
-#ifdef __FreeBSD__
-SYSCTL_DECL(_hw_i915kms);
-#endif
-
 #define intel_display_param_named(name, T, perm, desc) \
 	module_param_named(name, intel_display_modparams.name, T, perm); \
 	MODULE_PARM_DESC(name, desc)
@@ -36,15 +32,12 @@ static struct intel_display_params intel_display_modparams __read_mostly = {
  * debugfs mode to 0.
  */
 
-#ifdef __linux__
-// FreeBSD: No `charp` support.
 intel_display_param_named_unsafe(dmc_firmware_path, charp, 0400,
 	"DMC firmware path to use instead of the default one. "
 	"Use /dev/null to disable DMC and runtime PM.");
 
 intel_display_param_named_unsafe(vbt_firmware, charp, 0400,
 	"Load VBT from specified file under /lib/firmware");
-#endif
 
 intel_display_param_named_unsafe(lvds_channel_mode, int, 0400,
 	 "Specify LVDS channel mode "

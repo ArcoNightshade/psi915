@@ -182,12 +182,6 @@ void drm_gem_unpin(struct drm_gem_object *obj);
 int drm_gem_vmap(struct drm_gem_object *obj, struct iosys_map *map);
 void drm_gem_vunmap(struct drm_gem_object *obj, struct iosys_map *map);
 
-#ifdef __FreeBSD__
-/* Need to find a proper way to do that */
-int drm_sysctl_init(struct drm_device *dev);
-int drm_sysctl_cleanup(struct drm_device *dev);
-#endif
-
 /* drm_debugfs.c drm_debugfs_crc.c */
 #if defined(CONFIG_DEBUG_FS)
 void drm_debugfs_dev_fini(struct drm_device *dev);
@@ -214,19 +208,11 @@ static inline void drm_debugfs_dev_register(struct drm_device *dev)
 static inline int drm_debugfs_register(struct drm_minor *minor, int minor_id,
 				       struct dentry *root)
 {
-#ifdef __FreeBSD__
-	if (minor->type != DRM_MINOR_RENDER)
-		drm_sysctl_init(minor->dev);
-#endif
 	return 0;
 }
 
 static inline void drm_debugfs_unregister(struct drm_minor *minor)
 {
-#ifdef __FreeBSD__
-	if (minor->type != DRM_MINOR_RENDER)
-		drm_sysctl_cleanup(minor->dev);
-#endif
 }
 
 static inline void drm_debugfs_connector_add(struct drm_connector *connector)

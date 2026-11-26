@@ -151,10 +151,8 @@ void drm_debugfs_add_file(struct drm_device *dev, const char *name,
 void drm_debugfs_add_files(struct drm_device *dev,
 			   const struct drm_debugfs_info *files, int count);
 
-#ifdef __linux__
 int drm_debugfs_gpuva_info(struct seq_file *m,
 			   struct drm_gpuvm *gpuvm);
-#endif
 #else
 static inline void drm_debugfs_create_files(const struct drm_info_list *files,
 					    int count, struct dentry *root,
@@ -178,13 +176,11 @@ static inline void drm_debugfs_add_files(struct drm_device *dev,
 					 int count)
 {}
 
-#ifdef __linux__
 static inline int drm_debugfs_gpuva_info(struct seq_file *m,
 					 struct drm_gpuvm *gpuvm)
 {
 	return 0;
 }
-#endif
 #endif
 
 #endif /* _DRM_DEBUGFS_H_ */

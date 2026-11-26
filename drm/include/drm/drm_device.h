@@ -142,9 +142,7 @@ struct drm_device {
 	bool unplugged;
 
 	/** @anon_inode: inode for private address-space */
-#ifdef __linux__
 	struct inode *anon_inode;
-#endif
 
 	/** @unique: Unique name of the device */
 	char *unique;
@@ -305,12 +303,6 @@ struct drm_device {
 	 */
 	enum switch_power_state switch_power_state;
 
-#ifdef __FreeBSD__
-	struct drm_sysctl_info *sysctl;
-	char busid_str[128];
-	int modesetting;
-	bool fictitious_range_registered;
-#endif
 	/**
 	 * @fb_helper:
 	 *

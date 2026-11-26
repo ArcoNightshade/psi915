@@ -3018,13 +3018,6 @@ bool intel_bios_is_valid_vbt(struct intel_display *display,
 	return vbt;
 }
 
-#if defined(__FreeBSD__) && !defined(pci_map_rom)
-#define	pci_map_rom(pdev, sizep)			\
-	vga_pci_map_bios(device_get_parent(pdev->dev.bsddev), sizep)
-#define	pci_unmap_rom(pdev, bios)			\
-	vga_pci_unmap_bios(device_get_parent(pdev->dev.bsddev), bios)
-#endif
-
 static struct vbt_header *firmware_get_vbt(struct intel_display *display,
 					   size_t *size)
 {

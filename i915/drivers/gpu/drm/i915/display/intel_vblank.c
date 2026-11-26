@@ -301,18 +301,12 @@ static void intel_vblank_section_enter(struct intel_display *display)
 {
 	struct drm_i915_private *i915 = to_i915(display->drm);
 	spin_lock(&i915->uncore.lock);
-#ifdef __FreeBSD__
-	preempt_disable();
-#endif
 }
 
 static void intel_vblank_section_exit(struct intel_display *display)
 	__releases(i915->uncore.lock)
 {
 	struct drm_i915_private *i915 = to_i915(display->drm);
-#ifdef __FreeBSD__
-	preempt_enable();
-#endif
 	spin_unlock(&i915->uncore.lock);
 }
 #else
@@ -695,15 +689,11 @@ int intel_vblank_evade(struct intel_vblank_evade_ctx *evade)
 			break;
 		}
 
-#ifdef __linux__
 		local_irq_enable();
-#endif
 
 		timeout = schedule_timeout(timeout);
 
-#ifdef __linux__
 		local_irq_disable();
-#endif
 	}
 
 	finish_wait(wq, &wait);

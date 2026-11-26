@@ -286,11 +286,7 @@ static int query_perf_config_data(struct drm_i915_private *i915,
 		if (get_user(config_id, &user_query_config_ptr->config))
 			return -EFAULT;
 
-#ifdef __linux__
 		oa_config = i915_perf_get_oa_config(perf, config_id);
-#elif defined(__FreeBSD__)
-		oa_config = NULL;
-#endif
 	}
 	if (!oa_config)
 		return -ENOENT;
@@ -510,11 +506,7 @@ static int query_memregion_info(struct drm_i915_private *i915,
 		else
 			info.probed_cpu_visible_size = mr->total;
 
-#ifdef __linux__
 		if (perfmon_capable()) {
-#elif defined(__FreeBSD__)
-		if (false) {
-#endif
 			intel_memory_region_avail(mr,
 						  &info.unallocated_size,
 						  &info.unallocated_cpu_visible_size);

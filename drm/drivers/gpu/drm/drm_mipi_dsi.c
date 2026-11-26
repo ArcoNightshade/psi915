@@ -48,7 +48,6 @@
  * subset of the MIPI DCS command set.
  */
 
-#ifdef __linux__
 static int mipi_dsi_device_match(struct device *dev, const struct device_driver *drv)
 {
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(dev);
@@ -364,7 +363,6 @@ void mipi_dsi_host_unregister(struct mipi_dsi_host *host)
 	mutex_unlock(&host_lock);
 }
 EXPORT_SYMBOL(mipi_dsi_host_unregister);
-#endif /* !__FreeBSD__ */
 
 /**
  * mipi_dsi_attach - attach a DSI device to its DSI host
@@ -1882,7 +1880,6 @@ void mipi_dsi_dcs_set_tear_scanline_multi(struct mipi_dsi_multi_context *ctx,
 }
 EXPORT_SYMBOL(mipi_dsi_dcs_set_tear_scanline_multi);
 
-#ifdef __linux__
 static int mipi_dsi_drv_probe(struct device *dev)
 {
 	struct mipi_dsi_driver *drv = to_mipi_dsi_driver(dev->driver);
@@ -1950,7 +1947,6 @@ static int __init mipi_dsi_bus_init(void)
 	return bus_register(&mipi_dsi_bus_type);
 }
 postcore_initcall(mipi_dsi_bus_init);
-#endif
 
 MODULE_AUTHOR("Andrzej Hajda <a.hajda@samsung.com>");
 MODULE_DESCRIPTION("MIPI DSI Bus");

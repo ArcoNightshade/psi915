@@ -52,23 +52,11 @@ intel_alloc_mchbar_resource(struct drm_i915_private *i915)
 	mchbar_addr = ((u64)temp_hi << 32) | temp_lo;
 
 	/* If ACPI doesn't have it, assume we need to allocate it ourselves */
-#ifdef __linux__
-	/* CONFIG_PNP is disabled in kconfig.mk */
 	if (IS_ENABLED(CONFIG_PNP) && mchbar_addr &&
 	    pnp_range_reserved(mchbar_addr, mchbar_addr + MCHBAR_SIZE))
 		return 0;
-#endif
 
 	/* Get some space for it */
-#ifdef __FreeBSD__
-	ret = 0;
-	i915->mch_res_rid = 0x100;
-	i915->mch_res_bsd_res = bsd_intel_pci_bus_alloc_mem(
-	    i915->drm.dev->bsddev, &i915->mch_res_rid, MCHBAR_SIZE,
-	    &i915->gmch.mch_res.start, &i915->gmch.mch_res.end);
-	if (i915->mch_res_bsd_res == NULL)
-		ret = -ENOMEM;
-#else
 	i915->gmch.mch_res.name = "i915 MCHBAR";
 	i915->gmch.mch_res.flags = IORESOURCE_MEM;
 	ret = pci_bus_alloc_resource(i915->gmch.pdev->bus,
@@ -77,7 +65,6 @@ intel_alloc_mchbar_resource(struct drm_i915_private *i915)
 				     PCIBIOS_MIN_MEM,
 				     0, pcibios_align_resource,
 				     i915->gmch.pdev);
-#endif
 	if (ret) {
 		drm_dbg(&i915->drm, "failed bus alloc: %d\n", ret);
 		i915->gmch.mch_res.start = 0;
@@ -153,16 +140,8 @@ void intel_gmch_bar_teardown(struct drm_i915_private *i915)
 		}
 	}
 
-#ifdef __FreeBSD__
-	if (i915->mch_res_bsd_res != NULL) {
-		bsd_intel_pci_bus_release_mem(i915->drm.dev->bsddev,
-		    i915->mch_res_rid, i915->mch_res_bsd_res);
-		i915->mch_res_bsd_res = NULL;
-	}
-#else
 	if (i915->gmch.mch_res.start)
 		release_resource(&i915->gmch.mch_res);
-#endif
 }
 
 int intel_gmch_vga_set_state(struct drm_i915_private *i915, bool enable_decode)

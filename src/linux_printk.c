@@ -32,10 +32,13 @@ unsigned int linuxkpi_bug_count;
 
 void (*lkpi_printk_hook)(int level, const char *msg);
 
+/* src/linux_device.c */
+const char *lkpi_device_name(const struct device *dev);
+
 static const char *
 lkpi_dev_name_default(const struct device *dev)
 {
-	return (dev == NULL ? "(NULL device)" : "(device)");
+	return (dev == NULL ? "(NULL device)" : lkpi_device_name(dev));
 }
 
 const char *(*lkpi_dev_name_hook)(const struct device *dev) =

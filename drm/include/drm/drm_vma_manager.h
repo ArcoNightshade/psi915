@@ -218,18 +218,10 @@ static inline __u64 drm_vma_node_offset_addr(struct drm_vma_offset_node *node)
  * is not called on this node concurrently.
  */
 static inline void drm_vma_node_unmap(struct drm_vma_offset_node *node,
-#ifdef __linux__
 				      struct address_space *file_mapping)
-#elif defined(__FreeBSD__)
-				      void *obj)
-#endif
 {
 	if (drm_mm_node_allocated(&node->vm_node))
-#ifdef __linux__
 		unmap_mapping_range(file_mapping,
-#elif defined(__FreeBSD__)
-		unmap_mapping_range(obj,
-#endif
 				    drm_vma_node_offset_addr(node),
 				    drm_vma_node_size(node) << PAGE_SHIFT, 1);
 }

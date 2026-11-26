@@ -33,10 +33,6 @@
 #include "gen8_ppgtt.h"
 #include "intel_engine_pm.h"
 
-#ifdef __FreeBSD__
-#include <dev/agp/agpvar.h>
-#endif
-
 static void i915_ggtt_color_adjust(const struct drm_mm_node *node,
 				   unsigned long color,
 				   u64 *start,
@@ -653,7 +649,6 @@ static void nop_clear_range(struct i915_address_space *vm,
 {
 }
 
-#ifdef __linux__
 static void bxt_vtd_ggtt_wa(struct i915_address_space *vm)
 {
 	/*
@@ -683,7 +678,6 @@ static int bxt_vtd_ggtt_insert_page__cb(void *_arg)
 
 	return 0;
 }
-#endif
 
 static void bxt_vtd_ggtt_insert_page__BKL(struct i915_address_space *vm,
 					  dma_addr_t addr,
@@ -691,11 +685,9 @@ static void bxt_vtd_ggtt_insert_page__BKL(struct i915_address_space *vm,
 					  unsigned int pat_index,
 					  u32 unused)
 {
-#ifdef __linux__
 	struct insert_page arg = { vm, addr, offset, pat_index };
 
 	stop_machine(bxt_vtd_ggtt_insert_page__cb, &arg, NULL);
-#endif
 }
 
 struct insert_entries {
@@ -705,7 +697,6 @@ struct insert_entries {
 	u32 flags;
 };
 
-#ifdef __linux__
 static int bxt_vtd_ggtt_insert_entries__cb(void *_arg)
 {
 	struct insert_entries *arg = _arg;
@@ -716,18 +707,15 @@ static int bxt_vtd_ggtt_insert_entries__cb(void *_arg)
 
 	return 0;
 }
-#endif
 
 static void bxt_vtd_ggtt_insert_entries__BKL(struct i915_address_space *vm,
 					     struct i915_vma_resource *vma_res,
 					     unsigned int pat_index,
 					     u32 flags)
 {
-#ifdef __linux__
 	struct insert_entries arg = { vm, vma_res, pat_index, flags };
 
 	stop_machine(bxt_vtd_ggtt_insert_entries__cb, &arg, NULL);
-#endif
 }
 
 static void gen6_ggtt_clear_range(struct i915_address_space *vm,
@@ -1044,38 +1032,6 @@ int i915_init_ggtt(struct drm_i915_private *i915)
 	return 0;
 }
 
-#ifdef __FreeBSD__
-/*
- * The VMAs are unbound at teardown without rewriting the PTEs (see
- * skip_pte_rewrite) and clear_range() is a nop on gen8+, so every GGTT entry
- * still points to pages that are freed with the driver, including the
- * scratch pages.  This is not an issue on Linux where the device is gone,
- * but here the module can be unloaded while the GPU is still reachable and
- * any access through the GGTT would hit memory reused by something else.
- * Invalidate all the entries so that the GPU faults instead.
- */
-static void ggtt_zap_ptes(struct i915_ggtt *ggtt)
-{
-	unsigned int i, n = ggtt_total_entries(ggtt);
-
-	if (!ggtt->gsm)
-		return;
-
-	if (GRAPHICS_VER(ggtt->vm.i915) >= 8) {
-		gen8_pte_t __iomem *pte = (gen8_pte_t __iomem *)ggtt->gsm;
-
-		for (i = 0; i < n; i++)
-			gen8_set_pte(&pte[i], 0);
-	} else {
-		gen6_pte_t __iomem *pte = (gen6_pte_t __iomem *)ggtt->gsm;
-
-		for (i = 0; i < n; i++)
-			iowrite32(0, &pte[i]);
-	}
-	ggtt->invalidate(ggtt);
-}
-#endif
-
 static void ggtt_cleanup_hw(struct i915_ggtt *ggtt)
 {
 	struct i915_vma *vma, *vn;
@@ -1106,9 +1062,6 @@ static void ggtt_cleanup_hw(struct i915_ggtt *ggtt)
 	ggtt_release_guc_top(ggtt);
 	intel_vgt_deballoon(ggtt);
 
-#ifdef __FreeBSD__
-	ggtt_zap_ptes(ggtt);
-#endif
 	ggtt->vm.cleanup(&ggtt->vm);
 
 	mutex_unlock(&ggtt->vm.mutex);
@@ -1267,22 +1220,7 @@ static int gen8_gmch_probe(struct i915_ggtt *ggtt)
 	unsigned int size;
 	u16 snb_gmch_ctl;
 
-#ifdef __linux__
 	if (!HAS_LMEM(i915) && !HAS_LMEMBAR_SMEM_STOLEN(i915)) {
-#elif defined(__FreeBSD__)
-	/*
-	 * We need to initialize GMADR on freebsd in order to use shmem
-	 * framebuffers. We are falling back to shmem framebuffers on freebsd
-	 * because the Wa_22018444074 mtl hardware workaround disabled using stolen
-	 * memory on mtl. Unlike on linux, when this happens we end up passing an
-	 * invalid phys address to register_fictitious_range which causes a panic.
-	 * Because GMADR is not valid we end up with a value such as 0x2000 instead
-	 * of a valid pointer.
-	 * MTL has LMEMBAR for stolen but still needs GMADR for shmem objects.
-	 */
-	if ((!HAS_LMEM(i915) && !HAS_LMEMBAR_SMEM_STOLEN(i915))
-			|| HAS_LMEMBAR_SMEM_STOLEN(i915)) {
-#endif
 		if (!i915_pci_resource_valid(pdev, GEN4_GMADR_BAR))
 			return -ENXIO;
 

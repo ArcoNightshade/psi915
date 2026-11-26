@@ -96,11 +96,7 @@ drm_gem_init(struct drm_device *dev)
 	struct drm_vma_offset_manager *vma_offset_manager;
 
 	mutex_init(&dev->object_name_lock);
-#ifdef __linux__
 	idr_init_base(&dev->object_name_idr, 1);
-#elif defined(__FreeBSD__)
-	idr_init(&dev->object_name_idr);
-#endif
 
 	vma_offset_manager = drmm_kzalloc(dev, sizeof(*vma_offset_manager),
 					  GFP_KERNEL);
@@ -352,7 +348,7 @@ int drm_gem_dumb_map_offset(struct drm_file *file, struct drm_device *dev,
 		return -ENOENT;
 
 	/* Don't allow imported objects to be mapped */
-	if (drm_gem_is_imported(obj)) {
+	if (obj->import_attach) {
 		ret = -EINVAL;
 		goto out;
 	}
@@ -528,7 +524,6 @@ int drm_gem_create_mmap_offset(struct drm_gem_object *obj)
 }
 EXPORT_SYMBOL(drm_gem_create_mmap_offset);
 
-#ifdef __linux__
 /*
  * Move folios to appropriate lru and release the folios, decrementing the
  * ref count of those folios.
@@ -683,7 +678,6 @@ void drm_gem_put_pages(struct drm_gem_object *obj, struct page **pages,
 	kvfree(pages);
 }
 EXPORT_SYMBOL(drm_gem_put_pages);
-#endif
 
 static int objects_lookup(struct drm_file *filp, u32 *handle, int count,
 			  struct drm_gem_object **objs)
@@ -950,11 +944,7 @@ err:
 void
 drm_gem_open(struct drm_device *dev, struct drm_file *file_private)
 {
-#ifdef __linux__
 	idr_init_base(&file_private->object_idr, 1);
-#elif defined(__FreeBSD__)
-	idr_init(&file_private->object_idr);
-#endif
 	spin_lock_init(&file_private->table_lock);
 }
 
@@ -1188,7 +1178,7 @@ void drm_gem_print_info(struct drm_printer *p, unsigned int indent,
 			  drm_vma_node_start(&obj->vma_node));
 	drm_printf_indent(p, indent, "size=%zu\n", obj->size);
 	drm_printf_indent(p, indent, "imported=%s\n",
-			  str_yes_no(drm_gem_is_imported(obj)));
+			  str_yes_no(obj->import_attach));
 
 	if (obj->funcs->print_info)
 		obj->funcs->print_info(p, indent, obj);

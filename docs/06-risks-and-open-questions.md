@@ -30,3 +30,19 @@
 - illumos-gate has no in-tree DRM; confirmed by tree scan, but OpenIndiana may carry extra patches.
 - Exact firmware filenames/versions for KBL (DMC, GuC, HuC) per drm-kmod snapshot.
 - OpenIndiana's Mesa version and Gen9 driver availability.
+
+## Decision: GPL-only files (owner, 2026-11-26)
+GPL-2.0-only Linux files needed by the Gen9 build (sync_file.c, dma-fence-unwrap.c, drm_hdcp_helper.c, drm_writeback.c,
+intel_uncore_trace.c, and any found by later audits) ship as a separate GPL-2.0 module/package, not linked into BSD-2 KPI code.
+Open: confirm the module boundary is legally workable on illumos (CDDL kernel + GPL module) and that exported symbols are the only coupling.
+
+## Decision: import source (owner, 2026-11-26)
+Import DRM core and i915 from upstream Linux v6.14 (github.com/torvalds/linux, tag v6.14, object 35ff3b0f4596) instead of drm-kmod.
+Reason: drm-kmod carries FreeBSD `#else` branches (131 files) and BSD rewrites of dma-buf/dma-fence. Upstream gives pristine Linux plus our own patch series.
+drm-kmod and OpenBSD stay as reference for porting patterns. LINUXKPI_VERSION to be revised to match 6.14.
+
+## Open: GPL split creates a module dependency cycle (import agent report, 2026-11-26)
+Upstream GPL files (gpl/) and MIT files (drm/, i915/) call each other in both directions; illumos module deps cannot express a cycle.
+Recommended resolution: clean-room BSD rewrites of small coupled files (drm_managed, drm_sysfs, drm_lease, intel_acpi, cmdline, nomodeset, trace stubs),
+stub drm_writeback; keep a GPL module with one-way dependency (dma-buf, dma-fence*, sync_file, drm_hdcp_helper, drm_gem_framebuffer_helper).
+Also open: licence of drm_device.h and drm_gem_framebuffer_helper.h (no notice), and whether a CDDL kernel may load a GPL module (legal review).

@@ -214,7 +214,6 @@ static int guc_action_control_log(struct intel_guc *guc, bool enable,
 	return intel_guc_send(guc, action, ARRAY_SIZE(action));
 }
 
-#ifdef __linux__
 /*
  * Sub buffer switch callback. Called whenever relay has to switch to a new
  * sub buffer, relay stays on the same sub buffer if 0 is returned.
@@ -285,7 +284,6 @@ static const struct rchan_callbacks relay_callbacks = {
 	.create_buf_file = create_buf_file_callback,
 	.remove_buf_file = remove_buf_file_callback,
 };
-#endif /* __linux__ */
 
 static void guc_move_to_next_buf(struct intel_guc_log *log)
 {
@@ -295,14 +293,12 @@ static void guc_move_to_next_buf(struct intel_guc_log *log)
 	 */
 	smp_wmb();
 
-#ifdef __linux__
 	/* All data has been written, so now move the offset of sub buffer. */
 	relay_reserve(log->relay.channel, log->vma->obj->base.size -
 					  intel_guc_log_section_size_capture(log));
 
 	/* Switch to the next sub buffer */
 	relay_flush(log->relay.channel);
-#endif
 }
 
 static void *guc_get_write_buffer(struct intel_guc_log *log)
@@ -316,11 +312,7 @@ static void *guc_get_write_buffer(struct intel_guc_log *log)
 	 * done without using relay_reserve() along with relay_write(). So its
 	 * better to use relay_reserve() alone.
 	 */
-#ifdef __linux__
 	return relay_reserve(log->relay.channel, 0);
-#elif defined(__FreeBSD__)
-	return (NULL);
-#endif
 }
 
 bool intel_guc_check_log_buf_overflow(struct intel_guc_log *log,
@@ -341,9 +333,7 @@ bool intel_guc_check_log_buf_overflow(struct intel_guc_log *log,
 			log->stats[type].sampled_overflow += 16;
 		}
 
-#ifdef __freebsd_notyet__
 		guc_notice_ratelimited(log_to_guc(log), "log buffer overflow\n");
-#endif
 	}
 
 	return overflow;
@@ -360,11 +350,7 @@ unsigned int intel_guc_get_log_buffer_size(struct intel_guc_log *log,
 	case GUC_CAPTURE_LOG_BUFFER:
 		return intel_guc_log_section_size_capture(log);
 	default:
-#ifdef __linux__
 		MISSING_CASE(type);
-#elif defined(__FreeBSD__)
-		;
-#endif
 	}
 
 	return 0;
@@ -397,15 +383,8 @@ static void _guc_log_copy_debuglogs_for_relay(struct intel_guc_log *log)
 
 	mutex_lock(&log->relay.lock);
 
-#ifdef __linux__
-	/* BSDFIXME: bsd 'log' doesn't like this.. */
 	if (guc_WARN_ON(guc, !intel_guc_log_relay_created(log)))
 		goto out_unlock;
-#elif defined(__FreeBSD__)
-	/* BSDFIXME: No kernel->userspace relay file support */
-	DRM_WARN("guc log relay not enabled");
-	goto out_unlock;
-#endif
 
 	/* Get the pointer to shared GuC log buffer */
 	src_data = log->buf_addr;
@@ -540,7 +519,6 @@ void intel_guc_log_init_early(struct intel_guc_log *log)
 
 static int guc_log_relay_create(struct intel_guc_log *log)
 {
-#ifdef __linux__
 	struct intel_guc *guc = log_to_guc(log);
 	struct drm_i915_private *i915 = guc_to_i915(guc);
 	struct rchan *guc_log_relay_chan;
@@ -582,19 +560,14 @@ static int guc_log_relay_create(struct intel_guc_log *log)
 	log->relay.channel = guc_log_relay_chan;
 
 	return 0;
-#elif defined(__FreeBSD__)
-	return (-ENOSYS);
-#endif
 }
 
 static void guc_log_relay_destroy(struct intel_guc_log *log)
 {
 	lockdep_assert_held(&log->relay.lock);
 
-#ifdef __linux__
 	relay_close(log->relay.channel);
 	log->relay.channel = NULL;
-#endif
 }
 
 static void guc_log_copy_debuglogs_for_relay(struct intel_guc_log *log)

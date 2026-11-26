@@ -2535,10 +2535,8 @@ intel_hdmi_set_edid(struct drm_connector *connector)
 
 	intel_display_power_put(dev_priv, POWER_DOMAIN_GMBUS, wakeref);
 
-#ifdef __linux__
 	cec_notifier_set_phys_addr(intel_hdmi->cec_notifier,
 				   connector->display_info.source_physical_address);
-#endif
 
 	return connected;
 }
@@ -2576,10 +2574,8 @@ intel_hdmi_detect(struct drm_connector *connector, bool force)
 out:
 	intel_display_power_put(dev_priv, POWER_DOMAIN_GMBUS, wakeref);
 
-#ifdef __linux__
 	if (status != connector_status_connected)
 		cec_notifier_phys_addr_invalidate(intel_hdmi->cec_notifier);
-#endif
 
 	return status;
 }
@@ -2623,11 +2619,9 @@ intel_hdmi_connector_register(struct drm_connector *connector)
 
 static void intel_hdmi_connector_unregister(struct drm_connector *connector)
 {
-#ifdef __linux__
 	struct cec_notifier *n = intel_attached_hdmi(to_intel_connector(connector))->cec_notifier;
 
 	cec_notifier_conn_unregister(n);
-#endif
 
 	intel_connector_unregister(connector);
 }
@@ -3054,9 +3048,7 @@ bool intel_hdmi_init_connector(struct intel_digital_port *dig_port,
 	struct intel_encoder *intel_encoder = &dig_port->base;
 	struct drm_device *dev = intel_encoder->base.dev;
 	enum port port = intel_encoder->port;
-#ifdef __linux__
 	struct cec_connector_info conn_info;
-#endif
 	u8 ddc_pin;
 
 	drm_dbg_kms(display->drm,
@@ -3112,7 +3104,6 @@ bool intel_hdmi_init_connector(struct intel_digital_port *dig_port,
 				    "HDCP init failed, skipping.\n");
 	}
 
-#ifdef __linux__
 	cec_fill_conn_info_from_drm(&conn_info, connector);
 
 	intel_hdmi->cec_notifier =
@@ -3120,7 +3111,6 @@ bool intel_hdmi_init_connector(struct intel_digital_port *dig_port,
 					   &conn_info);
 	if (!intel_hdmi->cec_notifier)
 		drm_dbg_kms(display->drm, "CEC notifier get failed\n");
-#endif
 
 	return true;
 }

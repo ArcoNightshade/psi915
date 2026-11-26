@@ -456,10 +456,8 @@ void intel_backlight_disable(const struct drm_connector_state *old_conn_state)
 
 	mutex_lock(&i915->display.backlight.lock);
 
-#ifdef __linux__
 	if (panel->backlight.device)
 		panel->backlight.device->props.power = BACKLIGHT_POWER_OFF;
-#endif
 	panel->backlight.enabled = false;
 	panel->backlight.funcs->disable(old_conn_state, 0);
 
@@ -776,10 +774,8 @@ static void __intel_backlight_enable(const struct intel_crtc_state *crtc_state,
 
 	panel->backlight.funcs->enable(crtc_state, conn_state, panel->backlight.level);
 	panel->backlight.enabled = true;
-#ifdef __linux__
 	if (panel->backlight.device)
 		panel->backlight.device->props.power = BACKLIGHT_POWER_ON;
-#endif
 }
 
 void intel_backlight_enable(const struct intel_crtc_state *crtc_state,
@@ -876,18 +872,12 @@ static int intel_backlight_device_update_status(struct backlight_device *bd)
 	 */
 	if (panel->backlight.enabled) {
 		if (panel->backlight.power) {
-#ifdef __linux__
 			bool enable = bd->props.power == BACKLIGHT_POWER_ON &&
 				bd->props.brightness != 0;
-#elif defined(__FreeBSD__)
-			bool enable = bd->props.brightness != 0;
-#endif
 			panel->backlight.power(connector, enable);
 		}
 	} else {
-#ifdef __linux__
 		bd->props.power = BACKLIGHT_POWER_OFF;
-#endif
 	}
 
 	drm_modeset_unlock(&i915->drm.mode_config.connection_mutex);
@@ -956,18 +946,15 @@ int intel_backlight_device_register(struct intel_connector *connector)
 					    panel->backlight.level,
 					    props.max_brightness);
 
-#ifdef __linux__
 	if (panel->backlight.enabled)
 		props.power = BACKLIGHT_POWER_ON;
 	else
 		props.power = BACKLIGHT_POWER_OFF;
-#endif
 
 	name = kstrdup("intel_backlight", GFP_KERNEL);
 	if (!name)
 		return -ENOMEM;
 
-#ifdef __linux__
 	bd = backlight_device_get_by_name(name);
 	if (bd) {
 		put_device(&bd->dev);
@@ -986,19 +973,6 @@ int intel_backlight_device_register(struct intel_connector *connector)
 	}
 	bd = backlight_device_register(name, connector->base.kdev, connector,
 				       &intel_backlight_device_ops, &props);
-#elif defined(__FreeBSD__)
-	bd = backlight_device_register(name, connector->base.dev->dev, connector,
-				       &intel_backlight_device_ops, &props);
-	if (IS_ERR(bd) && PTR_ERR(bd) == -EEXIST) {
-		kfree(name);
-		name = kasprintf(GFP_KERNEL, "card%d-%s-backlight",
-				 i915->drm.primary->index, connector->base.name);
-		if (!name)
-			return -ENOMEM;
-		bd = backlight_device_register(name, connector->base.dev->dev, connector,
-					       &intel_backlight_device_ops, &props);
-	}
-#endif
 
 	if (IS_ERR(bd)) {
 		drm_err(&i915->drm,

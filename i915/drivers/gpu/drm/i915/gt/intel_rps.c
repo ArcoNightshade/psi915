@@ -24,9 +24,7 @@
 #include "intel_pcode.h"
 #include "intel_rps.h"
 #include "vlv_sideband.h"
-#ifdef __linux__
 #include "../../../platform/x86/intel_ips.h"
-#endif
 
 #define BUSY_MAX_EI	20u /* ms */
 
@@ -357,11 +355,7 @@ static unsigned long ips_mch_val(struct intel_uncore *uncore)
 	u32 tsfs;
 
 	tsfs = intel_uncore_read(uncore, TSFS);
-#ifdef __linux__
 	x = intel_uncore_read8(uncore, TR1);
-#elif defined(__FreeBSD__)
-	x = intel_uncore_read8(uncore, I915_TR1);
-#endif
 
 	b = tsfs & TSFS_INTR_MASK;
 	m = (tsfs & TSFS_SLOPE_MASK) >> TSFS_SLOPE_SHIFT;
@@ -2726,7 +2720,6 @@ static struct drm_i915_private __rcu *ips_mchdev;
  * other in order for IPS to do the appropriate communication of
  * GPU turbo limits to i915.
  */
-#ifdef __linux__
 static void
 ips_ping_for_i915_load(void)
 {
@@ -2738,9 +2731,6 @@ ips_ping_for_i915_load(void)
 		symbol_put(ips_link_to_i915_driver);
 	}
 }
-#elif defined(__FreeBSD__)
-#define ips_ping_for_i915_load()
-#endif
 
 void intel_rps_driver_register(struct intel_rps *rps)
 {

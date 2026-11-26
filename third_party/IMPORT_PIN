@@ -1,13 +1,12 @@
 # Pinned upstream for scripts/import-linux.sh.  KEY=VALUE, no spaces around "=", no shell expansion.
-# Changing UPSTREAM_COMMIT is a re-pin: run scripts/import-linux.sh -m first; every new upstream file must be
-# classified in third_party/manifest/*.list before the import will run.
-UPSTREAM_NAME=drm-kmod
-UPSTREAM_URL=https://github.com/freebsd/drm-kmod
-UPSTREAM_BRANCH=master
-UPSTREAM_COMMIT=98be24dc99949e0c040e02def52d125e6ddad179
-UPSTREAM_COMMIT_DATE=2026-11-18T12:12:18+01:00
-UPSTREAM_COMMIT_SUBJECT=amdgpu: Reserve VRAM through the end of the EFI framebuffer
-# From drm-kmod linuxkpi_version.mk.  Implies a Linux 6.14 DRM/i915 base; the exact Linux commit that
-# drm-kmod last merged is not recorded upstream and has not been verified here.
-LINUXKPI_VERSION=61400
+# Owner decision 2026-11-26 (docs/06): import pristine upstream Linux, not drm-kmod.
+# Re-pin: change TAG and COMMIT, run scripts/import-linux.sh -m, classify every UNCLASSIFIED file in
+# third_party/manifest/*.list, refresh third_party/patches.
+UPSTREAM_NAME=linux
+UPSTREAM_URL=https://github.com/torvalds/linux
+UPSTREAM_TAG=v6.14
+UPSTREAM_COMMIT=38fec10eb60d687e30c8c6b5420d86e8149f7557
+# Annotated tag object of v6.14 (the "35ff3b0f4596" in docs/06); the script verifies tag -> commit.
+UPSTREAM_TAG_OBJECT=35ff3b0f4596c82ec0a3e1cc43e2a85f5e976023
 LINUX_BASE=6.14
+LINUXKPI_VERSION=61400

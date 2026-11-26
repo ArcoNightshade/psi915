@@ -21,10 +21,6 @@
 #include "i915_utils.h"
 #include "i915_vma.h"
 
-#ifdef __FreeBSD__
-#include <drm/drm_util.h>
-#endif
-
 struct __guc_ads_blob;
 struct intel_guc_state_capture;
 
@@ -366,11 +362,7 @@ static inline int intel_guc_send_busy_loop(struct intel_guc *guc,
 {
 	int err;
 	unsigned int sleep_period_ms = 1;
-#ifdef __linux__
 	bool not_atomic = !in_atomic() && !irqs_disabled();
-#elif defined (__FreeBSD__)
-	bool not_atomic = drm_can_sleep();
-#endif
 
 	/*
 	 * FIXME: Have caller pass in if we are in an atomic context to avoid

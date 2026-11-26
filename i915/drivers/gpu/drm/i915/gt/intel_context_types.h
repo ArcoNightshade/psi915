@@ -19,10 +19,6 @@
 #include "intel_sseu.h"
 #include "intel_wakeref.h"
 
-#ifdef __FreeBSD__
-#include <linux/poison.h>
-#endif
-
 #include "uc/intel_guc_fwif.h"
 
 #define CONTEXT_REDZONE POISON_INUSE

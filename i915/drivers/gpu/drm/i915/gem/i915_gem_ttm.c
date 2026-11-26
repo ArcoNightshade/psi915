@@ -195,34 +195,25 @@ static int i915_ttm_tt_shmem_populate(struct ttm_device *bdev,
 	int err;
 
 	if (!filp) {
-#ifdef __linux__
 		struct address_space *mapping;
 		gfp_t mask;
-#endif
 
 		filp = shmem_file_setup("i915-shmem-tt", size, VM_NORESERVE);
 		if (IS_ERR(filp))
 			return PTR_ERR(filp);
 
-#ifdef __linux__
 		mask = GFP_HIGHUSER | __GFP_RECLAIMABLE;
 
 		mapping = filp->f_mapping;
 		mapping_set_gfp_mask(mapping, mask);
 		GEM_BUG_ON(!(mapping_gfp_mask(mapping) & __GFP_RECLAIM));
-#endif
 
 		i915_tt->filp = filp;
 	}
 
 	st = &i915_tt->cached_rsgt.table;
-#ifdef __FreeBSD__
-	err = shmem_sg_alloc_table(i915, st, size, mr, filp->f_shmem,
-				   max_segment);
-#else
 	err = shmem_sg_alloc_table(i915, st, size, mr, filp->f_mapping,
 				   max_segment);
-#endif
 	if (err)
 		return err;
 
@@ -241,11 +232,7 @@ static int i915_ttm_tt_shmem_populate(struct ttm_device *bdev,
 	return 0;
 
 err_free_st:
-#ifdef __FreeBSD__
-	shmem_sg_free_table(st, filp->f_shmem, false, false);
-#else
 	shmem_sg_free_table(st, filp->f_mapping, false, false);
-#endif
 
 	return err;
 }
@@ -256,13 +243,8 @@ static void i915_ttm_tt_shmem_unpopulate(struct ttm_tt *ttm)
 	bool backup = ttm->page_flags & TTM_TT_FLAG_SWAPPED;
 	struct sg_table *st = &i915_tt->cached_rsgt.table;
 
-#ifdef __FreeBSD__
-	shmem_sg_free_table(st, i915_tt->filp->f_shmem,
-			    backup, backup);
-#else
 	shmem_sg_free_table(st, file_inode(i915_tt->filp)->i_mapping,
 			    backup, backup);
-#endif
 }
 
 static void i915_ttm_tt_release(struct kref *ref)
@@ -457,13 +439,8 @@ int i915_ttm_purge(struct drm_i915_gem_object *obj)
 		 * pages(like by the shrinker) we should try to be more
 		 * aggressive and release the pages immediately.
 		 */
-#ifdef __FreeBSD__
-		shmem_truncate_range(i915_tt->filp->f_shmem,
-				     0, (loff_t)-1);
-#else
 		shmem_truncate_range(file_inode(i915_tt->filp),
 				     0, (loff_t)-1);
-#endif
 		fput(fetch_and_zero(&i915_tt->filp));
 	}
 
@@ -518,11 +495,7 @@ static int i915_ttm_shrink(struct drm_i915_gem_object *obj, unsigned int flags)
 	}
 
 	if (flags & I915_GEM_OBJECT_SHRINK_WRITEBACK)
-#ifdef __FreeBSD__
-		__shmem_writeback(obj->base.size, i915_tt->filp->f_shmem);
-#else
 		__shmem_writeback(obj->base.size, i915_tt->filp->f_mapping);
-#endif
 
 	return 0;
 }

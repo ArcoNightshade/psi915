@@ -232,11 +232,9 @@ struct syncobj_eventfd_entry {
 	u32 flags;
 };
 
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 static void
 syncobj_eventfd_entry_func(struct drm_syncobj *syncobj,
 			   struct syncobj_eventfd_entry *entry);
-#endif
 
 /**
  * drm_syncobj_find - lookup and reference a sync object.
@@ -300,7 +298,6 @@ static void drm_syncobj_remove_wait(struct drm_syncobj *syncobj,
 	spin_unlock(&syncobj->lock);
 }
 
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 static void
 syncobj_eventfd_entry_free(struct syncobj_eventfd_entry *entry)
 {
@@ -322,7 +319,6 @@ drm_syncobj_add_eventfd(struct drm_syncobj *syncobj,
 	syncobj_eventfd_entry_func(syncobj, entry);
 	spin_unlock(&syncobj->lock);
 }
-#endif
 
 /**
  * drm_syncobj_add_point - add new timeline point to the syncobj
@@ -355,10 +351,8 @@ void drm_syncobj_add_point(struct drm_syncobj *syncobj,
 
 	list_for_each_entry_safe(wait_cur, wait_tmp, &syncobj->cb_list, node)
 		syncobj_wait_syncobj_func(syncobj, wait_cur);
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 	list_for_each_entry_safe(ev_fd_cur, ev_fd_tmp, &syncobj->ev_fd_list, node)
 		syncobj_eventfd_entry_func(syncobj, ev_fd_cur);
-#endif
 	spin_unlock(&syncobj->lock);
 
 	/* Walk the chain once to trigger garbage collection */
@@ -393,10 +387,8 @@ void drm_syncobj_replace_fence(struct drm_syncobj *syncobj,
 	if (fence != old_fence) {
 		list_for_each_entry_safe(wait_cur, wait_tmp, &syncobj->cb_list, node)
 			syncobj_wait_syncobj_func(syncobj, wait_cur);
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 		list_for_each_entry_safe(ev_fd_cur, ev_fd_tmp, &syncobj->ev_fd_list, node)
 			syncobj_eventfd_entry_func(syncobj, ev_fd_cur);
-#endif
 	}
 
 	spin_unlock(&syncobj->lock);
@@ -539,10 +531,8 @@ void drm_syncobj_free(struct kref *kref)
 
 	drm_syncobj_replace_fence(syncobj, NULL);
 
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 	list_for_each_entry_safe(ev_fd_cur, ev_fd_tmp, &syncobj->ev_fd_list, node)
 		syncobj_eventfd_entry_free(ev_fd_cur);
-#endif
 
 	kfree(syncobj);
 }
@@ -572,9 +562,7 @@ int drm_syncobj_create(struct drm_syncobj **out_syncobj, uint32_t flags,
 
 	kref_init(&syncobj->refcount);
 	INIT_LIST_HEAD(&syncobj->cb_list);
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 	INIT_LIST_HEAD(&syncobj->ev_fd_list);
-#endif
 	spin_lock_init(&syncobj->lock);
 
 	if (flags & DRM_SYNCOBJ_CREATE_SIGNALED) {
@@ -815,11 +803,7 @@ err_put_fd:
 void
 drm_syncobj_open(struct drm_file *file_private)
 {
-#ifdef __linux__
 	idr_init_base(&file_private->syncobj_idr, 1);
-#elif defined(__FreeBSD__)
-	idr_init(&file_private->syncobj_idr);
-#endif
 	spin_lock_init(&file_private->syncobj_table_lock);
 }
 
@@ -1417,7 +1401,6 @@ drm_syncobj_timeline_wait_ioctl(struct drm_device *dev, void *data,
 	return ret;
 }
 
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 static void syncobj_eventfd_entry_fence_func(struct dma_fence *fence,
 					     struct dma_fence_cb *cb)
 {
@@ -1520,7 +1503,6 @@ err_fdget:
 	drm_syncobj_put(syncobj);
 	return ret;
 }
-#endif
 
 int
 drm_syncobj_reset_ioctl(struct drm_device *dev, void *data,

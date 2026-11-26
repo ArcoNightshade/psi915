@@ -149,12 +149,7 @@ static int drm_set_busid(struct drm_device *dev, struct drm_file *file_priv)
 	if (master->unique != NULL)
 		drm_unset_busid(dev, master);
 
-#ifdef __linux__
 	if (dev->dev && dev_is_pci(dev->dev)) {
-#elif defined(__FreeBSD__)
-	// BSDFIXME: Assume it's PCI for now
-	if (dev->dev) {
-#endif
 		ret = drm_pci_set_busid(dev, master);
 		if (ret) {
 			drm_unset_busid(dev, master);
@@ -201,13 +196,8 @@ int drm_getclient(struct drm_device *dev, void *data,
 	 */
 	if (client->idx == 0) {
 		client->auth = file_priv->authenticated;
-#ifdef __linux__
 		client->pid = task_pid_vnr(current);
 		client->uid = overflowuid;
-#elif defined(__FreeBSD__)
-		client->pid = current->task_thread->td_proc->p_pid;
-		client->uid = 0;
-#endif
 		client->magic = 0;
 		client->iocs = 0;
 
@@ -718,10 +708,8 @@ static const struct drm_ioctl_desc drm_ioctls[] = {
 		      DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF(DRM_IOCTL_SYNCOBJ_TIMELINE_WAIT, drm_syncobj_timeline_wait_ioctl,
 		      DRM_RENDER_ALLOW),
-#if (__FreeBSD_version >= 1500508 && __FreeBSD_version < 1600000) || __FreeBSD_version >= 1600011
 	DRM_IOCTL_DEF(DRM_IOCTL_SYNCOBJ_EVENTFD, drm_syncobj_eventfd_ioctl,
 		      DRM_RENDER_ALLOW),
-#endif
 	DRM_IOCTL_DEF(DRM_IOCTL_SYNCOBJ_RESET, drm_syncobj_reset_ioctl,
 		      DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF(DRM_IOCTL_SYNCOBJ_SIGNAL, drm_syncobj_signal_ioctl,
@@ -840,13 +828,6 @@ long drm_ioctl(struct file *filp,
 
 	if (drm_dev_is_unplugged(dev))
 		return -ENODEV;
-
-#ifdef __FreeBSD__
-	if (IOCGROUP(cmd) != DRM_IOCTL_BASE) {
-		DRM_DEBUG("bad ioctl group 0x%x\n", (int)IOCGROUP(cmd));
-		return -EINVAL;
-	}
-#endif
 
 	if (DRM_IOCTL_TYPE(cmd) != DRM_IOCTL_BASE)
 		return -ENOTTY;

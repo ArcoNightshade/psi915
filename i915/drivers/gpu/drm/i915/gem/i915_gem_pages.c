@@ -328,10 +328,6 @@ static void *i915_gem_object_map_page(struct drm_i915_gem_object *obj,
 static void *i915_gem_object_map_pfn(struct drm_i915_gem_object *obj,
 				     enum i915_map_type type)
 {
-#if  __FreeBSD_version < 1500505 || \
-    (__FreeBSD_version >= 1600000 && __FreeBSD_version < 1600007)
-	panic("vmap_pfn() is not implemented");
-#else
 	resource_size_t iomap = obj->mm.region->iomap.base -
 		obj->mm.region->region.start;
 	unsigned long n_pfn = obj->base.size >> PAGE_SHIFT;
@@ -357,7 +353,6 @@ static void *i915_gem_object_map_pfn(struct drm_i915_gem_object *obj,
 		kvfree(pfns);
 
 	return vaddr ?: ERR_PTR(-ENOMEM);
-#endif
 }
 
 /* get, pin, and map the pages of the object into kernel space */

@@ -478,7 +478,6 @@ static inline struct drm_printer drm_line_printer(struct drm_printer *p,
 	return lp;
 }
 
-#ifdef __linux__
 /*
  * struct device based logging
  *
@@ -492,16 +491,6 @@ struct _ddebug;
 __printf(4, 5)
 void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
 		   enum drm_debug_category category, const char *format, ...);
-#elif defined(__FreeBSD__)
-__printf(3, 4)
-void drm_dev_printk(const struct device *dev, const char *level,
-		    const char *format, ...);
-struct _ddebug;
-__printf(5, 6)
-void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
-		   unsigned int category, const char *func,
-		   const char *format, ...);
-#endif
 
 /**
  * DRM_DEV_ERROR() - Error output.
@@ -511,13 +500,8 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
  * @dev: device pointer
  * @fmt: printf() like format string.
  */
-#ifdef __linux__
 #define DRM_DEV_ERROR(dev, fmt, ...)					\
 	drm_dev_printk(dev, KERN_ERR, "*ERROR* " fmt, ##__VA_ARGS__)
-#elif defined(__FreeBSD__)
-#define DRM_DEV_ERROR(dev, fmt, ...)					\
-	drm_dev_printk(dev, KERN_ERR, "*ERROR* ", __func__, fmt, ##__VA_ARGS__)
-#endif
 
 /**
  * DRM_DEV_ERROR_RATELIMITED() - Rate limited error output.
@@ -541,13 +525,8 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
 })
 
 /* NOTE: this is deprecated in favor of drm_info() or dev_info(). */
-#ifdef __linux__
 #define DRM_DEV_INFO(dev, fmt, ...)				\
 	drm_dev_printk(dev, KERN_INFO, fmt, ##__VA_ARGS__)
-#else
-#define DRM_DEV_INFO(dev, fmt, ...)				\
-	drm_dev_printk(dev, KERN_INFO, __func__, fmt, ##__VA_ARGS__)
-#endif
 
 /* NOTE: this is deprecated in favor of drm_info_once() or dev_info_once(). */
 #define DRM_DEV_INFO_ONCE(dev, fmt, ...)				\
@@ -576,7 +555,6 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
  * @dev: device pointer
  * @fmt: printf() like format string.
  */
-#ifdef __linux__
 #define DRM_DEV_DEBUG(dev, fmt, ...)					\
 	drm_dev_dbg(dev, DRM_UT_CORE, fmt, ##__VA_ARGS__)
 /**
@@ -599,25 +577,6 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
  */
 #define DRM_DEV_DEBUG_KMS(dev, fmt, ...)				\
 	drm_dev_dbg(dev, DRM_UT_KMS, fmt, ##__VA_ARGS__)
-
-#elif defined(__FreeBSD__)
-
-#define DRM_DEV_DEBUG(dev, fmt, ...)					\
-	drm_dev_dbg(dev, DRM_UT_CORE, __func__, fmt, ##__VA_ARGS__)
-#define DRM_DEV_DEBUG_DRIVER(dev, fmt, ...)				\
-	drm_dev_dbg(dev, DRM_UT_DRIVER, __func__, fmt, ##__VA_ARGS__)
-#define DRM_DEV_DEBUG_KMS(dev, fmt, ...)				\
-	drm_dev_dbg(dev, DRM_UT_KMS, __func__, fmt, ##__VA_ARGS__)
-#define DRM_DEV_DEBUG_PRIME(dev, fmt, ...)				\
-	drm_dev_dbg(dev, DRM_UT_PRIME, __func__, fmt, ##__VA_ARGS__)
-#define DRM_DEV_DEBUG_ATOMIC(dev, fmt, ...)				\
-	drm_dev_dbg(dev, DRM_UT_ATOMIC, __func__, fmt, ##__VA_ARGS__)
-#define DRM_DEV_DEBUG_VBL(dev, fmt, ...)				\
-	drm_dev_dbg(dev, DRM_UT_VBL, __func__, fmt, ##__VA_ARGS__)
-#define	DRM_DEV_DEBUG_DP(dev, fmt, ...)					\
-	drm_dev_dbg(dev, DRM_UT_DP, __func__, fmt, ## __VA_ARGS__)
-
-#endif
 
 /*
  * struct drm_device based logging
@@ -660,8 +619,6 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
 	__drm_printk((drm), err, _ratelimited, "*ERROR* " fmt, ##__VA_ARGS__)
 
 
-#ifdef __linux__
-
 #define drm_dbg_core(drm, fmt, ...)					\
 	drm_dev_dbg((drm) ? (drm)->dev : NULL, DRM_UT_CORE, fmt, ##__VA_ARGS__)
 #define drm_dbg_driver(drm, fmt, ...)						\
@@ -682,29 +639,6 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
 	drm_dev_dbg((drm) ? (drm)->dev : NULL, DRM_UT_DP, fmt, ##__VA_ARGS__)
 #define drm_dbg_drmres(drm, fmt, ...)					\
 	drm_dev_dbg((drm) ? (drm)->dev : NULL, DRM_UT_DRMRES, fmt, ##__VA_ARGS__)
-#else
-
-#define drm_dbg_core(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_CORE, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_driver(drm, fmt, ...)						\
-	drm_dev_dbg((drm)->dev, DRM_UT_DRIVER, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_kms(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_KMS, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_prime(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_PRIME, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_atomic(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_ATOMIC, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_vbl(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_VBL, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_state(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_STATE, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_lease(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_LEASE, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_dp(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_DP, __func__, fmt, ##__VA_ARGS__)
-#define drm_dbg_drmres(drm, fmt, ...)					\
-	drm_dev_dbg((drm)->dev, DRM_UT_DRMRES, __func__, fmt, ##__VA_ARGS__)
-#endif
 
 #define drm_dbg(drm, fmt, ...)	drm_dbg_driver(drm, fmt, ##__VA_ARGS__)
 
@@ -714,13 +648,8 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
  * Prefer drm_device based logging over device or prink based logging.
  */
 
-#ifdef __linux__
 __printf(1, 2)
 void __drm_err(const char *format, ...);
-#else
-__printf(2, 3)
-void __drm_err(const char *function_name, const char *format, ...);
-#endif
 
 #if !defined(CONFIG_DRM_USE_DYNAMIC_DEBUG)
 #define __drm_dbg(cat, fmt, ...)	__drm_dev_dbg(NULL, NULL, cat, fmt, ##__VA_ARGS__)
@@ -756,19 +685,13 @@ void __drm_err(const char *function_name, const char *format, ...);
 	_DRM_PRINTK(_once, WARNING, fmt, ##__VA_ARGS__)
 
 /* NOTE: this is deprecated in favor of pr_err(). */
-#ifdef __linux__
 #define DRM_ERROR(fmt, ...)						\
 	__drm_err(fmt, ##__VA_ARGS__)
-#elif defined(__FreeBSD__)
-#define DRM_ERROR(fmt, ...)						\
-	__drm_err(__func__, fmt, ##__VA_ARGS__)
-#endif
 
 /* NOTE: this is deprecated in favor of pr_err_ratelimited(). */
 #define DRM_ERROR_RATELIMITED(fmt, ...)					\
 	DRM_DEV_ERROR_RATELIMITED(NULL, fmt, ##__VA_ARGS__)
 
-#ifdef __linux__
 /* NOTE: this is deprecated in favor of drm_dbg_core(NULL, ...). */
 #define DRM_DEBUG(fmt, ...)						\
 	__drm_dbg(DRM_UT_CORE, fmt, ##__VA_ARGS__)
@@ -800,34 +723,6 @@ void __drm_err(const char *function_name, const char *format, ...);
 /* NOTE: this is deprecated in favor of drm_dbg_dp(NULL, ...). */
 #define DRM_DEBUG_DP(fmt, ...)						\
 	__drm_dbg(DRM_UT_DP, fmt, ## __VA_ARGS__)
-
-#elif defined(__FreeBSD__)
-
-#define DRM_DEBUG(fmt, ...)						\
-	__drm_dbg(DRM_UT_CORE, __func__, fmt, ##__VA_ARGS__)
-
-#define DRM_DEBUG_DRIVER(fmt, ...)					\
-	__drm_dbg(DRM_UT_DRIVER, __func__, fmt, ##__VA_ARGS__)
-
-#define DRM_DEBUG_KMS(fmt, ...)						\
-	__drm_dbg(DRM_UT_KMS, __func__, fmt, ##__VA_ARGS__)
-
-#define DRM_DEBUG_PRIME(fmt, ...)					\
-	__drm_dbg(DRM_UT_PRIME, __func__, fmt, ##__VA_ARGS__)
-
-#define DRM_DEBUG_ATOMIC(fmt, ...)					\
-	__drm_dbg(DRM_UT_ATOMIC, __func__, fmt, ##__VA_ARGS__)
-
-#define DRM_DEBUG_VBL(fmt, ...)						\
-	__drm_dbg(DRM_UT_VBL, __func__, fmt, ##__VA_ARGS__)
-
-#define DRM_DEBUG_LEASE(fmt, ...)					\
-	__drm_dbg(DRM_UT_LEASE, __func__, fmt, ##__VA_ARGS__)
-
-#define DRM_DEBUG_DP(dev, fmt, ...)					\
-	__drm_dbg(DRM_UT_DP, __func__, fmt, ## __VA_ARGS__)
-
-#endif
 
 #define __DRM_DEFINE_DBG_RATELIMITED(category, drm, fmt, ...)					\
 ({												\

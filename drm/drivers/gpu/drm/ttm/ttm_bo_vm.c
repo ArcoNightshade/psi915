@@ -242,33 +242,19 @@ vm_fault_t ttm_bo_vm_fault_reserved(struct vm_fault *vmf,
 	 * Speculatively prefault a number of pages. Only error on
 	 * first page.
 	 */
-#if defined(__FreeBSD__)
-	VM_OBJECT_WLOCK(vma->vm_obj);
-#endif
 	for (i = 0; i < num_prefault; ++i) {
 		if (bo->resource->bus.is_iomem) {
 			pfn = ttm_bo_io_mem_pfn(bo, page_offset);
 		} else {
 			page = ttm->pages[page_offset];
 			if (unlikely(!page && i == 0)) {
-#if defined(__FreeBSD__)
-				VM_OBJECT_WUNLOCK(vma->vm_obj);
-#endif
 				return VM_FAULT_OOM;
 			} else if (unlikely(!page)) {
 				break;
 			}
-#if defined(__FreeBSD__)
-#if defined(PAGE_IS_LKPI_PAGE)
-			page->vm_page->oflags &= ~VPO_UNMANAGED;
-#else
-			page->oflags &= ~VPO_UNMANAGED;
-#endif
-#endif
 			pfn = page_to_pfn(page);
 		}
 
-#if defined(__linux__)
 		/*
 		 * Note that the value of @prot at this point may differ from
 		 * the value of @vma->vm_page_prot in the caching- and
@@ -278,18 +264,12 @@ vm_fault_t ttm_bo_vm_fault_reserved(struct vm_fault *vmf,
 		 * See vmf_insert_pfn_prot() for a discussion.
 		 */
 		ret = vmf_insert_pfn_prot(vma, address, pfn, prot);
-#elif defined(__FreeBSD__)
-		ret = lkpi_vmf_insert_pfn_prot_locked(vma, address, pfn, prot);
-#endif
 
 		/* Never error on prefaulted PTEs */
 		if (unlikely((ret & VM_FAULT_ERROR))) {
-			if (i == 0) {
-#if defined(__FreeBSD__)
-				VM_OBJECT_WUNLOCK(vma->vm_obj);
-#endif
+			if (i == 0)
 				return VM_FAULT_NOPAGE;
-			} else
+			else
 				break;
 		}
 
@@ -297,9 +277,6 @@ vm_fault_t ttm_bo_vm_fault_reserved(struct vm_fault *vmf,
 		if (unlikely(++page_offset >= page_last))
 			break;
 	}
-#if defined(__FreeBSD__)
-	VM_OBJECT_WUNLOCK(vma->vm_obj);
-#endif
 	return ret;
 }
 EXPORT_SYMBOL(ttm_bo_vm_fault_reserved);
@@ -333,19 +310,9 @@ vm_fault_t ttm_bo_vm_dummy_page(struct vm_fault *vmf, pgprot_t prot)
 	pfn = page_to_pfn(page);
 
 	/* Prefault the entire VMA range right away to avoid further faults */
-#ifdef __FreeBSD__
-	VM_OBJECT_WLOCK(vma->vm_obj);
-#endif
 	for (address = vma->vm_start; address < vma->vm_end;
 	     address += PAGE_SIZE)
-#ifdef __linux__
 		ret = vmf_insert_pfn_prot(vma, address, pfn, prot);
-#elif defined(__FreeBSD__)
-		ret = lkpi_vmf_insert_pfn_prot_locked(vma, address, pfn, prot);
-#endif
-#ifdef __FreeBSD__
-	VM_OBJECT_WUNLOCK(vma->vm_obj);
-#endif
 
 	return ret;
 }
@@ -384,9 +351,7 @@ void ttm_bo_vm_open(struct vm_area_struct *vma)
 {
 	struct ttm_buffer_object *bo = vma->vm_private_data;
 
-#ifdef __linux__
 	WARN_ON(bo->bdev->dev_mapping != vma->vm_file->f_mapping);
-#endif
 
 	drm_gem_object_get(&bo->base);
 }

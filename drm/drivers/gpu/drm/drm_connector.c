@@ -747,9 +747,7 @@ void drm_connector_cleanup(struct drm_connector *connector)
 	drm_mode_object_unregister(dev, &connector->base);
 	kfree(connector->name);
 	connector->name = NULL;
-#ifdef __linux__
 	fwnode_handle_put(connector->fwnode);
-#endif
 	connector->fwnode = NULL;
 
 	drm_connector_remove(connector);

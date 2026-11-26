@@ -26,12 +26,6 @@
  *
  */
 
-#if defined(__FreeBSD__)
-#include <sys/sysent.h>
-#define	LINUX_O_RDWR		00000002
-#define	LINUX_O_CLOEXEC		02000000
-#endif
-
 #include <linux/export.h>
 #include <linux/dma-buf.h>
 #include <linux/rbtree.h>
@@ -229,10 +223,6 @@ void drm_prime_init_file_private(struct drm_prime_file_private *prime_fpriv)
 
 void drm_prime_destroy_file_private(struct drm_prime_file_private *prime_fpriv)
 {
-#ifdef __FreeBSD__
-	mutex_destroy(&prime_fpriv->lock);
-#endif
-
 	/* by now drm_gem_release should've made sure the list is empty */
 	WARN_ON(!RB_EMPTY_ROOT(&prime_fpriv->dmabufs));
 }
@@ -261,9 +251,7 @@ struct dma_buf *drm_gem_dmabuf_export(struct drm_device *dev,
 
 	drm_dev_get(dev);
 	drm_gem_object_get(obj);
-#ifdef __linux__
 	dma_buf->file->f_mapping = obj->dev->anon_inode->i_mapping;
-#endif
 
 	return dma_buf;
 }
@@ -528,32 +516,18 @@ int drm_gem_prime_handle_to_fd(struct drm_device *dev,
 			       int *prime_fd)
 {
 	struct dma_buf *dmabuf;
-#ifdef __linux__
 	int fd = get_unused_fd_flags(flags);
 
 	if (fd < 0)
 		return fd;
-#elif defined(__FreeBSD__)
-	int fd;
-#endif
 
 	dmabuf = drm_gem_prime_handle_to_dmabuf(dev, file_priv, handle, flags);
 	if (IS_ERR(dmabuf)) {
-#ifdef __linux__
 		put_unused_fd(fd);
-#endif
 		return PTR_ERR(dmabuf);
 	}
 
-#ifdef __linux__
 	fd_install(fd, dmabuf->file);
-#elif defined(__FreeBSD__)
-	fd = dma_buf_fd(dmabuf, flags);
-	if (fd < 0) {
-		dma_buf_put(dmabuf);
-		return (fd);
-	}
-#endif
 	*prime_fd = fd;
 	return 0;
 }
@@ -565,11 +539,6 @@ int drm_prime_handle_to_fd_ioctl(struct drm_device *dev, void *data,
 	struct drm_prime_handle *args = data;
 
 	/* check flags are valid */
-#if defined(__FreeBSD__) && defined(SV_ABI_LINUX)
-	if (SV_CURPROC_ABI() == SV_ABI_LINUX)
-		args->flags = ((args->flags & LINUX_O_CLOEXEC) ? DRM_CLOEXEC : 0)
-			| ((args->flags & LINUX_O_RDWR) ? DRM_RDWR : 0);
-#endif
 	if (args->flags & ~(DRM_CLOEXEC | DRM_RDWR))
 		return -EINVAL;
 

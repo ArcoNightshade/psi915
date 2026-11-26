@@ -42,9 +42,6 @@
 #include <drm/drm_util.h>
 #include <drm/ttm/ttm_bo.h>
 #include <drm/ttm/ttm_tt.h>
-#ifdef __FreeBSD__
-#include <drm/ttm/ttm_sysctl_freebsd.h>
-#endif
 
 #include "ttm_module.h"
 
@@ -115,39 +112,21 @@ EXPORT_SYMBOL_FOR_TESTS_ONLY(ttm_tt_create);
  */
 static int ttm_tt_alloc_page_directory(struct ttm_tt *ttm)
 {
-#if defined(__linux__) || defined(PAGE_IS_LKPI_PAGE)
 	ttm->pages = kvcalloc(ttm->num_pages, sizeof(void*), GFP_KERNEL);
-#elif defined(__FreeBSD__)
-	ttm->pages = kvcalloc(ttm->num_pages,
-			      sizeof(*ttm->pages) + sizeof(*ttm->orders),
-			      GFP_KERNEL);
-#endif
 	if (!ttm->pages)
 		return -ENOMEM;
-#if defined(__FreeBSD__) && !defined(PAGE_IS_LKPI_PAGE)
-	ttm->orders = (void *)(ttm->pages + ttm->num_pages);
-#endif
 
 	return 0;
 }
 
 static int ttm_dma_tt_alloc_page_directory(struct ttm_tt *ttm)
 {
-#if defined(__linux__) || defined(PAGE_IS_LKPI_PAGE)
 	ttm->pages = kvcalloc(ttm->num_pages, sizeof(*ttm->pages) +
 			      sizeof(*ttm->dma_address), GFP_KERNEL);
-#elif defined(__FreeBSD__)
-	ttm->pages = kvcalloc(ttm->num_pages, sizeof(*ttm->pages) +
-			      sizeof(*ttm->dma_address) + sizeof(*ttm->orders),
-			      GFP_KERNEL);
-#endif
 	if (!ttm->pages)
 		return -ENOMEM;
 
 	ttm->dma_address = (void *)(ttm->pages + ttm->num_pages);
-#if defined(__FreeBSD__) && !defined(PAGE_IS_LKPI_PAGE)
-	ttm->orders = (void *)(ttm->dma_address + ttm->num_pages);
-#endif
 	return 0;
 }
 
@@ -233,11 +212,7 @@ EXPORT_SYMBOL(ttm_sg_tt_init);
 
 int ttm_tt_swapin(struct ttm_tt *ttm)
 {
-#ifdef __linux__
 	struct address_space *swap_space;
-#elif defined(__FreeBSD__)
-	vm_object_t swap_space;
-#endif
 	struct file *swap_storage;
 	struct page *from_page;
 	struct page *to_page;
@@ -247,13 +222,8 @@ int ttm_tt_swapin(struct ttm_tt *ttm)
 	swap_storage = ttm->swap_storage;
 	BUG_ON(swap_storage == NULL);
 
-#ifdef __linux__
 	swap_space = swap_storage->f_mapping;
 	gfp_mask = mapping_gfp_mask(swap_space);
-#elif defined(__FreeBSD__)
-	swap_space = swap_storage->f_shmem;
-	gfp_mask = 0;
-#endif
 
 	for (i = 0; i < ttm->num_pages; ++i) {
 		from_page = shmem_read_mapping_page_gfp(swap_space, i,
@@ -297,11 +267,7 @@ int ttm_tt_swapout(struct ttm_device *bdev, struct ttm_tt *ttm,
 		   gfp_t gfp_flags)
 {
 	loff_t size = (loff_t)ttm->num_pages << PAGE_SHIFT;
-#ifdef __linux__
 	struct address_space *swap_space;
-#elif defined(__FreeBSD__)
-	vm_object_t swap_space;
-#endif
 	struct file *swap_storage;
 	struct page *from_page;
 	struct page *to_page;
@@ -313,13 +279,8 @@ int ttm_tt_swapout(struct ttm_device *bdev, struct ttm_tt *ttm,
 		return PTR_ERR(swap_storage);
 	}
 
-#ifdef __linux__
 	swap_space = swap_storage->f_mapping;
 	gfp_flags &= mapping_gfp_mask(swap_space);
-#elif defined(__FreeBSD__)
-	swap_space = swap_storage->f_shmem;
-	gfp_flags = 0;
-#endif
 
 	for (i = 0; i < ttm->num_pages; ++i) {
 		from_page = ttm->pages[i];

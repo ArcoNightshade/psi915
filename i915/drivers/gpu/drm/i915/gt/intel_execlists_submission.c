@@ -415,10 +415,8 @@ execlists_context_status_change(struct i915_request *rq, unsigned long status)
 	if (!IS_ENABLED(CONFIG_DRM_I915_GVT))
 		return;
 
-#ifdef __linux__
 	atomic_notifier_call_chain(&rq->engine->context_status_notifier,
 				   status, rq);
-#endif
 }
 
 static void reset_active(struct i915_request *rq,
@@ -1612,13 +1610,9 @@ done:
 
 static void execlists_dequeue_irq(struct intel_engine_cs *engine)
 {
-#ifdef __linux__
 	local_irq_disable(); /* Suspend interrupts across request submission */
-#endif
 	execlists_dequeue(engine);
-#ifdef __linux__
 	local_irq_enable(); /* flush irq_work (e.g. breadcrumb enabling) */
-#endif
 }
 
 static void clear_ports(struct i915_request **ports, int count)

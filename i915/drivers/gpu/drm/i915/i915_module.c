@@ -19,15 +19,6 @@
 #include "i915_vma.h"
 #include "i915_vma_resource.h"
 
-#ifdef __FreeBSD__
-/*
- * intel_graphics_stolen_* are defined in sys/dev/pci/pcivar.h
- * and set at early boot from machdep.c. Copy over the values
- * here to a Linux resource struct.
- */
-struct resource intel_graphics_stolen_res;
-#endif
-
 static int i915_check_nomodeset(void)
 {
 	bool use_kms = true;
@@ -84,27 +75,14 @@ static const struct {
 	  .exit = i915_pmu_exit },
 	{ .init = i915_pci_register_driver,
 	  .exit = i915_pci_unregister_driver },
-#ifdef __linux__
 	{ .init = i915_perf_sysctl_register,
 	  .exit = i915_perf_sysctl_unregister },
-#endif
 };
 static int init_progress;
 
 static int __init i915_init(void)
 {
 	int err, i;
-
-#ifdef __FreeBSD__
-#if defined(__amd64__)
-	intel_graphics_stolen_res = (struct resource)
-		DEFINE_RES_MEM(intel_graphics_stolen_base,
-		    intel_graphics_stolen_size);
-	DRM_INFO("Got Intel graphics stolen memory base 0x%x, size 0x%x\n",
-	    intel_graphics_stolen_res.start,
-	    resource_size(&intel_graphics_stolen_res));
-#endif
-#endif
 
 	for (i = 0; i < ARRAY_SIZE(init_funcs); i++) {
 		err = init_funcs[i].init();
@@ -142,28 +120,11 @@ static void __exit i915_exit(void)
 	}
 }
 
-#ifdef __linux__
 module_init(i915_init);
 module_exit(i915_exit);
-#endif
 
 MODULE_AUTHOR("Tungsten Graphics, Inc.");
 MODULE_AUTHOR("Intel Corporation");
 
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE("GPL and additional rights");
-
-/* BSD stuff */
-#ifdef __FreeBSD__
-LKPI_DRIVER_MODULE(i915kms, i915_init, i915_exit);
-MODULE_DEPEND(i915kms, drmn, 2, 2, 2);
-MODULE_DEPEND(i915kms, ttm, 1, 1, 1);
-MODULE_DEPEND(i915kms, agp, 1, 1, 1);
-MODULE_DEPEND(i915kms, linuxkpi, 1, 1, 1);
-MODULE_DEPEND(i915kms, linuxkpi_video, 1, 1, 1);
-MODULE_DEPEND(i915kms, dmabuf, 1, 1, 1);
-MODULE_DEPEND(i915kms, firmware, 1, 1, 1);
-#ifdef CONFIG_DEBUG_FS
-MODULE_DEPEND(i915kms, lindebugfs, 1, 1, 1);
-#endif
-#endif

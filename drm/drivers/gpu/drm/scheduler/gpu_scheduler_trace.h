@@ -24,30 +24,6 @@
 #if !defined(_GPU_SCHED_TRACE_H_) || defined(TRACE_HEADER_MULTI_READ)
 #define _GPU_SCHED_TRACE_H_
 
-#ifdef __FreeBSD__
-
-static inline void
-trace_drm_sched_job(void *sched_job, void *entity) {
-	CTR2(KTR_DRM, "drm_sched_job %p, entity %p", sched_job, entity);
-}
-
-static inline void
-trace_drm_run_job(void *sched_job, void *entity) {
-	CTR2(KTR_DRM, "drm_sched_job %p, entity %p", sched_job, entity);
-}
-
-static inline void
-trace_drm_sched_job_wait_dep(struct drm_sched_job *job, struct dma_fence *fence) {
-	CTR2(KTR_DRM, "drm_process_wait_job %p fence %p", job, fence);
-}
-
-static inline void
-trace_drm_sched_process_job(void *s_fence) {
-	CTR1(KTR_DRM, "drm_process_sched_job %p", s_fence);
-}
-
-#else
-
 #include <linux/stringify.h>
 #include <linux/types.h>
 #include <linux/tracepoint.h>
@@ -130,7 +106,6 @@ TRACE_EVENT(drm_sched_job_wait_dep,
 		      __entry->seqno)
 );
 
-#endif /* __FreeBSD__ */
 #endif /* _GPU_SCHED_TRACE_H_ */
 
 /* This part must be outside protection */

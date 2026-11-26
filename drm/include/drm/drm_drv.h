@@ -561,11 +561,7 @@ static inline bool drm_drv_uses_atomic_modeset(struct drm_device *dev)
 /* TODO: Inline drm_firmware_drivers_only() in all its callers. */
 static inline bool drm_firmware_drivers_only(void)
 {
-#ifdef __linux__
 	return video_firmware_drivers_only();
-#elif defined(__FreeBSD__)
-	return (false);
-#endif
 }
 
 #if defined(CONFIG_DEBUG_FS)

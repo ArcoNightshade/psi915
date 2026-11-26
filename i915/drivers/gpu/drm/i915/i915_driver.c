@@ -657,9 +657,7 @@ static void i915_driver_register(struct drm_i915_private *dev_priv)
 	intel_power_domains_enable(display);
 	intel_runtime_pm_enable(&dev_priv->runtime_pm);
 
-#ifdef __linux__
 	intel_register_dsm_handler();
-#endif
 
 	if (i915_switcheroo_register(dev_priv))
 		drm_err(&dev_priv->drm, "Failed to register vga switcheroo!\n");
@@ -677,9 +675,7 @@ static void i915_driver_unregister(struct drm_i915_private *dev_priv)
 
 	i915_switcheroo_unregister(dev_priv);
 
-#ifdef __linux__
 	intel_unregister_dsm_handler();
-#endif
 
 	intel_runtime_pm_disable(&dev_priv->runtime_pm);
 	intel_power_domains_disable(display);
@@ -1494,10 +1490,8 @@ static int intel_runtime_suspend(struct device *kdev)
 	struct drm_i915_private *dev_priv = kdev_to_i915(kdev);
 	struct intel_display *display = &dev_priv->display;
 	struct intel_runtime_pm *rpm = &dev_priv->runtime_pm;
-#ifdef __linux__
 	struct pci_dev *pdev = to_pci_dev(dev_priv->drm.dev);
 	struct pci_dev *root_pdev;
-#endif
 	struct intel_gt *gt;
 	int ret, i;
 
@@ -1554,11 +1548,9 @@ static int intel_runtime_suspend(struct device *kdev)
 	 * This should be totally removed when we handle the pci states properly
 	 * on runtime PM.
 	 */
-#ifdef __linux__
 	root_pdev = pcie_find_root_port(pdev);
 	if (root_pdev)
 		pci_d3cold_disable(root_pdev);
-#endif
 
 	/*
 	 * FIXME: We really should find a document that references the arguments
@@ -1597,10 +1589,8 @@ static int intel_runtime_resume(struct device *kdev)
 	struct drm_i915_private *dev_priv = kdev_to_i915(kdev);
 	struct intel_display *display = &dev_priv->display;
 	struct intel_runtime_pm *rpm = &dev_priv->runtime_pm;
-#ifdef __linux__
 	struct pci_dev *pdev = to_pci_dev(dev_priv->drm.dev);
 	struct pci_dev *root_pdev;
-#endif
 	struct intel_gt *gt;
 	int ret, i;
 
@@ -1614,11 +1604,9 @@ static int intel_runtime_resume(struct device *kdev)
 
 	intel_opregion_notify_adapter(display, PCI_D0);
 
-#ifdef __linux__
 	root_pdev = pcie_find_root_port(pdev);
 	if (root_pdev)
 		pci_d3cold_enable(root_pdev);
-#endif
 
 	if (intel_uncore_unclaimed_mmio(&dev_priv->uncore))
 		drm_dbg(&dev_priv->drm,

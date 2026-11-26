@@ -4,20 +4,15 @@
  */
 
 #include <linux/mutex.h>
-#ifdef __linux__
 #include <linux/of_graph.h>
-#endif
 #include <linux/platform_device.h>
 
 #include <drm/drm_connector.h>
 #include <drm/drm_device.h>
 #include <drm/display/drm_hdmi_audio_helper.h>
 
-#ifdef __linux__
 #include <sound/hdmi-codec.h>
-#endif
 
-#ifdef __linux__
 static int drm_connector_hdmi_audio_startup(struct device *dev, void *data)
 {
 	struct drm_connector *connector = data;
@@ -114,7 +109,6 @@ static int drm_connector_hdmi_audio_hook_plugged_cb(struct device *dev,
 
 	return 0;
 }
-#endif
 
 void drm_connector_hdmi_audio_plugged_notify(struct drm_connector *connector,
 					     bool plugged)
@@ -132,7 +126,6 @@ void drm_connector_hdmi_audio_plugged_notify(struct drm_connector *connector,
 }
 EXPORT_SYMBOL(drm_connector_hdmi_audio_plugged_notify);
 
-#ifdef __linux__
 static const struct hdmi_codec_ops drm_connector_hdmi_audio_ops = {
 	.audio_startup = drm_connector_hdmi_audio_startup,
 	.prepare = drm_connector_hdmi_audio_prepare,
@@ -142,7 +135,6 @@ static const struct hdmi_codec_ops drm_connector_hdmi_audio_ops = {
 	.get_dai_id = drm_connector_hdmi_audio_get_dai_id,
 	.hook_plugged_cb = drm_connector_hdmi_audio_hook_plugged_cb,
 };
-#endif
 
 /**
  * drm_connector_hdmi_audio_init - Initialize HDMI Codec device for the DRM connector
@@ -165,7 +157,6 @@ int drm_connector_hdmi_audio_init(struct drm_connector *connector,
 				  bool spdif_playback,
 				  int dai_port)
 {
-#ifdef __linux__
 	struct hdmi_codec_pdata codec_pdata = {
 		.ops = &drm_connector_hdmi_audio_ops,
 		.max_i2s_channels = max_i2s_playback_channels,
@@ -193,7 +184,6 @@ int drm_connector_hdmi_audio_init(struct drm_connector *connector,
 		return PTR_ERR(pdev);
 
 	connector->hdmi_audio.codec_pdev = pdev;
-#endif
 
 	return 0;
 }

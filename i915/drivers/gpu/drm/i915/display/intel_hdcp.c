@@ -2245,7 +2245,6 @@ static void intel_hdcp_check_work(struct work_struct *work)
 				   DRM_HDCP_CHECK_PERIOD_MS);
 }
 
-#ifdef __linux__
 static int i915_hdcp_component_bind(struct device *drv_kdev,
 				    struct device *mei_kdev, void *data)
 {
@@ -2275,7 +2274,6 @@ static const struct component_ops i915_hdcp_ops = {
 	.bind   = i915_hdcp_component_bind,
 	.unbind = i915_hdcp_component_unbind,
 };
-#endif
 
 static enum hdcp_ddi intel_get_hdcp_ddi_index(enum port port)
 {
@@ -2342,15 +2340,6 @@ static bool is_hdcp2_supported(struct intel_display *display)
 {
 	struct drm_i915_private *i915 = to_i915(display->drm);
 
-#ifdef __FreeBSD__
-	/*
-	 * HDCP is not supported on meteorlake because it requires
-	 * GSC which depends on the MEI driver, which we do not have.
-	 */
-	if (!IS_ENABLED(CONFIG_INTEL_MEI_HDCP))
-		return false;
-#endif
-
 	if (intel_hdcp_gsc_cs_required(display))
 		return true;
 
@@ -2378,12 +2367,8 @@ void intel_hdcp_component_init(struct intel_display *display)
 	if (intel_hdcp_gsc_cs_required(display))
 		ret = intel_hdcp_gsc_init(display);
 	else
-#ifdef __linux__
 		ret = component_add_typed(display->drm->dev, &i915_hdcp_ops,
 					  I915_COMPONENT_HDCP);
-#elif defined(__FreeBSD__)
-		ret = -ENOTSUP;
-#endif
 
 	if (ret < 0) {
 		drm_dbg_kms(display->drm, "Failed at fw component add(%d)\n",
@@ -2644,10 +2629,8 @@ void intel_hdcp_component_fini(struct intel_display *display)
 
 	if (intel_hdcp_gsc_cs_required(display))
 		intel_hdcp_gsc_fini(display);
-#ifdef __linux__
 	else
 		component_del(display->drm->dev, &i915_hdcp_ops);
-#endif
 }
 
 void intel_hdcp_cleanup(struct intel_connector *connector)

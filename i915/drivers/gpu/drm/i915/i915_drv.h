@@ -68,13 +68,6 @@ struct drm_i915_clock_gating_funcs;
 struct vlv_s0ix_state;
 struct intel_pxp;
 
-#ifdef __FreeBSD__
-/* BSD: Make sure we get out[bwl] redefines */
-#include <linux/compiler.h>
-#include <linux/shrinker.h>
-#include "i915_irq.h"
-#endif
-
 #define GEM_QUIRK_PIN_SWIZZLED_PAGES	BIT(0)
 
 /* Data Stolen Memory (DSM) aka "i915 stolen memory" */
@@ -327,11 +320,6 @@ struct drm_i915_private {
 	struct intel_gt *gt[I915_MAX_GT];
 
 	struct kobject *sysfs_gt;
-#ifdef __FreeBSD__
-	/* sysfs objects of the engines, released by i915_teardown_sysfs() */
-	struct kobject *sysfs_engine_dir;
-	struct list_head sysfs_engine_kobjs;
-#endif
 
 	/* Quick lookup of media GT (current platforms only have one) */
 	struct intel_gt *media_gt;
@@ -366,11 +354,6 @@ struct drm_i915_private {
 	 * NOTE: This is the dri1/ums dungeon, don't add stuff here. Your patch
 	 * will be rejected. Instead look for a better place.
 	 */
-
-#ifdef __FreeBSD__
-	int mch_res_rid;
-	void *mch_res_bsd_res;
-#endif
 };
 
 static inline struct drm_i915_private *to_i915(const struct drm_device *dev)
@@ -477,10 +460,7 @@ IS_PLATFORM(const struct drm_i915_private *i915, enum intel_platform p)
 	const unsigned int pi = __platform_mask_index(info, p);
 	const unsigned int pb = __platform_mask_bit(info, p);
 
-#ifdef __linux__
-	/* BSDFIXME: Can't work with clang's __builtin_constant_p */
 	BUILD_BUG_ON(!__builtin_constant_p(p));
-#endif
 
 	return info->platform_mask[pi] & BIT(pb);
 }
@@ -495,11 +475,8 @@ IS_SUBPLATFORM(const struct drm_i915_private *i915,
 	const unsigned int msb = BITS_PER_TYPE(info->platform_mask[0]) - 1;
 	const u32 mask = info->platform_mask[pi];
 
-#ifdef __linux__
-	/* BSDFIXME: Can't work with clang's __builtin_constant_p */
 	BUILD_BUG_ON(!__builtin_constant_p(p));
 	BUILD_BUG_ON(!__builtin_constant_p(s));
-#endif
 	BUILD_BUG_ON((s) >= INTEL_SUBPLATFORM_BITS);
 
 	/* Shift and test on the MSB position so sign flag can be used. */

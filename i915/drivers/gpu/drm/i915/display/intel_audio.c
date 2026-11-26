@@ -770,11 +770,9 @@ void intel_audio_codec_enable(struct intel_encoder *encoder,
 						      (int)port, (int)cpu_transcoder);
 	}
 
-#ifdef __linux__
 	intel_lpe_audio_notify(i915, cpu_transcoder, port, crtc_state->eld,
 			       crtc_state->port_clock,
 			       intel_crtc_has_dp_encoder(crtc_state));
-#endif
 }
 
 /**
@@ -829,9 +827,7 @@ void intel_audio_codec_disable(struct intel_encoder *encoder,
 						      (int)port, (int)cpu_transcoder);
 	}
 
-#ifdef __linux__
 	intel_lpe_audio_notify(i915, cpu_transcoder, port, NULL, 0, false);
-#endif
 }
 
 static void intel_acomp_get_config(struct intel_encoder *encoder,
@@ -1239,7 +1235,6 @@ static int i915_audio_component_get_eld(struct device *kdev, int port,
 	return ret;
 }
 
-#ifdef __linux__
 static const struct drm_audio_component_ops i915_audio_component_ops = {
 	.owner		= THIS_MODULE,
 	.get_power	= i915_audio_component_get_power,
@@ -1302,7 +1297,6 @@ static const struct component_ops i915_audio_component_bind_ops = {
 	.bind	= i915_audio_component_bind,
 	.unbind	= i915_audio_component_unbind,
 };
-#endif
 
 #define AUD_FREQ_TMODE_SHIFT	14
 #define AUD_FREQ_4T		0
@@ -1358,7 +1352,6 @@ static void i915_audio_component_init(struct drm_i915_private *i915)
 
 static void i915_audio_component_register(struct drm_i915_private *i915)
 {
-#ifdef __linux__
 	int ret;
 
 	ret = component_add_typed(i915->drm.dev,
@@ -1370,7 +1363,6 @@ static void i915_audio_component_register(struct drm_i915_private *i915)
 		/* continue with reduced functionality */
 		return;
 	}
-#endif
 
 	i915->display.audio.component_registered = true;
 }
@@ -1387,9 +1379,7 @@ static void i915_audio_component_cleanup(struct drm_i915_private *i915)
 	if (!i915->display.audio.component_registered)
 		return;
 
-#ifdef __linux__
 	component_del(i915->drm.dev, &i915_audio_component_bind_ops);
-#endif
 	i915->display.audio.component_registered = false;
 }
 
@@ -1401,11 +1391,8 @@ static void i915_audio_component_cleanup(struct drm_i915_private *i915)
  */
 void intel_audio_init(struct drm_i915_private *i915)
 {
-#ifdef __linux__
-	// No lpe on BSD yet
 	if (intel_lpe_audio_init(i915) < 0)
 		i915_audio_component_init(i915);
-#endif
 }
 
 void intel_audio_register(struct drm_i915_private *i915)
@@ -1421,11 +1408,8 @@ void intel_audio_register(struct drm_i915_private *i915)
  */
 void intel_audio_deinit(struct drm_i915_private *i915)
 {
-#ifdef __linux__
-	// No lpe on BSD yet
 	if (i915->display.audio.lpe.platdev != NULL)
 		intel_lpe_audio_teardown(i915);
 	else
-#endif
 		i915_audio_component_cleanup(i915);
 }

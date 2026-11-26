@@ -24,15 +24,11 @@
  *
  */
 
-#ifdef __linux__
 #include <linux/gpio/consumer.h>
 #include <linux/gpio/machine.h>
-#endif
 #include <linux/mfd/intel_soc_pmic.h>
-#ifdef __linux__
 #include <linux/pinctrl/consumer.h>
 #include <linux/pinctrl/machine.h>
-#endif
 #include <linux/slab.h>
 #include <linux/string_helpers.h>
 
@@ -62,9 +58,7 @@
 struct i2c_adapter_lookup {
 	u16 target_addr;
 	struct intel_dsi *intel_dsi;
-#ifdef __linux__
 	acpi_handle dev_handle;
-#endif
 };
 
 #define CHV_GPIO_IDX_START_N		0
@@ -199,7 +193,6 @@ static const u8 *mipi_exec_delay(struct intel_dsi *intel_dsi, const u8 *data)
 	return data;
 }
 
-#ifdef __linux__
 static void soc_gpio_set_value(struct intel_connector *connector, u8 gpio_index,
 			       const char *con_id, u8 idx, bool value)
 {
@@ -437,10 +430,8 @@ static const u8 *mipi_exec_gpio(struct intel_dsi *intel_dsi, const u8 *data)
 
 	return data + size;
 }
-#endif
 
 #ifdef CONFIG_ACPI
-#ifdef I2CNOTYET
 static int i2c_adapter_lookup(struct acpi_resource *ares, void *data)
 {
 	struct i2c_adapter_lookup *lookup = data;
@@ -484,7 +475,6 @@ static void i2c_acpi_find_adapter(struct intel_dsi *intel_dsi,
 	acpi_dev_get_resources(adev, &resource_list, i2c_adapter_lookup, &lookup);
 	acpi_dev_free_resource_list(&resource_list);
 }
-#endif /* defined(I2CNOTYET) */
 #else
 static inline void i2c_acpi_find_adapter(struct intel_dsi *intel_dsi,
 					 const u16 target_addr)
@@ -494,7 +484,6 @@ static inline void i2c_acpi_find_adapter(struct intel_dsi *intel_dsi,
 
 static const u8 *mipi_exec_i2c(struct intel_dsi *intel_dsi, const u8 *data)
 {
-#ifdef I2CNOTYET
 	struct drm_i915_private *i915 = to_i915(intel_dsi->base.base.dev);
 	struct i2c_adapter *adapter;
 	struct i2c_msg msg;
@@ -542,9 +531,6 @@ err_alloc:
 	i2c_put_adapter(adapter);
 err_bus:
 	return data + payload_size + 7;
-#else
-	return NULL;
-#endif
 }
 
 static const u8 *mipi_exec_spi(struct intel_dsi *intel_dsi, const u8 *data)
@@ -588,9 +574,7 @@ typedef const u8 * (*fn_mipi_elem_exec)(struct intel_dsi *intel_dsi,
 static const fn_mipi_elem_exec exec_elem[] = {
 	[MIPI_SEQ_ELEM_SEND_PKT] = mipi_exec_send_packet,
 	[MIPI_SEQ_ELEM_DELAY] = mipi_exec_delay,
-#ifdef __linux__
 	[MIPI_SEQ_ELEM_GPIO] = mipi_exec_gpio,
-#endif
 	[MIPI_SEQ_ELEM_I2C] = mipi_exec_i2c,
 	[MIPI_SEQ_ELEM_SPI] = mipi_exec_spi,
 	[MIPI_SEQ_ELEM_PMIC] = mipi_exec_pmic,
@@ -696,21 +680,17 @@ static void intel_dsi_vbt_exec(struct intel_dsi *intel_dsi,
 void intel_dsi_vbt_exec_sequence(struct intel_dsi *intel_dsi,
 				 enum mipi_seq seq_id)
 {
-#ifdef __linux__
 	if (seq_id == MIPI_SEQ_POWER_ON && intel_dsi->gpio_panel)
 		gpiod_set_value_cansleep(intel_dsi->gpio_panel, 1);
 	if (seq_id == MIPI_SEQ_BACKLIGHT_ON && intel_dsi->gpio_backlight)
 		gpiod_set_value_cansleep(intel_dsi->gpio_backlight, 1);
-#endif
 
 	intel_dsi_vbt_exec(intel_dsi, seq_id);
 
-#ifdef __linux__
 	if (seq_id == MIPI_SEQ_POWER_OFF && intel_dsi->gpio_panel)
 		gpiod_set_value_cansleep(intel_dsi->gpio_panel, 0);
 	if (seq_id == MIPI_SEQ_BACKLIGHT_OFF && intel_dsi->gpio_backlight)
 		gpiod_set_value_cansleep(intel_dsi->gpio_backlight, 0);
-#endif
 }
 
 void intel_dsi_log_params(struct intel_dsi *intel_dsi)
@@ -888,7 +868,6 @@ bool intel_dsi_vbt_init(struct intel_dsi *intel_dsi, u16 panel_id)
 	return true;
 }
 
-#ifdef __linux__
 /*
  * On some BYT/CHT devs some sequences are incomplete and we need to manually
  * control some GPIOs. We need to add a GPIO lookup table before we get these.
@@ -918,11 +897,9 @@ static const struct pinctrl_map soc_pwm_pinctrl_map[] = {
 	PIN_MAP_MUX_GROUP("0000:00:02.0", "soc_pwm0", "INT33FC:00",
 			  "pwm0_grp", "pwm"),
 };
-#endif
 
 void intel_dsi_vbt_gpio_init(struct intel_dsi *intel_dsi, bool panel_is_on)
 {
-#ifdef __linux__
 	struct drm_device *dev = intel_dsi->base.base.dev;
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	struct intel_connector *connector = intel_dsi->attached_connector;
@@ -982,5 +959,4 @@ void intel_dsi_vbt_gpio_init(struct intel_dsi *intel_dsi, bool panel_is_on)
 
 	if (gpiod_lookup_table)
 		gpiod_remove_lookup_table(gpiod_lookup_table);
-#endif
 }

@@ -18,7 +18,6 @@
 #include "gt/intel_gt_regs.h"
 
 #ifdef CONFIG_64BIT
-#ifdef __linux__
 static void _release_bars(struct pci_dev *pdev)
 {
 	int resno;
@@ -47,11 +46,9 @@ _resize_bar(struct drm_i915_private *i915, int resno, resource_size_t size)
 
 	drm_info(&i915->drm, "BAR%d resized to %dM\n", resno, 1 << bar_size);
 }
-#endif
 
 static void i915_resize_lmem_bar(struct drm_i915_private *i915, resource_size_t lmem_size)
 {
-#ifdef __linux__
 	struct pci_dev *pdev = to_pci_dev(i915->drm.dev);
 	struct pci_bus *root = pdev->bus;
 	struct resource *root_res;
@@ -125,7 +122,6 @@ static void i915_resize_lmem_bar(struct drm_i915_private *i915, resource_size_t 
 		pci_write_config_dword(pdev, PCI_COMMAND, pci_cmd);
 		intel_uncore_forcewake_put(&i915->uncore, FORCEWAKE_ALL);
 	}
-#endif
 }
 #else
 static void i915_resize_lmem_bar(struct drm_i915_private *i915, resource_size_t lmem_size) {}

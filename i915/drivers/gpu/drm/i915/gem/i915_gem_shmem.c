@@ -18,10 +18,6 @@
 #include "i915_scatterlist.h"
 #include "i915_trace.h"
 
-#if !defined(__FreeBSD_version) || __FreeBSD_version < 1400080
-static inline unsigned long totalram_pages(void) { return physmem; }
-#endif
-
 /*
  * Move folios to appropriate lru and release the batch, decrementing the
  * ref count of those folios.
@@ -33,22 +29,15 @@ static void check_release_folio_batch(struct folio_batch *fbatch)
 	cond_resched();
 }
 
-#ifdef __FreeBSD__
-void shmem_sg_free_table(struct sg_table *st, vm_object_t mapping,
-			 bool dirty, bool backup)
-#else
 void shmem_sg_free_table(struct sg_table *st, struct address_space *mapping,
 			 bool dirty, bool backup)
-#endif
 {
 	struct sgt_iter sgt_iter;
 	struct folio_batch fbatch;
 	struct folio *last = NULL;
 	struct page *page;
 
-#ifdef __linux__
 	mapping_clear_unevictable(mapping);
-#endif
 
 	folio_batch_init(&fbatch);
 	for_each_sgt_page(page, sgt_iter, st) {
@@ -59,7 +48,6 @@ void shmem_sg_free_table(struct sg_table *st, struct address_space *mapping,
 		last = folio;
 		if (dirty)
 			folio_mark_dirty(folio);
-
 		if (backup)
 			folio_mark_accessed(folio);
 
@@ -74,11 +62,7 @@ void shmem_sg_free_table(struct sg_table *st, struct address_space *mapping,
 
 int shmem_sg_alloc_table(struct drm_i915_private *i915, struct sg_table *st,
 			 size_t size, struct intel_memory_region *mr,
-#ifdef __FreeBSD__
-			 vm_object_t mapping,
-#else
 			 struct address_space *mapping,
-#endif
 			 unsigned int max_segment)
 {
 	unsigned int page_count; /* restricted by sg_alloc_table */
@@ -108,12 +92,8 @@ int shmem_sg_alloc_table(struct drm_i915_private *i915, struct sg_table *st,
 	 *
 	 * Fail silently without starting the shrinker
 	 */
-#ifdef __FreeBSD__
-	noreclaim = 0;
-#else
 	mapping_set_unevictable(mapping);
 	noreclaim = mapping_gfp_constraint(mapping, ~__GFP_RECLAIM);
-#endif
 	noreclaim |= __GFP_NORETRY | __GFP_NOWARN;
 
 	sg = st->sgl;
@@ -151,9 +131,7 @@ int shmem_sg_alloc_table(struct drm_i915_private *i915, struct sg_table *st,
 			 */
 			if (!*s) {
 				/* reclaim and warn, but no oom */
-#ifdef __linux__
 				gfp = mapping_gfp_mask(mapping);
-#endif
 
 				/*
 				 * Our bo are always dirty and so we require
@@ -228,11 +206,7 @@ static int shmem_get_pages(struct drm_i915_gem_object *obj)
 {
 	struct drm_i915_private *i915 = to_i915(obj->base.dev);
 	struct intel_memory_region *mem = obj->mm.region;
-#ifdef __FreeBSD__
-	vm_object_t mapping = obj->base.filp->f_shmem;
-#else
 	struct address_space *mapping = obj->base.filp->f_mapping;
-#endif
 	unsigned int max_segment = i915_sg_segment_size(i915->drm.dev);
 	struct sg_table *st;
 	int ret;
@@ -315,22 +289,13 @@ shmem_truncate(struct drm_i915_gem_object *obj)
 	 * To do this we must instruct the shmfs to drop all of its
 	 * backing pages, *now*.
 	 */
-#ifdef __FreeBSD__
-	shmem_truncate_range(obj->base.filp->f_shmem, 0, (loff_t)-1);
-#else
 	shmem_truncate_range(file_inode(obj->base.filp), 0, (loff_t)-1);
-#endif
 	obj->mm.madv = __I915_MADV_PURGED;
 	obj->mm.pages = ERR_PTR(-EFAULT);
 
 	return 0;
 }
 
-#ifdef __FreeBSD__
-void __shmem_writeback(size_t size, vm_object_t mapping)
-{
-}
-#else
 void __shmem_writeback(size_t size, struct address_space *mapping)
 {
 	struct writeback_control wbc = {
@@ -372,16 +337,11 @@ put:
 		put_page(page);
 	}
 }
-#endif
 
 static void
 shmem_writeback(struct drm_i915_gem_object *obj)
 {
-#ifdef __FreeBSD__
-	__shmem_writeback(obj->base.size, obj->base.filp->f_shmem);
-#else
 	__shmem_writeback(obj->base.size, obj->base.filp->f_mapping);
-#endif
 }
 
 static int shmem_shrink(struct drm_i915_gem_object *obj, unsigned int flags)
@@ -438,13 +398,8 @@ void i915_gem_object_put_pages_shmem(struct drm_i915_gem_object *obj, struct sg_
 	if (i915_gem_object_needs_bit17_swizzle(obj))
 		i915_gem_object_save_bit_17_swizzle(obj, pages);
 
-#ifdef __FreeBSD__
-	shmem_sg_free_table(pages, obj->base.filp->f_shmem,
-			    obj->mm.dirty, obj->mm.madv == I915_MADV_WILLNEED);
-#else
 	shmem_sg_free_table(pages, file_inode(obj->base.filp)->i_mapping,
 			    obj->mm.dirty, obj->mm.madv == I915_MADV_WILLNEED);
-#endif
 	kfree(pages);
 	obj->mm.dirty = false;
 }
@@ -462,12 +417,8 @@ static int
 shmem_pwrite(struct drm_i915_gem_object *obj,
 	     const struct drm_i915_gem_pwrite *arg)
 {
-#ifdef __FreeBSD__
-	vm_object_t mapping = obj->base.filp->f_shmem;
-#else
 	struct address_space *mapping = obj->base.filp->f_mapping;
 	const struct address_space_operations *aops = mapping->a_ops;
-#endif
 	char __user *user_data = u64_to_user_ptr(arg->data_ptr);
 	u64 remain;
 	loff_t pos;
@@ -511,19 +462,12 @@ shmem_pwrite(struct drm_i915_gem_object *obj,
 		struct folio *folio;
 		void *data, *vaddr;
 		int err;
-#ifdef __linux__
 		char __maybe_unused c;
-#endif
 
 		len = PAGE_SIZE - pg;
 		if (len > remain)
 			len = remain;
 
-#ifdef __FreeBSD__
-		(void)data;
-		(void)err;
-		folio = shmem_read_folio_gfp(mapping, OFF_TO_IDX(pos), 0);
-#else
 		/* Prefault the user page to reduce potential recursion */
 		err = __get_user(c, user_data);
 		if (err)
@@ -537,7 +481,6 @@ shmem_pwrite(struct drm_i915_gem_object *obj,
 					&folio, &data);
 		if (err < 0)
 			return err;
-#endif
 
 		vaddr = kmap_local_folio(folio, offset_in_folio(folio, pos));
 		pagefault_disable();
@@ -545,14 +488,10 @@ shmem_pwrite(struct drm_i915_gem_object *obj,
 		pagefault_enable();
 		kunmap_local(vaddr);
 
-#ifdef __linux__
 		err = aops->write_end(obj->base.filp, mapping, pos, len,
 				      len - unwritten, folio, data);
 		if (err < 0)
 			return err;
-#else
-		folio_put(folio);
-#endif
 
 		/* We don't handle -EFAULT, leave it to the caller to check */
 		if (unwritten)
@@ -620,19 +559,12 @@ static int __create_shmem(struct drm_i915_private *i915,
 	 * i915_gem_object_size_2big() is called before init_object() callback
 	 * is called.
 	 */
-#ifdef __linux__
-	// BSD: There are no hardcoded size limit in swap_pager_alloc.
 	if (BITS_PER_LONG == 64 && size > MAX_LFS_FILESIZE)
 		return -E2BIG;
-#endif
 
 	if (i915->mm.gemfs)
-#ifdef __linux__
 		filp = shmem_file_setup_with_mnt(i915->mm.gemfs, "i915", size,
 						 flags);
-#elif defined(__FreeBSD__)
-		panic("i915_gem.c: gemfs not supported\n");
-#endif
 	else
 		filp = shmem_file_setup("i915", size, flags);
 	if (IS_ERR(filp))
@@ -651,9 +583,7 @@ static int shmem_object_init(struct intel_memory_region *mem,
 {
 	static struct lock_class_key lock_class;
 	struct drm_i915_private *i915 = mem->i915;
-#ifdef __linux__
 	struct address_space *mapping;
-#endif
 	unsigned int cache_level;
 	gfp_t mask;
 	int ret;
@@ -669,11 +599,9 @@ static int shmem_object_init(struct intel_memory_region *mem,
 		mask |= __GFP_DMA32;
 	}
 
-#ifdef __linux__
 	mapping = obj->base.filp->f_mapping;
 	mapping_set_gfp_mask(mapping, mask);
 	GEM_BUG_ON(!(mapping_gfp_mask(mapping) & __GFP_RECLAIM));
-#endif
 
 	i915_gem_object_init(obj, &i915_gem_shmem_ops, &lock_class, flags);
 	obj->mem_flags |= I915_BO_FLAG_STRUCT_PAGE;
@@ -726,9 +654,7 @@ i915_gem_object_create_shmem_from_data(struct drm_i915_private *i915,
 {
 	struct drm_i915_gem_object *obj;
 	struct file *file;
-#ifdef __linux__
 	const struct address_space_operations *aops;
-#endif
 	loff_t pos;
 	int err;
 
@@ -740,36 +666,24 @@ i915_gem_object_create_shmem_from_data(struct drm_i915_private *i915,
 	GEM_BUG_ON(obj->write_domain != I915_GEM_DOMAIN_CPU);
 
 	file = obj->base.filp;
-#ifdef __linux__
 	aops = file->f_mapping->a_ops;
-#endif
 	pos = 0;
 	do {
 		unsigned int len = min_t(typeof(size), size, PAGE_SIZE);
 		struct folio *folio;
 		void *fsdata;
 
-#ifdef __linux__
 		err = aops->write_begin(file, file->f_mapping, pos, len,
 					&folio, &fsdata);
 		if (err < 0)
 			goto fail;
-#elif defined(__FreeBSD__)
-		(void)err;
-		(void)fsdata;
-		folio = shmem_read_folio_gfp(obj->base.filp->f_shmem, OFF_TO_IDX(pos), 0);
-#endif
 
 		memcpy_to_folio(folio, offset_in_folio(folio, pos), data, len);
 
-#ifdef __linux__
 		err = aops->write_end(file, file->f_mapping, pos, len, len,
 				      folio, fsdata);
 		if (err < 0)
 			goto fail;
-#elif defined(__FreeBSD__)
-		folio_put(folio);
-#endif
 
 		size -= len;
 		data += len;
@@ -778,11 +692,9 @@ i915_gem_object_create_shmem_from_data(struct drm_i915_private *i915,
 
 	return obj;
 
-#ifdef __linux__
 fail:
 	i915_gem_object_put(obj);
 	return ERR_PTR(err);
-#endif
 }
 
 static int init_shmem(struct intel_memory_region *mem)

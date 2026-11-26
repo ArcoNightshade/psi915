@@ -37,13 +37,6 @@
 #include <drm/drm_sysfs.h>
 #include <drm/ttm/ttm_caching.h>
 
-#ifdef __FreeBSD__
-#include <drm/ttm/ttm_sysctl_freebsd.h>
-SYSCTL_NODE(_hw, OID_AUTO, ttm,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "TTM memory manager parameters");
-#endif
-
 #include "ttm_module.h"
 
 /**
@@ -93,19 +86,6 @@ pgprot_t ttm_prot_from_caching(enum ttm_caching caching, pgprot_t tmp)
 	return tmp;
 }
 
-#ifdef __linux__
 MODULE_AUTHOR("Thomas Hellstrom, Jerome Glisse");
 MODULE_DESCRIPTION("TTM memory manager subsystem (for DRM device)");
 MODULE_LICENSE("GPL and additional rights");
-#elif defined(__FreeBSD__)
-MODULE_VERSION(ttm, 1);
-#ifdef CONFIG_AGP
-MODULE_DEPEND(ttm, agp, 1, 1, 1);
-#endif
-MODULE_DEPEND(ttm, drmn, 2, 2, 2);
-MODULE_DEPEND(ttm, linuxkpi, 1, 1, 1);
-MODULE_DEPEND(ttm, dmabuf, 1, 1, 1);
-#ifdef CONFIG_DEBUG_FS
-MODULE_DEPEND(amdgpu, lindebugfs, 1, 1, 1);
-#endif
-#endif

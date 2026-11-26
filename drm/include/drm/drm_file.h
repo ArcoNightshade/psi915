@@ -81,11 +81,6 @@ struct drm_minor {
 	struct device *kdev;		/* Linux device */
 	struct drm_device *dev;
 
-#ifdef __FreeBSD__
-	struct cdev *bsd_device; 	/* Device number for mknod */
-	struct cdev *bsd_alias;		/* /dev/dri alias, destroyed on release */
-	struct sysctl_oid *bsd_sysctl;	/* dev.drm.<index> */
-#endif
 	struct dentry *debugfs_symlink;
 	struct dentry *debugfs_root;
 };
@@ -281,13 +276,7 @@ struct drm_file {
 	 * Updates are guarded with dev->filelist_mutex and reference must be
 	 * dropped after a RCU grace period to accommodate lockless readers.
 	 */
-#ifdef __linux__
 	struct pid __rcu *pid;
-#elif defined(__FreeBSD__)
-	/* Caution: `pid` is an integer on FreeBSD, not a pointer. */
-	pid_t pid;
-	unsigned long ioctl_count;
-#endif
 
 	/** @client_id: A unique id for fdinfo */
 	u64 client_id;

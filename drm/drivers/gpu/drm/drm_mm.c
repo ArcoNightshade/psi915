@@ -205,12 +205,8 @@ static void drm_mm_interval_tree_add_node(struct drm_mm_node *hole_node,
 	}
 
 	rb_link_node(&node->rb, rb, link);
-#ifdef __linux__
 	rb_insert_augmented_cached(&node->rb, &mm->interval_tree, leftmost,
 				   &drm_mm_interval_tree_augment);
-#elif defined(__FreeBSD__)
-	rb_insert_color_cached(&node->rb, &mm->interval_tree, leftmost);
-#endif
 }
 
 #define HOLE_SIZE(NODE) ((NODE)->hole_size)
@@ -242,11 +238,9 @@ static void insert_hole_size(struct rb_root_cached *root,
 	rb_insert_color_cached(&node->rb_hole_size, root, first);
 }
 
-#ifdef __linux__
 RB_DECLARE_CALLBACKS_MAX(static, augment_callbacks,
 			 struct drm_mm_node, rb_hole_addr,
 			 u64, subtree_max_hole, HOLE_SIZE)
-#endif
 
 static void insert_hole_addr(struct rb_root *root, struct drm_mm_node *node)
 {
@@ -266,11 +260,7 @@ static void insert_hole_addr(struct rb_root *root, struct drm_mm_node *node)
 	}
 
 	rb_link_node(&node->rb_hole_addr, rb_parent, link);
-#ifdef __linux__
 	rb_insert_augmented(&node->rb_hole_addr, root, &augment_callbacks);
-#elif defined(__FreeBSD__)
-	rb_insert_color(&node->rb_hole_addr, root);
-#endif
 }
 
 static void add_hole(struct drm_mm_node *node)
@@ -294,12 +284,8 @@ static void rm_hole(struct drm_mm_node *node)
 
 	list_del(&node->hole_stack);
 	rb_erase_cached(&node->rb_hole_size, &node->mm->holes_size);
-#ifdef __linux__
 	rb_erase_augmented(&node->rb_hole_addr, &node->mm->holes_addr,
 			   &augment_callbacks);
-#elif defined(__FreeBSD__)
-	rb_erase(&node->rb_hole_addr, &node->mm->holes_addr);
-#endif
 	node->hole_size = 0;
 	node->subtree_max_hole = 0;
 

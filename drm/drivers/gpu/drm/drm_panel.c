@@ -396,7 +396,6 @@ int of_drm_get_panel_orientation(const struct device_node *np,
 EXPORT_SYMBOL(of_drm_get_panel_orientation);
 #endif
 
-#ifdef __linux__
 /**
  * drm_is_panel_follower() - Check if the device is a panel follower
  * @dev: The 'struct device' to check
@@ -569,7 +568,6 @@ int drm_panel_of_backlight(struct drm_panel *panel)
 	return 0;
 }
 EXPORT_SYMBOL(drm_panel_of_backlight);
-#endif
 #endif
 
 MODULE_AUTHOR("Thierry Reding <treding@nvidia.com>");

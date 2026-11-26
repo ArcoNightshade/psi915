@@ -1,12 +1,12 @@
-# psi915 patch series for the drm-kmod import (quilt layout).
+# psi915 patch series for the upstream Linux import (quilt layout).
 # scripts/import-linux.sh applies these in order with "patch -p1" from the repository root, so patch paths
-# look like a/i915/drivers/gpu/drm/i915/... and b/i915/drivers/gpu/drm/i915/...
+# look like a/i915/drivers/gpu/drm/i915/... and b/i915/drivers/gpu/drm/i915/... (trees: drm, i915, gpl)
 # One logical change per patch; name them NNNN-subsystem-summary.patch; each patch starts with a short
 # description, the reason, and an "Upstream:" line (not-applicable / candidate / sent).
 #
 # Making a patch: scripts/import-linux.sh -P (pristine tree), commit or copy it, edit, then
-#   git diff -- drm i915 >third_party/patches/NNNN-....patch, add it here, re-run the import,
+#   git diff -- drm i915 gpl >third_party/patches/NNNN-....patch, add it here, re-run the import,
 #   and check with scripts/import-linux.sh -c.
 #
-# Empty at the first import: drm/ and i915/ are byte-identical to the pinned drm-kmod commit
+# Empty at the first import: drm/, i915/ and gpl/ are byte-identical to upstream Linux v6.14
 # (see third_party/IMPORT_FILES).  Known first patches are listed in docs/08-kpi-requirements.md.

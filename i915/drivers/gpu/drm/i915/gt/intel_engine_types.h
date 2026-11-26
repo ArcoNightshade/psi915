@@ -17,10 +17,6 @@
 #include <linux/types.h>
 #include <linux/workqueue.h>
 
-#ifdef __FreeBSD__
-#include <linux/seqlock.h>
-#endif
-
 #include "i915_gem.h"
 #include "i915_pmu.h"
 #include "i915_priolist_types.h"
@@ -580,10 +576,8 @@ struct intel_engine_cs {
 	struct intel_timeline *retire;
 	struct work_struct retire_work;
 
-#ifdef __linux__
 	/* status_notifier: list of callbacks for context-switch changes */
 	struct atomic_notifier_head context_status_notifier;
-#endif
 
 #define I915_ENGINE_USING_CMD_PARSER BIT(0)
 #define I915_ENGINE_SUPPORTS_STATS   BIT(1)

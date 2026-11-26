@@ -117,11 +117,6 @@ static void drm_minor_alloc_release(struct drm_device *dev, void *data)
 
 	WARN_ON(dev != minor->dev);
 
-#ifdef __FreeBSD__
-	/* Undo drm_dev_alias(), also on a failed probe's drm_dev_put(). */
-	drm_dev_alias_free(minor);
-#endif
-
 	put_device(minor->kdev);
 
 	xa_erase(drm_minor_get_xa(minor->type), minor->index);
@@ -499,15 +494,10 @@ void drm_dev_unplug(struct drm_device *dev)
 	drm_dev_unregister(dev);
 
 	/* Clear all CPU mappings pointing to this device */
-#ifdef __linux__
 	unmap_mapping_range(dev->anon_inode->i_mapping, 0, 0, 1);
-#elif defined(__FreeBSD__)
-	/* FreeBSD TODO */
-#endif
 }
 EXPORT_SYMBOL(drm_dev_unplug);
 
-#ifdef __linux__
 /*
  * DRM internal mount
  * We want to be able to allocate our own "struct address_space" to control
@@ -566,7 +556,6 @@ static void drm_fs_inode_free(struct inode *inode)
 		simple_release_fs(&drm_fs_mnt, &drm_fs_cnt);
 	}
 }
-#endif
 
 /**
  * DOC: component helper usage recommendations
@@ -595,9 +584,7 @@ static void drm_fs_inode_free(struct inode *inode)
 
 static void drm_dev_init_release(struct drm_device *dev, void *res)
 {
-#ifdef __linux__
 	drm_fs_inode_free(dev->anon_inode);
-#endif
 
 	put_device(dev->dev);
 	/* Prevent use-after-free in drm_managed_release when debugging is
@@ -657,7 +644,6 @@ static int drm_dev_init(struct drm_device *dev,
 	if (ret)
 		return ret;
 
-#ifdef __linux__
 	inode = drm_fs_inode_new();
 	if (IS_ERR(inode)) {
 		ret = PTR_ERR(inode);
@@ -666,7 +652,6 @@ static int drm_dev_init(struct drm_device *dev,
 	}
 
 	dev->anon_inode = inode;
-#endif
 
 	if (drm_core_check_feature(dev, DRIVER_COMPUTE_ACCEL)) {
 		ret = drm_minor_alloc(dev, DRM_MINOR_ACCEL);
@@ -1115,9 +1100,7 @@ static void drm_core_exit(void)
 	drm_panic_exit();
 	accel_core_exit();
 	unregister_chrdev(DRM_MAJOR, "drm");
-#ifdef CONFIG_DEBUG_FS
 	debugfs_remove(drm_debugfs_root);
-#endif
 	drm_sysfs_destroy();
 	WARN_ON(!xa_empty(&drm_minors_xa));
 	drm_connector_ida_destroy();
@@ -1136,16 +1119,9 @@ static int __init drm_core_init(void)
 		goto error;
 	}
 
-#ifdef CONFIG_DEBUG_FS
 	drm_debugfs_root = debugfs_create_dir("dri", NULL);
-#endif
 
-#ifdef __linux__
 	ret = register_chrdev(DRM_MAJOR, "drm", &drm_stub_fops);
-#else
-	ret = register_chrdev_p(DRM_MAJOR, "drm", &drm_stub_fops,
-	    DRM_DEV_UID, DRM_DEV_GID, DRM_DEV_MODE);
-#endif
 	if (ret < 0)
 		goto error;
 
@@ -1167,10 +1143,5 @@ error:
 	return ret;
 }
 
-#ifdef __linux__
 module_init(drm_core_init);
 module_exit(drm_core_exit);
-#elif defined(__FreeBSD__)
-module_init_order(drm_core_init, SI_ORDER_FIRST);
-module_exit_order(drm_core_exit, SI_ORDER_FIRST);
-#endif

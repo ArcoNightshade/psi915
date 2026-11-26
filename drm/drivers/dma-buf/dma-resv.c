@@ -160,7 +160,6 @@ EXPORT_SYMBOL(dma_resv_fini);
 
 /* Dereference the fences while ensuring RCU rules */
 static inline struct dma_resv_list *dma_resv_fences_list(struct dma_resv *obj)
-
 {
 	return rcu_dereference_check(obj->fences, dma_resv_held(obj));
 }
@@ -387,6 +386,7 @@ static void dma_resv_iter_walk_unlocked(struct dma_resv_iter *cursor)
 		if (cursor->index >= cursor->num_fences) {
 			cursor->fence = NULL;
 			break;
+
 		}
 
 		dma_resv_list_entry(cursor->fences, cursor->index++,

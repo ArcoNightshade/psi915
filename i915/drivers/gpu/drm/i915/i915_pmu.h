@@ -61,16 +61,12 @@ struct i915_pmu {
 	 */
 	struct {
 		struct hlist_node node;
-#ifdef __linux__
 		unsigned int cpu;
-#endif
 	} cpuhp;
 	/**
 	 * @base: PMU base.
 	 */
-#ifdef __linux__
 	struct pmu base;
-#endif
 	/**
 	 * @registered: PMU is registered and not in the unregistering process.
 	 */

@@ -15,7 +15,6 @@
 
 #define GSC_BAR_LENGTH  0x00000FFC
 
-#ifdef __FreeBSD_not_yet
 static void gsc_irq_mask(struct irq_data *d)
 {
 	/* generic irq handling */
@@ -125,12 +124,10 @@ static void gsc_release_dev(struct device *dev)
 
 	kfree(adev);
 }
-#endif
 
 static void gsc_destroy_one(struct drm_i915_private *i915,
 			    struct intel_gsc *gsc, unsigned int intf_id)
 {
-#ifdef __FreeBSD_not_yet
 	struct intel_gsc_intf *intf = &gsc->intf[intf_id];
 
 	if (intf->adev) {
@@ -150,13 +147,11 @@ static void gsc_destroy_one(struct drm_i915_private *i915,
 	intf->irq = -1;
 
 	gsc_ext_om_destroy(intf);
-#endif
 }
 
 static void gsc_init_one(struct drm_i915_private *i915, struct intel_gsc *gsc,
 			 unsigned int intf_id)
 {
-#ifdef __FreeBSD_not_yet
 	struct pci_dev *pdev = to_pci_dev(i915->drm.dev);
 	struct mei_aux_device *adev;
 	struct auxiliary_device *aux_dev;
@@ -270,12 +265,10 @@ add_device:
 	return;
 fail:
 	gsc_destroy_one(i915, gsc, intf->id);
-#endif
 }
 
 static void gsc_irq_handler(struct intel_gt *gt, unsigned int intf_id)
 {
-#ifdef __FreeBSD_not_yet
 	int ret;
 
 	if (intf_id >= INTEL_GSC_NUM_INTERFACES) {
@@ -294,7 +287,6 @@ static void gsc_irq_handler(struct intel_gt *gt, unsigned int intf_id)
 	ret = generic_handle_irq(gt->gsc.intf[intf_id].irq);
 	if (ret)
 		gt_err_ratelimited(gt, "error handling GSC irq: %d\n", ret);
-#endif
 }
 
 void intel_gsc_irq_handler(struct intel_gt *gt, u32 iir)

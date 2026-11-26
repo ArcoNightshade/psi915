@@ -29,13 +29,6 @@
 #include "i915_params.h"
 #include "i915_drv.h"
 
-#ifdef __FreeBSD__
-#include "i915_driver.h"
-SYSCTL_NODE(_hw, OID_AUTO, i915kms,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    DRIVER_DESC " parameters");
-#endif
-
 DECLARE_DYNDBG_CLASSMAP(drm_debug_classes, DD_CLASS_TYPE_DISJOINT_BITS, 0,
 			"DRM_UT_CORE",
 			"DRM_UT_DRIVER",
@@ -88,11 +81,9 @@ i915_param_named_unsafe(enable_hangcheck, bool, 0400,
 	"WARNING: Disabling this can cause system wide hangs. "
 	"(default: true)");
 
-#ifdef __freebsd_notyet__
 i915_param_named_unsafe(force_probe, charp, 0400,
 	"Force probe options for specified supported devices. "
 	"See CONFIG_DRM_I915_FORCE_PROBE for details.");
-#endif
 
 i915_param_named(memtest, bool, 0400,
 	"Perform a read/write test of all device memory on module load (default: off)");
@@ -110,9 +101,6 @@ i915_param_named(guc_log_level, int, 0400,
 	"GuC firmware logging level. Requires GuC to be loaded. "
 	"(-1=auto [default], 0=disable, 1..4=enable with verbosity min..max)");
 
-#ifdef __linux__
-// XXX: How to we handle char *?
-// Not critical: default kmod dir is fine...
 i915_param_named_unsafe(guc_firmware_path, charp, 0400,
 	"GuC firmware path to use instead of the default one");
 
@@ -121,7 +109,6 @@ i915_param_named_unsafe(huc_firmware_path, charp, 0400,
 
 i915_param_named_unsafe(gsc_firmware_path, charp, 0400,
 	"GSC firmware path to use instead of the default one");
-#endif
 
 #if IS_ENABLED(CONFIG_DRM_I915_DEBUG)
 i915_param_named_unsafe(inject_probe_failure, uint, 0400,

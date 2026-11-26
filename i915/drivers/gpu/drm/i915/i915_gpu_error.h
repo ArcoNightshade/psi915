@@ -41,11 +41,7 @@ struct i915_vma_coredump {
 	u32 gtt_page_sizes;
 
 	int unused;
-#if defined(__linux__) || defined(PAGE_IS_LKPI_PAGE)
 	struct list_head page_list;
-#elif defined(__FreeBSD__)
-	struct pglist page_list;
-#endif
 };
 
 struct i915_request_coredump {

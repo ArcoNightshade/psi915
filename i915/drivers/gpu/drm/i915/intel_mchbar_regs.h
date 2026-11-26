@@ -70,11 +70,7 @@
 
 #define TSC1					_MMIO(MCHBAR_MIRROR_BASE + 0x1001)
 #define   TSE					(1 << 0)
-#ifdef __linux__ // FreeBSD already has TR1
 #define TR1					_MMIO(MCHBAR_MIRROR_BASE + 0x1006)
-#elif defined(__FreeBSD__)
-#define I915_TR1				_MMIO(MCHBAR_MIRROR_BASE + 0x1006)
-#endif
 #define TSFS					_MMIO(MCHBAR_MIRROR_BASE + 0x1020)
 #define   TSFS_SLOPE_MASK			0x0000ff00
 #define   TSFS_SLOPE_SHIFT			8

@@ -64,10 +64,7 @@ enum forcewake_domain_id {
 	FW_DOMAIN_ID_MEDIA_VEBOX3,
 	FW_DOMAIN_ID_GSC,
 
-	FW_DOMAIN_ID_COUNT,
-#ifdef __FreeBSD__
-	FW_DOMAIN_ID_DUMMY = -1, /* force enum type signed */
-#endif
+	FW_DOMAIN_ID_COUNT
 };
 
 enum forcewake_domains {

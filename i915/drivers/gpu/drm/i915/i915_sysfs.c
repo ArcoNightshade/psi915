@@ -38,19 +38,12 @@
 #include "i915_drv.h"
 #include "i915_sysfs.h"
 
-#ifdef __FreeBSD__
-/* TODO: Move to base (when refactoring sysfs.h to sysfs.c) */
-const char power_group_name[] = "power";
-#endif
-
 struct drm_i915_private *kdev_minor_to_i915(struct device *kdev)
 {
 	struct drm_minor *minor = dev_get_drvdata(kdev);
 	return to_i915(minor->dev);
 }
 
-#ifdef __linux__
-/* Missing sysfs bin files support */
 static int l3_access_valid(struct drm_i915_private *i915, loff_t offset)
 {
 	if (!HAS_L3_DPF(i915))
@@ -162,15 +155,11 @@ static const struct bin_attribute dpf_attrs_1 = {
 	.private = (void *)1
 };
 
-#endif /* __linux__ */
-
 void i915_setup_sysfs(struct drm_i915_private *dev_priv)
 {
 	struct device *kdev = dev_priv->drm.primary->kdev;
-#ifdef __linux__
 	int ret;
 
-	/* Missing sysfs bin files support */
 	if (HAS_L3_DPF(dev_priv)) {
 		ret = device_create_bin_file(kdev, &dpf_attrs);
 		if (ret)
@@ -185,36 +174,25 @@ void i915_setup_sysfs(struct drm_i915_private *dev_priv)
 					"l3 parity slice 1 setup failed\n");
 		}
 	}
-#endif /* __linux__ */
 
 	dev_priv->sysfs_gt = kobject_create_and_add("gt", &kdev->kobj);
 	if (!dev_priv->sysfs_gt)
 		drm_warn(&dev_priv->drm,
 			 "failed to register GT sysfs directory\n");
 
-#ifdef __linux__
-	/* Missing sysfs bin files support */
 	i915_gpu_error_sysfs_setup(dev_priv);
-#endif
 
 	intel_engines_add_sysfs(dev_priv);
 }
 
 void i915_teardown_sysfs(struct drm_i915_private *dev_priv)
 {
-#ifdef __linux__
 	struct device *kdev = dev_priv->drm.primary->kdev;
 
-	/* Missing sysfs bin files support */
 	i915_gpu_error_sysfs_teardown(dev_priv);
 
 	device_remove_bin_file(kdev, &dpf_attrs_1);
 	device_remove_bin_file(kdev, &dpf_attrs);
 
 	kobject_put(dev_priv->sysfs_gt);
-#else
-	intel_engines_remove_sysfs(dev_priv);
-	kobject_put(dev_priv->sysfs_gt);
-	dev_priv->sysfs_gt = NULL;
-#endif
 }

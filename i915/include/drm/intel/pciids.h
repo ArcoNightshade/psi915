@@ -25,14 +25,7 @@
 #ifndef __PCIIDS_H__
 #define __PCIIDS_H__
 
-/*
- * FreeBSD: We want the definitions below, even if __KERNEL__ is not defined.
- * That's why the #ifdef below is commentted out.
- *
- * We can't define it because it is used to signify "Linux" as opposed to
- * "BSDs" in <uapi/drm/drm.h>.
- */
-// #ifdef __KERNEL__
+#ifdef __KERNEL__
 #define INTEL_VGA_DEVICE(_id, _info) { \
 	PCI_DEVICE(PCI_VENDOR_ID_INTEL, (_id)), \
 	.class = PCI_BASE_CLASS_DISPLAY << 16, .class_mask = 0xff << 16, \
@@ -45,7 +38,7 @@
 	.class = PCI_BASE_CLASS_DISPLAY << 16, .class_mask = 0xff << 16, \
 	.driver_data = (kernel_ulong_t)(_info), \
 }
-// #endif
+#endif
 
 #define INTEL_I810_IDS(MACRO__, ...) \
 	MACRO__(0x7121, ## __VA_ARGS__), /* I810 */ \

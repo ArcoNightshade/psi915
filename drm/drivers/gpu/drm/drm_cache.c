@@ -34,10 +34,6 @@
 #include <linux/iosys-map.h>
 #include <xen/xen.h>
 
-#if defined(__FreeBSD__) && defined(__aarch64__)
-#include <linux/preempt.h>
-#endif
-
 #include <drm/drm_cache.h>
 
 /* A small bounce buffer that fits on the stack. */
@@ -111,12 +107,8 @@ drm_clflush_pages(struct page *pages[], unsigned long num_pages)
 			continue;
 
 		page_virtual = kmap_atomic(page);
-#ifdef __linux__
 		flush_dcache_range((unsigned long)page_virtual,
 				   (unsigned long)page_virtual + PAGE_SIZE);
-#elif defined(__FreeBSD__)
-		cpu_flush_dcache(page_virtual, PAGE_SIZE);
-#endif
 		kunmap_atomic(page_virtual);
 	}
 #else
@@ -190,7 +182,6 @@ EXPORT_SYMBOL(drm_clflush_virt_range);
 
 bool drm_need_swiotlb(int dma_bits)
 {
-#ifdef __linux__
 	struct resource *tmp;
 	resource_size_t max_iomem = 0;
 
@@ -217,11 +208,6 @@ bool drm_need_swiotlb(int dma_bits)
 		max_iomem = max(max_iomem,  tmp->end);
 
 	return max_iomem > ((u64)1 << dma_bits);
-#elif defined(__FreeBSD__)
-	// Only used in combination with CONFIG_SWIOTLB in v4.17
-	// BSDFIXME: Let's say we can dma all physical memory...
-	return false;
-#endif
 }
 EXPORT_SYMBOL(drm_need_swiotlb);
 

@@ -1522,9 +1522,7 @@ struct intel_hdmi {
 		int max_tmds_clock;
 	} dp_dual_mode;
 	struct intel_connector *attached_connector;
-#ifdef __linux__
 	struct cec_notifier *cec_notifier;
-#endif
 };
 
 struct intel_dp_mst_encoder;

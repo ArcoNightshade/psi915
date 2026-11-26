@@ -154,9 +154,6 @@ static int request_smem_stolen(struct drm_i915_private *i915,
 	if (HAS_LMEM(i915) || HAS_LMEMBAR_SMEM_STOLEN(i915))
 		return 0;
 
-#ifdef __FreeBSD__
-	(void)r;
-#else
 	/*
 	 * Verify that nothing else uses this physical address. Stolen
 	 * memory should be reserved by the BIOS and hidden from the
@@ -191,7 +188,6 @@ static int request_smem_stolen(struct drm_i915_private *i915,
 			return -EBUSY;
 		}
 	}
-#endif
 
 	return 0;
 }

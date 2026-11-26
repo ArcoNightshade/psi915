@@ -46,12 +46,6 @@ struct ttm_operation_ctx;
 struct ttm_tt {
 	/** @pages: Array of pages backing the data. */
 	struct page **pages;
-#if defined(__FreeBSD__) && !defined(PAGE_IS_LKPI_PAGE)
-	/* On Linux, `struct page` has a private field. It is used by
-	 * `ttm_pool` to store private data. FreeBSD's `struct vm_page` does
-	 * not have that, so we use an extra field in `struct ttm_tt` */
-	unsigned int *orders;
-#endif
 	/**
 	 * @page_flags: The page flags.
 	 *
@@ -257,11 +251,7 @@ unsigned long ttm_tt_pages_limit(void);
  * bind and unbind memory backing a ttm_tt.
  */
 struct ttm_tt *ttm_agp_tt_create(struct ttm_buffer_object *bo,
-#ifdef __linux__
 				 struct agp_bridge_data *bridge,
-#else
-				 device_t bridge,
-#endif
 				 uint32_t page_flags);
 int ttm_agp_bind(struct ttm_tt *ttm, struct ttm_resource *bo_mem);
 void ttm_agp_unbind(struct ttm_tt *ttm);

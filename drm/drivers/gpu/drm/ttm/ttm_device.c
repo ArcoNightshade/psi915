@@ -182,12 +182,7 @@ EXPORT_SYMBOL(ttm_device_swapout);
  * !0: Failure.
  */
 int ttm_device_init(struct ttm_device *bdev, const struct ttm_device_funcs *funcs,
-		    struct device *dev,
-#ifdef __linux__
-		    struct address_space *mapping,
-#elif defined(__FreeBSD__)
-		    void *dummy,
-#endif
+		    struct device *dev, struct address_space *mapping,
 		    struct drm_vma_offset_manager *vma_manager,
 		    bool use_dma_alloc, bool use_dma32)
 {
@@ -222,9 +217,7 @@ int ttm_device_init(struct ttm_device *bdev, const struct ttm_device_funcs *func
 	bdev->vma_manager = vma_manager;
 	spin_lock_init(&bdev->lru_lock);
 	INIT_LIST_HEAD(&bdev->unevictable);
-#ifdef __linux__
 	bdev->dev_mapping = mapping;
-#endif
 	mutex_lock(&ttm_global_mutex);
 	list_add_tail(&bdev->device_list, &glob->device_list);
 	mutex_unlock(&ttm_global_mutex);

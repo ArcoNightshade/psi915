@@ -305,7 +305,6 @@ void intel_gsc_proxy_irq_handler(struct intel_gsc_uc *gsc, u32 iir)
 	queue_work(gsc->wq, &gsc->work);
 }
 
-#ifdef __linux__
 static int i915_gsc_proxy_component_bind(struct device *i915_kdev,
 					 struct device *mei_kdev, void *data)
 {
@@ -351,7 +350,6 @@ static const struct component_ops i915_gsc_proxy_component_ops = {
 	.bind   = i915_gsc_proxy_component_bind,
 	.unbind = i915_gsc_proxy_component_unbind,
 };
-#endif
 
 static int proxy_channel_alloc(struct intel_gsc_uc *gsc)
 {
@@ -385,13 +383,11 @@ static void proxy_channel_free(struct intel_gsc_uc *gsc)
 
 void intel_gsc_proxy_fini(struct intel_gsc_uc *gsc)
 {
-#ifdef __linux__
 	struct intel_gt *gt = gsc_uc_to_gt(gsc);
 	struct drm_i915_private *i915 = gt->i915;
 
 	if (fetch_and_zero(&gsc->proxy.component_added))
 		component_del(i915->drm.dev, &i915_gsc_proxy_component_ops);
-#endif
 
 	proxy_channel_free(gsc);
 }
@@ -400,9 +396,7 @@ int intel_gsc_proxy_init(struct intel_gsc_uc *gsc)
 {
 	int err;
 	struct intel_gt *gt = gsc_uc_to_gt(gsc);
-#ifdef __linux__
 	struct drm_i915_private *i915 = gt->i915;
-#endif
 
 	mutex_init(&gsc->proxy.mutex);
 
@@ -415,12 +409,8 @@ int intel_gsc_proxy_init(struct intel_gsc_uc *gsc)
 	if (err)
 		return err;
 
-#ifdef __linux__
 	err = component_add_typed(i915->drm.dev, &i915_gsc_proxy_component_ops,
 				  I915_COMPONENT_GSC_PROXY);
-#elif defined(__FreeBSD__)
-	err = -ENOTSUP;
-#endif
 	if (err < 0) {
 		gt_err(gt, "Failed to add GSC_PROXY component (%d)\n", err);
 		goto out_free;

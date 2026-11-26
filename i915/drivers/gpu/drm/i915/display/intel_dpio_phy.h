@@ -24,9 +24,6 @@ enum dpio_phy {
 	DPIO_PHY0,
 	DPIO_PHY1,
 	DPIO_PHY2,
-#ifdef __FreeBSD__
-	DPIO_DUMMY = -1,	/* force enum type signed */
-#endif
 };
 
 #ifdef I915

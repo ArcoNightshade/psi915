@@ -4188,7 +4188,6 @@ static const struct backlight_ops dp_aux_bl_ops = {
 	.update_status = dp_aux_backlight_update_status,
 };
 
-#ifdef __linux__
 /**
  * drm_panel_dp_aux_backlight - create and use DP AUX backlight
  * @panel: DRM panel
@@ -4263,7 +4262,6 @@ int drm_panel_dp_aux_backlight(struct drm_panel *panel, struct drm_dp_aux *aux)
 	return 0;
 }
 EXPORT_SYMBOL(drm_panel_dp_aux_backlight);
-#endif
 
 #endif
 

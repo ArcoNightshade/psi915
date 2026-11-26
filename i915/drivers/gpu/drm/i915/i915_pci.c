@@ -871,11 +871,7 @@ static const struct pci_device_id pciidlist[] = {
 	INTEL_MTL_IDS(INTEL_VGA_DEVICE, &mtl_info),
 	{}
 };
-#ifdef __linux__
 MODULE_DEVICE_TABLE(pci, pciidlist);
-#elif defined(__FreeBSD__)
-LKPI_PNP_INFO(pci, i915kms, pciidlist);
-#endif
 
 static void i915_pci_remove(struct pci_dev *pdev)
 {
@@ -943,11 +939,8 @@ bool i915_pci_resource_valid(struct pci_dev *pdev, int bar)
 	if (!pci_resource_flags(pdev, bar))
 		return false;
 
-#ifdef __linux__
-	/* On FreeBSD pci_resource_flags returns only type, not flags */
 	if (pci_resource_flags(pdev, bar) & IORESOURCE_UNSET)
 		return false;
-#endif
 
 	if (!pci_resource_len(pdev, bar))
 		return false;
@@ -1035,11 +1028,7 @@ static void i915_pci_shutdown(struct pci_dev *pdev)
 }
 
 static struct pci_driver i915_pci_driver = {
-#ifdef __linux__
 	.name = DRIVER_NAME,
-#elif defined(__FreeBSD__)
-	.name = "drmn",	/* LinuxKPI expects this name to enable drm support */
-#endif
 	.id_table = pciidlist,
 	.probe = i915_pci_probe,
 	.remove = i915_pci_remove,

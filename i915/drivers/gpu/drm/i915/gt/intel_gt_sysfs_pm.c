@@ -19,11 +19,6 @@
 #include "intel_rc6.h"
 #include "intel_rps.h"
 
-#ifdef __FreeBSD__
-/* TODO: Move to base (when refactoring sysfs.h to sysfs.c) */
-extern const char power_group_name[];
-#endif
-
 enum intel_gt_sysfs_op {
 	INTEL_GT_SYSFS_MIN = 0,
 	INTEL_GT_SYSFS_MAX,

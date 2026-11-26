@@ -297,25 +297,11 @@ long drm_sched_entity_flush(struct drm_sched_entity *entity, long timeout)
 		return 0;
 
 	sched = entity->rq->sched;
-#ifdef __FreeBSD__
-	if (!sched) {
-		/*
-		 * BSDFIXME: When running glmark2, sched is null two times
-		 * whenever the program switches scenes
-		 */
-		DRM_ERROR("==========> BUG: entity->rq->sched is NULL\n");
-		return ret;
-	}
-#endif
 	/**
 	 * The client will not queue more IBs during this fini, consume existing
 	 * queued IBs or discard them on SIGKILL
 	 */
-#ifdef __linux__
 	if (current->flags & PF_EXITING) {
-#elif defined(__FreeBSD__)
-	if (current_exiting()) {
-#endif
 		if (timeout)
 			ret = wait_event_timeout(
 					sched->job_scheduled,
@@ -329,11 +315,7 @@ long drm_sched_entity_flush(struct drm_sched_entity *entity, long timeout)
 	/* For killed process disable any more IBs enqueue right now */
 	last_user = cmpxchg(&entity->last_user, current->group_leader, NULL);
 	if ((!last_user || last_user == current->group_leader) &&
-#ifdef __linux__
 	    (current->flags & PF_EXITING) && (current->exit_code == SIGKILL))
-#elif defined(__FreeBSD__)
-	    current_exiting() && fatal_signal_pending(current))
-#endif
 		drm_sched_entity_kill(entity);
 
 	return ret;

@@ -140,12 +140,7 @@ struct drm_file *drm_file_alloc(struct drm_minor *minor)
 
 	/* Get a unique identifier for fdinfo: */
 	file->client_id = atomic64_inc_return(&ident);
-#ifdef __linux__
 	rcu_assign_pointer(file->pid, get_pid(task_tgid(current)));
-#elif defined(__FreeBSD__)
-	// BSDFIXME: No task_tgid() support.
-	file->pid = get_pid(task_pid(current));
-#endif
 	file->minor = minor;
 
 	/* for compatibility root is always authenticated */
@@ -186,11 +181,7 @@ out_prime_destroy:
 		drm_syncobj_release(file);
 	if (drm_core_check_feature(dev, DRIVER_GEM))
 		drm_gem_release(dev, file);
-#ifdef __linux__
 	put_pid(rcu_access_pointer(file->pid));
-#elif defined(__FreeBSD__)
-	put_pid(file->pid);
-#endif
 	kfree(file);
 
 	return ERR_PTR(ret);
@@ -267,11 +258,7 @@ void drm_file_free(struct drm_file *file)
 
 	WARN_ON(!list_empty(&file->event_list));
 
-#ifdef __linux__
 	put_pid(rcu_access_pointer(file->pid));
-#elif defined(__FreeBSD__)
-	put_pid(file->pid);
-#endif
 
 	mutex_destroy(&file->client_name_lock);
 	kfree(file->client_name);
@@ -384,9 +371,7 @@ int drm_open(struct inode *inode, struct file *filp)
 	atomic_fetch_inc(&dev->open_count);
 
 	/* share address_space across all char-devs of a single device */
-#ifdef __linux__
 	filp->f_mapping = dev->anon_inode->i_mapping;
-#endif
 
 	retcode = drm_open_helper(filp, minor);
 	if (retcode)
@@ -455,11 +440,7 @@ EXPORT_SYMBOL(drm_release);
 void drm_file_update_pid(struct drm_file *filp)
 {
 	struct drm_device *dev;
-#ifdef __linux__
 	struct pid *pid, *old;
-#elif defined(__FreeBSD__)
-	pid_t pid, old;
-#endif
 
 	/*
 	 * Master nodes need to keep the original ownership in order for
@@ -469,33 +450,19 @@ void drm_file_update_pid(struct drm_file *filp)
 	if (filp->was_master)
 		return;
 
-#ifdef __linux__
 	pid = task_tgid(current);
-#elif defined(__FreeBSD__)
-	// BSDFIXME: No task_tgid() support.
-	pid = task_pid(current);
-#endif
 
 	/*
 	 * Quick unlocked check since the model is a single handover followed by
 	 * exclusive repeated use.
 	 */
-#ifdef __linux__
 	if (pid == rcu_access_pointer(filp->pid))
-#elif defined(__FreeBSD__)
-	if (pid == filp->pid)
-#endif
 		return;
 
 	dev = filp->minor->dev;
 	mutex_lock(&dev->filelist_mutex);
 	get_pid(pid);
-#ifdef __linux__
 	old = rcu_replace_pointer(filp->pid, pid, 1);
-#elif defined(__FreeBSD__)
-	old = filp->pid;
-	filp->pid = pid;
-#endif
 	mutex_unlock(&dev->filelist_mutex);
 
 	synchronize_rcu();
@@ -606,12 +573,8 @@ put_back_event:
 				file_priv->event_space -= length;
 				list_add(&e->link, &file_priv->event_list);
 				spin_unlock_irq(&dev->event_lock);
-#ifdef __linux__
 				wake_up_interruptible_poll(&file_priv->event_wait,
 					EPOLLIN | EPOLLRDNORM);
-#elif defined(__FreeBSD__)
-				wake_up_interruptible(&file_priv->event_wait);
-#endif
 				break;
 			}
 
@@ -795,12 +758,8 @@ static void drm_send_event_helper(struct drm_device *dev,
 	list_del(&e->pending_link);
 	list_add_tail(&e->link,
 		      &e->file_priv->event_list);
-#ifdef __linux__
 	wake_up_interruptible_poll(&e->file_priv->event_wait,
 		EPOLLIN | EPOLLRDNORM);
-#elif defined(__FreeBSD__)
-	wake_up_interruptible(&e->file_priv->event_wait);
-#endif
 }
 
 /**
@@ -1048,9 +1007,7 @@ struct file *mock_drm_getfile(struct drm_minor *minor, unsigned int flags)
 	}
 
 	/* Everyone shares a single global address space */
-#ifdef __linux__
 	file->f_mapping = dev->anon_inode->i_mapping;
-#endif
 
 	drm_dev_get(dev);
 	priv->filp = file;

@@ -1047,11 +1047,7 @@ void ttm_bo_unmap_virtual(struct ttm_buffer_object *bo)
 {
 	struct ttm_device *bdev = bo->bdev;
 
-#ifdef __linux__
 	drm_vma_node_unmap(&bo->base.vma_node, bdev->dev_mapping);
-#elif defined(__FreeBSD__)
-	drm_vma_node_unmap(&bo->base.vma_node, bo);
-#endif
 	ttm_mem_io_free(bdev, bo->resource);
 }
 EXPORT_SYMBOL(ttm_bo_unmap_virtual);

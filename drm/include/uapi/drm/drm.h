@@ -49,12 +49,9 @@ typedef unsigned int drm_handle_t;
 
 #else /* One of the BSDs */
 
-#ifndef __FreeBSD__
 #include <stdint.h>
-#endif
 #include <sys/ioccom.h>
 #include <sys/types.h>
-#ifdef __linux__
 typedef int8_t   __s8;
 typedef uint8_t  __u8;
 typedef int16_t  __s16;
@@ -64,9 +61,8 @@ typedef uint32_t __u32;
 typedef int64_t  __s64;
 typedef uint64_t __u64;
 typedef size_t   __kernel_size_t;
-#endif
 typedef unsigned long drm_handle_t;
-#include <drm/drm_os_freebsd.h>
+
 #endif
 
 #if defined(__cplusplus)
@@ -897,20 +893,6 @@ struct drm_prime_handle {
 	__s32 fd;
 };
 
-#if defined(__OpenBSD__) || defined(__DragonFly__) || defined(__FreeBSD__)
-struct drm_pciinfo {
-	uint16_t	domain;
-	uint8_t		bus;
-	uint8_t		dev;
-	uint8_t		func;
-	uint16_t	vendor_id;
-	uint16_t	device_id;
-	uint16_t	subvendor_id;
-	uint16_t	subdevice_id;
-	uint8_t		revision_id;
-};
-#endif
-
 struct drm_syncobj_create {
 	__u32 handle;
 #define DRM_SYNCOBJ_CREATE_SIGNALED (1 << 0)
@@ -1098,11 +1080,7 @@ extern "C" {
 #define DRM_IOCTL_BLOCK			DRM_IOWR(0x12, struct drm_block)
 #define DRM_IOCTL_UNBLOCK		DRM_IOWR(0x13, struct drm_block)
 #define DRM_IOCTL_CONTROL		DRM_IOW( 0x14, struct drm_control)
-#if defined(__OpenBSD__) || defined(__DragonFly__) || defined(__FreeBSD__)
-#define DRM_IOCTL_GET_PCIINFO		DRM_IOR(0x15, struct drm_pciinfo)
-#else
 #define DRM_IOCTL_ADD_MAP		DRM_IOWR(0x15, struct drm_map)
-#endif
 #define DRM_IOCTL_ADD_BUFS		DRM_IOWR(0x16, struct drm_buf_desc)
 #define DRM_IOCTL_MARK_BUFS		DRM_IOW( 0x17, struct drm_buf_desc)
 #define DRM_IOCTL_INFO_BUFS		DRM_IOWR(0x18, struct drm_buf_info)

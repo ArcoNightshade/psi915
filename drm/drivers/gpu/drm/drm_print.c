@@ -39,15 +39,7 @@
  * __drm_debug: Enable debug output.
  * Bitmask of DRM_UT_x. See include/drm/drm_print.h for details.
  */
-#ifdef __linux__
 unsigned long __drm_debug;
-#elif defined(__FreeBSD__)
-#if defined(DRM_DEBUG_LOG_ALL) || defined(INVARIANTS)
-unsigned long __drm_debug = 0xffffffff;	/* bitmask of DRM_UT_x */
-#else
-unsigned long __drm_debug = 0;
-#endif
-#endif
 EXPORT_SYMBOL(__drm_debug);
 
 MODULE_PARM_DESC(debug, "Enable debug output, where each bit enables a debug category.\n"
@@ -177,21 +169,13 @@ EXPORT_SYMBOL(__drm_printfn_coredump);
 
 void __drm_puts_seq_file(struct drm_printer *p, const char *str)
 {
-#ifdef __FreeBSD__
-	seq_puts((struct seq_file *)(p->arg), str);
-#else
 	seq_puts(p->arg, str);
-#endif
 }
 EXPORT_SYMBOL(__drm_puts_seq_file);
 
 void __drm_printfn_seq_file(struct drm_printer *p, struct va_format *vaf)
 {
-#ifdef __FreeBSD__
-	seq_vprintf((struct seq_file *)(p->arg), vaf->fmt, *vaf->va);
-#else
 	seq_printf(p->arg, "%pV", vaf);
-#endif	
 }
 EXPORT_SYMBOL(__drm_printfn_seq_file);
 
@@ -223,11 +207,7 @@ static void __drm_dev_vprintk(const struct device *dev, const char *level,
 
 void __drm_printfn_info(struct drm_printer *p, struct va_format *vaf)
 {
-#ifdef __FreeBSD__
-	dev_info((const struct device *)(p->arg), "[" DRM_NAME "] %pV", vaf);
-#else
 	dev_info(p->arg, "[" DRM_NAME "] %pV", vaf);
-#endif	
 }
 EXPORT_SYMBOL(__drm_printfn_info);
 
@@ -332,7 +312,6 @@ void drm_print_bits(struct drm_printer *p, unsigned long value,
 }
 EXPORT_SYMBOL(drm_print_bits);
 
-#ifdef __linux__
 void drm_dev_printk(const struct device *dev, const char *level,
 		    const char *format, ...)
 {
@@ -348,26 +327,7 @@ void drm_dev_printk(const struct device *dev, const char *level,
 	va_end(args);
 }
 EXPORT_SYMBOL(drm_dev_printk);
-#elif defined(__FreeBSD__)
-void drm_dev_printk(const struct device *dev, const char *level,
-		    const char *format, ...)
-{
-	struct va_format vaf;
-	va_list args;
 
-	va_start(args, format);
-	vaf.fmt = format;
-	vaf.va = &args;
-	if (dev)
-		device_printf((dev)->bsddev, "[" DRM_NAME "] ");
-	else
-		printf("[" DRM_NAME "] ");
-	vprintf(format, args);
-	va_end(args);
-}
-#endif
-
-#ifdef __linux__
 void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
 		   enum drm_debug_category category, const char *format, ...)
 {
@@ -387,29 +347,7 @@ void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
 	va_end(args);
 }
 EXPORT_SYMBOL(__drm_dev_dbg);
-#elif defined(__FreeBSD__)
-void __drm_dev_dbg(struct _ddebug *desc, const struct device *dev,
-		   enum drm_debug_category category, const char *func,
-		   const char *format, ...)
-{
-	va_list args;
 
-	if (!(__drm_debug & category))
-		return;
-
-	if (dev) {
-		device_print_prettyname((dev)->bsddev);
-		printf("%s: ", func);
-	}
-	else
-		printf("[" DRM_NAME "] %s: ", func);
-	va_start(args, format);
-	vprintf(format, args);
-	va_end(args);
-}
-#endif
-
-#ifdef __linux__
 void __drm_err(const char *format, ...)
 {
 	struct va_format vaf;
@@ -424,32 +362,7 @@ void __drm_err(const char *format, ...)
 	va_end(args);
 }
 EXPORT_SYMBOL(__drm_err);
-#elif defined(__FreeBSD__)
-void __drm_err(const char *function_name, const char *format, ...)
-{
-	struct va_format vaf;
-	va_list args;
 
-	va_start(args, format);
-	vaf.fmt = format;
-	vaf.va = &args;
-
-	if (SCHEDULER_STOPPED() || kdb_active) {
-		printf(" ");
-		return;
-	}
-	if (panicstr != NULL)
-		return;
-
-	printf("[" DRM_NAME " ERROR :%s] ", function_name);
-	vprintf(format, args);
-
-	va_end(args);
-}
-#endif
-EXPORT_SYMBOL(__drm_err);
-
-#ifdef __linux__
 /**
  * drm_print_regset32 - print the contents of registers to a
  * &drm_printer stream.
@@ -477,7 +390,6 @@ void drm_print_regset32(struct drm_printer *p, struct debugfs_regset32 *regset)
 	}
 }
 EXPORT_SYMBOL(drm_print_regset32);
-#endif
 
 /**
  * drm_print_hex_dump - print a hex dump to a &drm_printer stream

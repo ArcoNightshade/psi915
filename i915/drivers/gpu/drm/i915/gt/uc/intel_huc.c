@@ -103,7 +103,6 @@ static void gsc_init_error(struct intel_huc *huc)
 	__gsc_init_error(huc);
 }
 
-#ifdef __linux__
 static void gsc_init_done(struct intel_huc *huc)
 {
 	hrtimer_cancel(&huc->delayed_load.timer);
@@ -115,7 +114,6 @@ static void gsc_init_done(struct intel_huc *huc)
 			      ms_to_ktime(PXP_INIT_TIMEOUT_MS),
 			      HRTIMER_MODE_REL);
 }
-#endif
 
 static enum hrtimer_restart huc_delayed_load_timer_callback(struct hrtimer *hrtimer)
 {
@@ -172,7 +170,6 @@ static void huc_delayed_load_start(struct intel_huc *huc)
 	hrtimer_start(&huc->delayed_load.timer, delay, HRTIMER_MODE_REL);
 }
 
-#ifdef __linux__
 static int gsc_notifier(struct notifier_block *nb, unsigned long action, void *data)
 {
 	struct device *dev = data;
@@ -196,7 +193,6 @@ static int gsc_notifier(struct notifier_block *nb, unsigned long action, void *d
 
 	return 0;
 }
-#endif
 
 void intel_huc_register_gsc_notifier(struct intel_huc *huc, const struct bus_type *bus)
 {
@@ -205,13 +201,8 @@ void intel_huc_register_gsc_notifier(struct intel_huc *huc, const struct bus_typ
 	if (!intel_huc_is_loaded_by_gsc(huc))
 		return;
 
-#ifdef __linux__
 	huc->delayed_load.nb.notifier_call = gsc_notifier;
 	ret = bus_register_notifier(bus, &huc->delayed_load.nb);
-#elif defined (__FreeBSD__)
-	// BSDFIXME: No mei driver exists
-	ret = -ENXIO;
-#endif
 	if (ret) {
 		huc_err(huc, "failed to register GSC notifier %pe\n", ERR_PTR(ret));
 		huc->delayed_load.nb.notifier_call = NULL;
@@ -226,9 +217,7 @@ void intel_huc_unregister_gsc_notifier(struct intel_huc *huc, const struct bus_t
 
 	delayed_huc_load_complete(huc);
 
-#ifdef __linux__
 	bus_unregister_notifier(bus, &huc->delayed_load.nb);
-#endif
 	huc->delayed_load.nb.notifier_call = NULL;
 }
 
@@ -627,11 +616,7 @@ int intel_huc_check_status(struct intel_huc *huc)
 	case INTEL_UC_FIRMWARE_DISABLED:
 		return -EOPNOTSUPP;
 	case INTEL_UC_FIRMWARE_MISSING:
-#ifdef __linux__
 		return -ENOPKG;
-#elif defined(__FreeBSD__)
-		return -ENODEV;
-#endif
 	case INTEL_UC_FIRMWARE_ERROR:
 		return -ENOEXEC;
 	case INTEL_UC_FIRMWARE_INIT_FAIL:
