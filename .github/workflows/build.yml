@@ -14,6 +14,7 @@ jobs:
   linux:
     name: linux (unit tests, stub syntax check)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Install tools
@@ -21,17 +22,18 @@ jobs:
       - name: Unit tests and kmod stub check
         run: make check
       - name: Object lists up to date
-        run: scripts/gen-module-objs.sh -c
+        run: sh scripts/gen-module-objs.sh -c
       - name: Syntax check of the module set (stub headers)
-        run: scripts/build-gfx.sh syntax-check HOST_STUBS=1 -j"$(nproc)"
+        run: sh scripts/build-gfx.sh syntax-check HOST_STUBS=1 -j"$(nproc)"
       - name: Link check
-        run: scripts/kpi-linkcheck.sh
+        run: sh scripts/kpi-linkcheck.sh
       - name: Module load-order check
         run: python3 scripts/kpi-modcheck.py
 
   illumos:
     name: ${{ matrix.os }} kernel modules
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +64,7 @@ jobs:
         if: always()
         run: |
           mkdir -p out
+          cp -f ci-build.log out/ 2>/dev/null || true
           find build drivers -type f \( -path '*/obj64/*' -o -path '*/debug64/*' \) ! -name '*.o' -print0 2>/dev/null \
             | xargs -0 -r cp --parents -t out || true
       - uses: actions/upload-artifact@v7

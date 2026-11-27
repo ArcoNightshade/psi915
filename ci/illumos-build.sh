@@ -19,8 +19,12 @@ gmake -k kmod || rc=1
 echo "== gfx modules (g1, drm, g2, i915)"
 sh scripts/build-gfx.sh all -k -j4 || rc=1
 } >> "$log" 2>&1
-echo "== errors (first 150 distinct; full log in ci-build.log)"
-grep -E "error:|undefined reference|Error [0-9]|\*\*\*|fatal" "$log" | sed 's/^[0-9T:.Z-]* //' | sort | uniq -c | sort -rn | head -150
+echo "== top error messages (count, message; file paths stripped; full log in ci-build.log)"
+grep -E "error:|undefined reference" "$log" | sed -e 's/^[0-9T:.Z-]* //' -e 's/^[^ ]*: //' -e "s/[A-Za-z0-9_./-]*\.[ch]:[0-9]*:[0-9]*: //" | sort | uniq -c | sort -rn | head -60
+echo "== files with most errors"
+grep -E "error:" "$log" | sed -e 's/^[0-9T:.Z-]* //' | grep -o '^[^: ]*\.[ch]' | sort | uniq -c | sort -rn | head -25
+echo "== first 30 raw error lines"
+grep -E "error:" "$log" | sed -e 's/^[0-9T:.Z-]* //' | head -30
 echo "== error count: $(grep -c 'error:' "$log")  warning count: $(grep -c 'warning:' "$log")"
 echo "== built objects: $(find build -name '*.o' 2>/dev/null | wc -l)  modules:"
 find build -type f \( -path '*/obj64/*' -o -path '*/debug64/*' \) ! -name '*.o' ! -name '*.d' 2>/dev/null | head -20
