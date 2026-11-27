@@ -109,6 +109,8 @@ struct task_struct {
 	struct lkpi_worker	*lkpi_worker;	/* workqueue worker threads */
 	bool			lkpi_uaccess_kernel; /* see <linux/uaccess.h> */
 	bool			lkpi_static;	/* never freed (irq task) */
+	struct pid		*lkpi_tgid_ref;	/* task_tgid(): held for the task */
+	struct pid		*lkpi_pid_ref;	/* task_pid() */
 };
 
 struct task_struct *lkpi_current(void);

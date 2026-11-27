@@ -6,5 +6,9 @@
 extern pri_t minclsyspri;
 extern int servicing_interrupt(void);
 extern void kpreempt(int);
+extern void lkpi_stub_kpreempt_disable(void);
+extern void lkpi_stub_kpreempt_enable(void);
+#define	kpreempt_disable()	lkpi_stub_kpreempt_disable()
+#define	kpreempt_enable()	lkpi_stub_kpreempt_enable()
 #define	KPREEMPT_SYNC	(-1)
 #endif

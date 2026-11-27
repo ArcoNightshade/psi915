@@ -20,12 +20,35 @@
 #define	LKPI_KMALLOC_MAGIC	0x6b6d6c63U	/* "kmlc" */
 #define	LKPI_KMALLOC_FREED	0x66726565U	/* "free" */
 
-/* 16 bytes, so the payload keeps 16-byte alignment. */
+/*
+ * 16 bytes, so the payload keeps at least 16-byte alignment. Power-of-two
+ * sizes above 16 bytes are naturally aligned (up to PAGE_SIZE), as Linux
+ * guarantees since 5.4 (docs/12 M4): such allocations get alignment bytes
+ * of slack and the header sits right before the aligned payload; offset is
+ * the distance from the raw allocation to the payload.
+ */
 struct lkpi_kmalloc_hdr {
 	size_t		size;
 	uint32_t	magic;
-	uint32_t	pad;
+	uint32_t	offset;
 };
+
+static size_t
+lkpi_kmalloc_align(size_t size)
+{
+	if (size <= 16 || (size & (size - 1)) != 0)
+		return (0);
+	return (size < PAGE_SIZE ? size : PAGE_SIZE);
+}
+
+/* Bytes allocated from the platform for a payload of size bytes. */
+static size_t
+lkpi_kmalloc_total(size_t size)
+{
+	size_t a = lkpi_kmalloc_align(size);
+
+	return (size + (a != 0 ? a : sizeof (struct lkpi_kmalloc_hdr)));
+}
 
 atomic_long_t lkpi_kmalloc_live;
 
@@ -42,28 +65,37 @@ static void *
 lkpi_alloc_hdr(size_t size, gfp_t gfp, size_t limit)
 {
 	struct lkpi_kmalloc_hdr *h;
-	size_t total;
+	size_t total, align;
+	char *raw, *payload;
 
 	if (size == 0)
 		return (ZERO_SIZE_PTR);
 	if (size > limit ||
-	    __builtin_add_overflow(size, sizeof (*h), &total)) {
+	    __builtin_add_overflow(size, PAGE_SIZE, &total)) {
 		if (!(gfp & __GFP_NOWARN))
 			pr_warn("linuxkpi: allocation of %zu bytes refused "
 			    "(limit %zu)\n", size, limit);
 		return (NULL);
 	}
+	total = lkpi_kmalloc_total(size);
+	align = lkpi_kmalloc_align(size);
 	if (gfp & __GFP_ZERO)
-		h = lkpi_plat_zalloc(total, lkpi_gfp_to_plat_size(gfp, total));
+		raw = lkpi_plat_zalloc(total, lkpi_gfp_to_plat_size(gfp, total));
 	else
-		h = lkpi_plat_alloc(total, lkpi_gfp_to_plat_size(gfp, total));
-	if (h == NULL)
+		raw = lkpi_plat_alloc(total, lkpi_gfp_to_plat_size(gfp, total));
+	if (raw == NULL)
 		return (NULL);
+	if (align != 0)
+		payload = (char *)(((uintptr_t)raw + sizeof (*h) + align - 1) &
+		    ~(uintptr_t)(align - 1));
+	else
+		payload = raw + sizeof (*h);
+	h = (struct lkpi_kmalloc_hdr *)(void *)payload - 1;
 	h->size = size;
 	h->magic = LKPI_KMALLOC_MAGIC;
-	h->pad = 0;
+	h->offset = (uint32_t)(payload - raw);
 	atomic_long_inc(&lkpi_kmalloc_live);
-	return (h + 1);
+	return (payload);
 }
 
 static struct lkpi_kmalloc_hdr *
@@ -106,7 +138,8 @@ kfree(const void *p)
 		return;		/* leak rather than corrupt the allocator */
 	h->magic = LKPI_KMALLOC_FREED;
 	atomic_long_dec(&lkpi_kmalloc_live);
-	lkpi_plat_free(h, h->size + sizeof (*h));
+	lkpi_plat_free((char *)(uintptr_t)p - h->offset,
+	    lkpi_kmalloc_total(h->size));
 }
 
 void

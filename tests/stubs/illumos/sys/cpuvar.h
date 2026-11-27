@@ -11,4 +11,10 @@ typedef struct cpu {
 } cpu_t;
 extern cpu_t *curcpup(void);
 #define	CPU		(curcpup())
+/* Real illumos: struct cpuset is a bitmap of NCPU bits. */
+typedef struct cpuset {
+	ulong_t	cpub[4];
+} cpuset_t;
+extern void cpuset_all(cpuset_t *);
+#define	CPUSET_ALL(set)		cpuset_all(&(set))
 #endif

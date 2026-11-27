@@ -44,6 +44,9 @@
 #include <vm/seg_kmem.h>
 #include <sys/vmem.h>
 #include <sys/buf.h>
+#include <sys/x_call.h>
+#include <sys/cpuvar.h>
+#include <sys/disp.h>
 #include <vm/page.h>
 
 #include <linuxkpi/platform.h>
@@ -763,19 +766,41 @@ lkpi_plat_vunmap(void *va, size_t npages)
 }
 
 /*
- * The illumos HAT has no interface to change the cache attribute of an
- * existing kernel mapping (hat_chgattr() only updates protections, and
- * gfxp_fix_mem_cache_attrs() is empty on i86pc). Report success; memory
- * stays write-back. i915 on LLC parts (Gen9) handles display coherency
- * with clflush, so this is a performance, not a correctness, concern for
- * the target; recorded in docs/03.
+ * Change the cache attribute of a kernel mapping (set_memory_*,
+ * set_pages_*; docs/12 C2). illumos has kmem_override_cache_attrs() in
+ * i86pc ddi_impl.c, but it is static, so the same sequence is done here
+ * with the public HAT interface: for each page, keep protections, unload
+ * the locked translation and reload it with the new HAT order. Dirty
+ * lines are written back first (WB -> UC/WC must not leave stale data
+ * behind the new attribute). Only for KPI memory (contig_alloc pages and
+ * vmap ranges), which is mapped locked in kas.
+ * UNTESTED ON ILLUMOS.
  */
 int
 lkpi_plat_set_cache(void *kva, size_t len, int cache)
 {
-	(void) kva;
-	(void) len;
-	(void) cache;
+	caddr_t va = (caddr_t)((uintptr_t)kva & (uintptr_t)PAGEMASK);
+	caddr_t end = (caddr_t)(((uintptr_t)kva + len + PAGEOFFSET) &
+	    (uintptr_t)PAGEMASK);
+	uint_t attr;
+	pfn_t pfn;
+	caddr_t p;
+
+	for (p = va; p < end; p += PAGESIZE) {
+		if (hat_getattr(kas.a_hat, p, &attr) == (uint_t)-1)
+			return (-EINVAL);
+	}
+	for (p = va; p < end; p += 64)
+		__asm__ __volatile__("clflush %0" : "+m" (*(volatile char *)p));
+	__asm__ __volatile__("mfence" : : : "memory");
+	for (p = va; p < end; p += PAGESIZE) {
+		(void) hat_getattr(kas.a_hat, p, &attr);
+		pfn = hat_getpfnum(kas.a_hat, p);
+		hat_unload(kas.a_hat, p, PAGESIZE, HAT_UNLOAD_UNLOCK);
+		hat_devload(kas.a_hat, p, PAGESIZE, pfn,
+		    (attr & HAT_PROT_MASK) | HAT_NOSYNC | lkpi_hat_attr(cache),
+		    HAT_LOAD_LOCK);
+	}
 	return (0);
 }
 
@@ -978,11 +1003,31 @@ lkpi_plat_wrmsr(u32 msr, u64 val)
 	wrmsr(msr, val);
 }
 
-/* Write back and invalidate this CPU's caches. */
+/* Write back and invalidate this CPU's caches (cross-call handler). */
+static int
+lkpi_wbinvd_xc(xc_arg_t a1, xc_arg_t a2, xc_arg_t a3)
+{
+	(void) a1;
+	(void) a2;
+	(void) a3;
+	__asm__ __volatile__("wbinvd" : : : "memory");
+	return (0);
+}
+
+/*
+ * WBINVD on every CPU (docs/12 C1): a cross call to all CPUs, which
+ * also runs the handler on the calling CPU, and returns once all have
+ * finished. Preemption is disabled so the caller cannot migrate halfway.
+ */
 void
 lkpi_plat_wbinvd(void)
 {
-	__asm__ __volatile__("wbinvd" : : : "memory");
+	cpuset_t set;
+
+	kpreempt_disable();
+	CPUSET_ALL(set);
+	xc_call(0, 0, 0, CPUSET2BV(set), lkpi_wbinvd_xc);
+	kpreempt_enable();
 }
 
 #endif /* LINUXKPI_ILLUMOS_KERNEL */

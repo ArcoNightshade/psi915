@@ -65,6 +65,8 @@ lkpi_task_free(struct task_struct *t)
 		lkpi_kthread_free(t->lkpi_kthread);
 	lkpi_plat_cv_destroy(&t->lkpi_sleep_cv);
 	lkpi_plat_mutex_destroy(&t->lkpi_sleep_lock);
+	put_pid(t->lkpi_tgid_ref);
+	put_pid(t->lkpi_pid_ref);
 	atomic_dec(&lkpi_task_live);
 	kfree(t);
 }
@@ -355,15 +357,37 @@ get_task_pid(struct task_struct *t, enum pid_type type)
 	    true));
 }
 
-/* No reference is taken (Linux semantics); the object stays listed. */
+/*
+ * No reference for the caller (Linux semantics): the task holds one,
+ * taken on first use and dropped when the task is freed, so the pointer
+ * stays valid for the task's lifetime (docs/12 L4). The static irq task
+ * keeps its reference forever.
+ */
+static struct pid *
+lkpi_task_pid_ref(struct task_struct *t, struct pid **slot, pid_t nr)
+{
+	struct pid *p = READ_ONCE(*slot), *n;
+
+	if (p != NULL)
+		return (p);
+	n = lkpi_pid_lookup(nr, true);
+	if (n == NULL)
+		return (NULL);
+	if (__atomic_compare_exchange_n(slot, &p, n, false, __ATOMIC_SEQ_CST,
+	    __ATOMIC_SEQ_CST))
+		return (n);
+	put_pid(n);		/* lost a race: p is the winner's */
+	return (p);
+}
+
 struct pid *
 task_tgid(struct task_struct *t)
 {
-	return (lkpi_pid_lookup(t->tgid, false));
+	return (lkpi_task_pid_ref(t, &t->lkpi_tgid_ref, t->tgid));
 }
 
 struct pid *
 task_pid(struct task_struct *t)
 {
-	return (lkpi_pid_lookup(t->pid, false));
+	return (lkpi_task_pid_ref(t, &t->lkpi_pid_ref, t->pid));
 }

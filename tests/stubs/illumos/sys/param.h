@@ -6,6 +6,7 @@
 #define	PAGESIZE	4096
 #define	PAGESHIFT	12
 #define	PAGEOFFSET	(PAGESIZE - 1)
+#define	PAGEMASK	(~PAGEOFFSET)
 #define	ptob(x)		((size_t)(x) << PAGESHIFT)
 #define	btop(x)		((x) >> PAGESHIFT)
 #endif
