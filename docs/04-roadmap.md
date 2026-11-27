@@ -302,6 +302,15 @@ The 11 syntax-check failures that were outside the KPI are fixed (import/drm_bsd
   INTx fallback, kmalloc alignment without over-allocation, I2C block reads. Syntax-check 374/374,
   link check 0 unresolved.
 
+- [x] Real illumos headers: scripts/illumos-hdr-check.sh compiles every module (linuxkpi,
+  lkpi_ktest, lkpi_toy, G1, drm, G2, i915) against an /usr/include-like overlay of an illumos-gate
+  tree (scripts/illumos-hdr-overlay.sh) with the real -Werror flags and gcc 14's default errors;
+  0 errors after renaming list_move_tail, struct sysinfo, sema_init, resume and timer_setup in
+  platform.h, guarding/undefining the macros illumos also defines, and declaring the ACPICA,
+  xc_call and HAT_PLAT_NOCACHE interfaces locally (their headers are not installed). The CI build
+  on OmniOS/OpenIndiana (.github/workflows/build.yml) is the authority; this check reproduces it
+  locally.
+
 KPI work still open (behaviour, not syntax):
 - [ ] User address-space features refused for now: i915 userptr (no VMAs visible), legacy
   I915_GEM_MMAP (vm_mmap), kernel SSE (SSE4.1 hidden), relay (GuC log), sysctl publishing.

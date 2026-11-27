@@ -32,5 +32,9 @@ tail -40 "$log"
 echo "== error count: $(grep -c 'error:' "$log")  warning count: $(grep -c 'warning:' "$log")"
 echo "== built objects: $(find build -name '*.o' 2>/dev/null | wc -l)  modules:"
 find build -type f \( -path '*/obj64/*' -o -path '*/debug64/*' \) ! -name '*.o' ! -name '*.d' 2>/dev/null | head -20
+echo "== make failures and linker/CTF messages (first 40)"
+grep -E '\*\*\*|fatal:|^ld: |ctfconvert|ctfmerge|undefined symbol|Undefined' "$log" | sed -e 's/^[0-9T:.Z-]* //' | head -40
+echo "== last 40 log lines"
+tail -40 "$log"
 echo "== result rc=$rc"
 exit $rc
