@@ -64,7 +64,7 @@ jobs:
         if: always()
         run: |
           mkdir -p out
-          cp -f ci-build.log out/ 2>/dev/null || true
+          cp -f ci-build.log ci-load-test.log out/ 2>/dev/null || true
           find build drivers -type f \( -path '*/obj64/*' -o -path '*/debug64/*' \) ! -name '*.o' -print0 2>/dev/null \
             | xargs -0 -r cp --parents -t out || true
       - uses: actions/upload-artifact@v7

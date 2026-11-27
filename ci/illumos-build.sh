@@ -36,5 +36,17 @@ echo "== make failures and linker/CTF messages (first 40)"
 grep -E '\*\*\*|fatal:|^ld: |ctfconvert|ctfmerge|undefined symbol|Undefined' "$log" | sed -e 's/^[0-9T:.Z-]* //' | head -40
 echo "== last 40 log lines"
 tail -40 "$log"
+echo "== build result rc=$rc"
+# Kernel load tests (ci/illumos-load-test.sh): disposable CI VM only, as
+# root, when linuxkpi was built. Only stages marked required fail the job.
+if [ "$(id -u)" = 0 ] && [ -f build/linuxkpi/obj64/linuxkpi ]; then
+	CI_VM=1 sh ci/illumos-load-test.sh > ci-load-test.log 2>&1
+	lrc=$?
+	cat ci-load-test.log
+	echo "== load test result rc=$lrc"
+	[ $lrc = 0 ] || rc=1
+else
+	echo "== load test skipped (not root, or build/linuxkpi/obj64/linuxkpi missing)"
+fi
 echo "== result rc=$rc"
 exit $rc

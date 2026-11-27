@@ -524,3 +524,27 @@ Recommendation for first boot on the Latitude 5420 Rugged: run with `immu-gfxdvm
 so the GPU is not translated, `device_iommu_mapped()` is false and the simpler non-VT-d paths are
 exercised first; enable it afterwards (and expect the workarounds to be applied automatically).
 All of this is read from illumos-gate source; none of it has been run.
+
+## 11. CI kernel load test (ci/illumos-load-test.sh)
+
+Runs at the end of `ci/illumos-build.sh` in the disposable OmniOS/OpenIndiana CI VM, as root, when
+`build/linuxkpi/obj64/linuxkpi` exists; output goes to the same job log and to `ci-load-test.log`
+(uploaded with the modules). It refuses to run without `CI_VM=1` (set by ci/illumos-build.sh) and
+must never run on a real machine: it copies modules into /usr/kernel and runs add_drv/rem_drv.
+
+| Stage | Kind | What |
+|-------|------|------|
+| install | required | `scripts/install-all.sh -R /var/tmp/psi915-stage -m <module>`, then copy into /usr/kernel |
+| kpi-load | required | modload linuxkpi, modinfo, load banner in `::msgbuf` (dmesg without mdb), modunload |
+| kpi-cycle | required | 20 load/unload cycles of linuxkpi (`CYCLES`) |
+| findleaks | informational | `::findleaks` after the cycle, only if kmem_flags != 0 (`FORCE_FINDLEAKS=1`) |
+| ktest | informational | modload `build/lkpi_ktest/obj64/lkpi_ktest` (suites run in `_init`, EIO on failure), summary line from the log, unload |
+| gfx-misc | informational | modload linuxkpi_gpl_g1, linuxkpi_drm, linuxkpi_gpl_g2, modinfo, unload in reverse |
+| i915 | informational | `add_drv -n i915` without aliases (no device binds), modload (`_init` only), modunload, rem_drv; skipped if another i915 is registered |
+| toy | skipped | no QEMU edu device in the CI VM |
+
+Only required stages fail the job; promote a stage by changing its letter in the `stage` calls. On a
+failure the script prints the kernel log tail, `modinfo -c` and `::modinfo` for the psi915 modules.
+kmem_flags=0xf needs /etc/system and a reboot, which the CI step does not do; until the VM image or
+a reboot step provides it, findleaks is reported as skipped. Untested so far: the first run is the
+CI run itself.
