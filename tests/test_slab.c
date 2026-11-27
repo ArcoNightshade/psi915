@@ -10,6 +10,7 @@
 
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/pgtable.h>
 #include <linux/vmalloc.h>
 #include <linux/string.h>
 #include <linux/overflow.h>
