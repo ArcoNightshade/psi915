@@ -16,6 +16,7 @@
 #include <linux/string.h>
 #include <linux/bug.h>
 #include <linux/rcupdate.h>
+#include <linux/pgtable.h>
 
 #define	LKPI_KMALLOC_MAGIC	0x6b6d6c63U	/* "kmlc" */
 #define	LKPI_KMALLOC_FREED	0x66726565U	/* "free" */
