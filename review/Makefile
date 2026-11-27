@@ -5,7 +5,7 @@ CC	= gcc
 CFLAGS	= -std=gnu11 -O1 -g -I$(TOP)/include -pthread -Wall -Wno-unused-parameter
 LIB	= $(wildcard $(TOP)/src/linux_*.c) $(TOP)/src/plat_userland.c $(TOP)/src/plat_userland_dev.c
 OUT	= out
-REPROS	= repro_dma_sg_kva repro_gfp_huge_sleep
+REPROS	= repro_dma_sg_kva repro_gfp_huge_sleep repro_irq_no_intx
 
 all: $(REPROS:%=run-%)
 
