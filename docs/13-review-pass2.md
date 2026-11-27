@@ -340,7 +340,10 @@ that the cookie address equals the page's physical address when no IOMMU is acti
 
 ## Area 9: fixes for docs/12 that landed during this pass (ab8aa90, 9f90922, 646f1da)
 
-Reviewed after merging; 646f1da is marked WIP by its author.
+Reviewed after merging; 646f1da is marked WIP by its author. With these fixes
+`review/repro_dma_sg_kva` (M1) and `review/repro_gfp_huge_sleep` (M2) now pass;
+`review/repro_irq_no_intx` (P2) still fails. `review/Makefile` now rebuilds the reproducers when
+the KPI sources change (it previously kept stale binaries, which made a fixed bug look present).
 
 ### F1 (low) Interruptible mutex: missed wake-up, recovered only by the 20 ms poll
 
@@ -384,6 +387,11 @@ kernel-internal callers.
   (rootnex.c:2743-2790, 2891-2992), using `b_addr` only for the first page's offset. Correct.
   Caveats, both documented by the author: a copy-buffer bounce (D2) would copy from `b_addr` as if
   contiguous (wrong data), and the immu (IOMMU) bind path was not checked for `v_priv` handling.
+  Further caveat: in `lkpi_sg_dma_map()` a page with no KPI `struct page` (`pfn_to_page() == NULL`)
+  ends the PFN walk with `contig = true`, so an entry that starts with KPI pages and continues into
+  memory the KPI does not know (an imported foreign buffer) would again be bound by VA range. All
+  pages of an order-N `alloc_pages()` block are registered in `lkpi_pages_by_pfn`, so i915's own
+  objects never hit this; failing the map (or treating it as non-contiguous) would be safer.
 - L2 fix: `thread_join(t_did)` after the creator waited for the id; detached threads no longer
   touch their descriptor after `fn`.
 - L1 fix: `lkpi_plat_signal_pending()` now reports exactly the `cv_wait_sig()` early-return set.
