@@ -31,6 +31,19 @@
  *    the device while the i915 alias does).
  *  - a CB_CL_PANIC callback that asks the Linux side to put the console
  *    framebuffer back on screen.
+ *  - console safety (docs/13 G1, docs/11 section 5.2): gfx_private writes
+ *    the console through a fixed mapping of the firmware framebuffer's
+ *    aperture address, i.e. through whatever the GGTT maps there. That is
+ *    safe only while i915 keeps the initial framebuffer object bound at its
+ *    firmware GGTT offset. The glue keeps gfx_private in KD_GRAPHICS (no
+ *    aperture writes, output to its shadow only) during probe, lets it
+ *    back to KD_TEXT only if the probed device still scans out an initial
+ *    framebuffer, and latches "console framebuffer lost" for good before
+ *    the first open of a primary (card) node, i.e. before any process can
+ *    become DRM master and modeset. Once lost: KD_TEXT is refused, resume
+ *    does not copy the shadow back, console mmap is refused. Until the
+ *    handover patches (R-P1..R-P3) exist, the console after the first DRM
+ *    master is the serial console.
  *
  * Constraints: one i915 device per system (drmglue hosts anonymous files on
  * the first DRM dip; KBL-R laptops have one GPU). The dev_ops fields
@@ -48,6 +61,7 @@
 #include <sys/conf.h>
 #include <sys/open.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <sys/kmem.h>
 #include <sys/cmn_err.h>
 #include <sys/ddi.h>
@@ -96,6 +110,14 @@ struct psi915_softc {
 	 * is avoided here altogether.)
 	 */
 	volatile boolean_t	cons_open;
+	/*
+	 * The aperture range gfx_private writes to may no longer be the
+	 * firmware framebuffer (see the comment at the top). Set once, never
+	 * cleared while attached. Read by the gfx_private setmode hook.
+	 */
+	volatile boolean_t	fb_lost;
+	volatile boolean_t	probing;	/* Linux probe in progress */
+	boolean_t		was_text;	/* gfxp mode before probe */
 	int			nnodes;
 	struct psi915_node	nodes[PSI915_MAX_NODES];
 	callb_id_t		panic_cb;
@@ -128,14 +150,80 @@ psi915_is_console(dev_t dev)
 	    lkpi_minor_clone((uint32_t)m) == 0);
 }
 
+/*
+ * KDGETMODE / KDSETMODE on gfx_private from the kernel (FKIOCTL: data is a
+ * kernel address for KDGETMODE, the mode value for KDSETMODE).
+ */
+static int
+psi915_cons_kd(struct psi915_softc *sc, int cmd, intptr_t data)
+{
+	dev_t dev = makedevice(ddi_driver_major(sc->dip),
+	    (minor_t)lkpi_minor_make(PSI915_NODE_CONSOLE, 0));
+	int rval = 0;
+
+	return (gfxp_fb_ioctl(dev, cmd, data, FKIOCTL, kcred, &rval,
+	    sc->gfxp));
+}
+
+/*
+ * Stop gfx_private writing through its aperture mapping: in KD_GRAPHICS
+ * every bitmap console routine (ioctl and polled paths) updates only the
+ * shadow copy (gfxp_bitmap.c: all fb writes are under mode == KD_TEXT).
+ */
+static void
+psi915_console_quiesce(struct psi915_softc *sc)
+{
+	int mode = -1;
+
+	if (sc->gfxp == NULL)
+		return;
+	if (psi915_cons_kd(sc, KDGETMODE, (intptr_t)&mode) == 0)
+		sc->was_text = (mode == KD_TEXT);
+	(void) psi915_cons_kd(sc, KDSETMODE, KD_GRAPHICS);
+}
+
+/* Undo psi915_console_quiesce() if the framebuffer is still the console's. */
+static void
+psi915_console_unquiesce(struct psi915_softc *sc)
+{
+	if (sc->gfxp == NULL || sc->fb_lost || !sc->was_text)
+		return;
+	/* bitmap_kdsetmode(KD_TEXT) copies the shadow back on screen. */
+	(void) psi915_cons_kd(sc, KDSETMODE, KD_TEXT);
+}
+
+/*
+ * Latch "the aperture range is no longer the console framebuffer" and
+ * silence gfx_private for good (docs/11 section 5.2). Called before the
+ * first open of a primary node: any opener may become DRM master and
+ * replace the initial framebuffer, after which i915 releases its GGTT range
+ * for reuse by rings, contexts and buffers (docs/13 G1).
+ */
+static void
+psi915_console_lose(struct psi915_softc *sc, const char *why)
+{
+	if (sc->gfxp == NULL || sc->fb_lost)
+		return;
+	sc->fb_lost = B_TRUE;		/* the setmode hook refuses KD_TEXT */
+	(void) psi915_cons_kd(sc, KDSETMODE, KD_GRAPHICS);
+	cmn_err(CE_NOTE, "i915: framebuffer console stopped (%s); console "
+	    "output continues on other console devices (serial) until reboot",
+	    why);
+}
+
 static int
 psi915_open(dev_t *devp, int flag, int otyp, cred_t *cr)
 {
 	struct psi915_softc *sc = psi915_sc;
 	int r;
 
-	if (!psi915_is_console(*devp))
+	if (!psi915_is_console(*devp)) {
+		/* Primary node (card0..63): a possible DRM master. */
+		if (sc != NULL && sc->pdev != NULL &&
+		    lkpi_minor_node((uint32_t)getminor(*devp)) < 64)
+			psi915_console_lose(sc, "DRM primary node opened");
 		return (drmglue_cb_ops.cb_open(devp, flag, otyp, cr));
+	}
 	if (sc == NULL || sc->gfxp == NULL)
 		return (ENXIO);
 	r = gfxp_fb_open(devp, flag, otyp, cr, sc->gfxp);
@@ -187,7 +275,36 @@ psi915_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len,
 		    model));
 	if (sc == NULL || sc->gfxp == NULL)
 		return (ENXIO);
+	/* See psi915_segmap(). */
+	if (sc->pdev != NULL || sc->fb_lost)
+		return (ENODEV);
 	return (gfxp_fb_devmap(dev, dhp, off, len, maplen, model, sc->gfxp));
+}
+
+/*
+ * mmap(2) of the console minor goes through segmap, as for vgatext
+ * (ddi_devmap_segmap -> devmap -> gfxp_fb_devmap); DRM nodes keep
+ * drmglue's segmap. The console mapping is the raw aperture window at the
+ * firmware framebuffer address, so it is only offered while nothing else
+ * can own that GGTT range: console-only attach (no DRM device). With the
+ * DRM device attached, a mapping made early would outlive the console's
+ * ownership of the range (docs/13 G2), so it is refused (ENODEV).
+ */
+static int
+psi915_segmap(dev_t dev, off_t off, struct as *as, caddr_t *addrp, off_t len,
+    uint_t prot, uint_t maxprot, uint_t flags, cred_t *cr)
+{
+	struct psi915_softc *sc = psi915_sc;
+
+	if (!psi915_is_console(dev))
+		return (drmglue_cb_ops.cb_segmap(dev, off, as, addrp, len, prot,
+		    maxprot, flags, cr));
+	if (sc == NULL || sc->gfxp == NULL)
+		return (ENXIO);
+	if (sc->pdev != NULL || sc->fb_lost)
+		return (ENODEV);
+	return (ddi_devmap_segmap(dev, off, as, addrp, len, prot, maxprot,
+	    flags, cr));
 }
 
 static int
@@ -219,15 +336,25 @@ psi915_getinfo(dev_info_t *dip, ddi_info_cmd_t cmd, void *arg, void **result)
  * gfx_private callback for KDSETMODE on the console minor. No argument
  * pointer is passed (struct gfxp_blt_ops), hence the single-instance
  * softc. mode is KD_TEXT or KD_GRAPHICS.
+ *
+ * A non-zero return makes bitmap_kdsetmode() fail before it copies the
+ * shadow into the aperture, and gfx_private stays in KD_GRAPHICS (output
+ * to the shadow only). KD_TEXT is refused while the Linux probe runs and
+ * after the console framebuffer is lost (docs/13 G1). tem ignores the
+ * KDSETMODE result, so it keeps drawing, into the shadow.
  */
 static int
 psi915_blt_setmode(int mode)
 {
 	struct psi915_softc *sc = psi915_sc;
 
-	if (sc == NULL || sc->pdev == NULL)
+	if (sc == NULL || mode != KD_TEXT)
 		return (0);
-	return (psi915_drm_console_setmode(sc->pdev, mode == KD_TEXT));
+	if (sc->probing || sc->fb_lost)
+		return (EIO);
+	if (sc->pdev == NULL)
+		return (0);
+	return (psi915_drm_console_setmode(sc->pdev, 1));
 }
 
 static struct gfxp_blt_ops psi915_blt_ops = {
@@ -342,11 +469,16 @@ psi915_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
 		sc = psi915_sc;
 		if (sc == NULL || sc->dip != dip)
 			return (DDI_FAILURE);
-		/* Display hardware first, then the console redraw. */
+		/*
+		 * Display hardware first, then the console redraw.
+		 * bitmap_resume() copies the shadow into the aperture whatever
+		 * the KD mode, so it runs only while the aperture range is
+		 * still the console framebuffer (docs/13 G1).
+		 */
 		if (sc->pdev != NULL &&
 		    lkpi_pci_attach(dip, DDI_RESUME) != DDI_SUCCESS)
 			return (DDI_FAILURE);
-		if (sc->gfxp != NULL)
+		if (sc->gfxp != NULL && !sc->fb_lost)
 			(void) gfxp_fb_attach(dip, DDI_RESUME, sc->gfxp);
 		return (DDI_SUCCESS);
 	default:
@@ -363,11 +495,19 @@ psi915_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
 	psi915_sc = sc;
 
 	psi915_console_attach(sc);
+	if (sc->gfxp != NULL)
+		gfxp_bm_register_fbops(sc->gfxp, &psi915_blt_ops);
 
 	/* i915.conf properties named like Linux parameters, before probe. */
 	params = psi915_i915_params(&nparams);
 	(void) lkpi_module_params_apply(dip, params, nparams);
 
+	/*
+	 * Probe reprograms the GGTT; until it is known whether i915 kept the
+	 * firmware framebuffer bound, gfx_private draws into its shadow only.
+	 */
+	sc->probing = B_TRUE;
+	psi915_console_quiesce(sc);
 	if (lkpi_pci_attach(dip, DDI_ATTACH) == DDI_SUCCESS) {
 		sc->pdev = ddi_get_driver_private(dip);
 		if (psi915_nodes_attach(sc) != 0) {
@@ -375,15 +515,38 @@ psi915_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
 			sc->pdev = NULL;
 		}
 	}
-	if (sc->pdev == NULL) {
+	sc->probing = B_FALSE;
+
+	if (sc->pdev != NULL) {
+		/*
+		 * Before any process can open a DRM node, only the initial
+		 * plane can hold a framebuffer: if i915 did not take over the
+		 * firmware framebuffer (intel_plane_initial.c), its GGTT range
+		 * may already belong to other objects.
+		 */
+		if (psi915_drm_initial_fb_present(sc->pdev))
+			psi915_console_unquiesce(sc);
+		else
+			psi915_console_lose(sc, "i915 did not keep the "
+			    "firmware framebuffer");
+	} else {
 		if (!psi915_console_fallback || sc->gfxp == NULL)
 			goto fail;
+		/*
+		 * docs/12 A1: the failed probe may have cleared the GGTT or
+		 * turned the plane off, so the console can be blank. It is
+		 * still safe: with the DRM device gone nothing else owns the
+		 * aperture range. Recovery: set i915:psi915_nomodeset = 1,
+		 * which attaches console-only without touching the GPU.
+		 */
 		cmn_err(CE_WARN, "i915: DRM probe failed; attached as console "
-		    "framebuffer only");
+		    "framebuffer only. The screen may stay blank if probe got "
+		    "past GGTT/display init; boot with "
+		    "\"set i915:psi915_nomodeset = 1\" in /etc/system to keep "
+		    "the firmware console untouched");
+		psi915_console_unquiesce(sc);
 		ddi_report_dev(dip);
 	}
-	if (sc->gfxp != NULL)
-		gfxp_bm_register_fbops(sc->gfxp, &psi915_blt_ops);
 	sc->panic_cb = callb_add(psi915_panic_callb, sc, CB_CL_PANIC,
 	    "i915_panic");
 	return (DDI_SUCCESS);
@@ -405,11 +568,16 @@ psi915_detach(dev_info_t *dip, ddi_detach_cmd_t cmd)
 
 	switch (cmd) {
 	case DDI_SUSPEND:
-		/* Linux dev_pm_ops first (saves display state), then gfxp. */
+		/*
+		 * Linux dev_pm_ops first (saves display state), then gfxp.
+		 * With the console framebuffer lost, gfxp is left alone in
+		 * both directions (its resume would copy the shadow into the
+		 * aperture, docs/13 G1).
+		 */
 		if (sc->pdev != NULL &&
 		    lkpi_pci_detach(dip, DDI_SUSPEND) != DDI_SUCCESS)
 			return (DDI_FAILURE);
-		if (sc->gfxp != NULL &&
+		if (sc->gfxp != NULL && !sc->fb_lost &&
 		    gfxp_fb_detach(dip, DDI_SUSPEND, sc->gfxp) != DDI_SUCCESS) {
 			if (sc->pdev != NULL)
 				(void) lkpi_pci_attach(dip, DDI_RESUME);
@@ -434,11 +602,21 @@ psi915_detach(dev_info_t *dip, ddi_detach_cmd_t cmd)
 			return (DDI_FAILURE);
 	}
 
+	/*
+	 * The DRM nodes go first so that nothing can open the device while
+	 * i915_pci_remove() runs. If the remove fails (it cannot today, and
+	 * detach is unreachable while the KPI holds the dip, docs/13 P1), the
+	 * nodes are registered again and the driver stays fully attached
+	 * (docs/13 A2).
+	 */
 	psi915_nodes_detach(sc);
 	if (sc->pdev != NULL) {
-		/* drm_dev_unplug/remove: lkpi_pci_detach cannot fail today. */
 		if (lkpi_pci_detach(dip, DDI_DETACH) != DDI_SUCCESS) {
-			cmn_err(CE_WARN, "i915: Linux remove failed");
+			cmn_err(CE_WARN, "i915: Linux remove failed; detach "
+			    "refused");
+			if (psi915_nodes_attach(sc) != 0)
+				cmn_err(CE_WARN, "i915: DRM minor nodes could "
+				    "not be restored");
 			return (DDI_FAILURE);
 		}
 		sc->pdev = NULL;
@@ -455,7 +633,7 @@ psi915_detach(dev_info_t *dip, ddi_detach_cmd_t cmd)
  * Module init, called by LKPI_PCI_DRIVER_MODULE's _init before
  * mod_install(): finish the dev_ops and cb_ops, then run the Linux module
  * init (which registers i915_pci_driver). drmglue itself is initialised by
- * the module that links it (linuxkpi_gpl_g1 by default), not here.
+ * the module that links it (linuxkpi by default, DRMGLUE_IN), not here.
  */
 static int
 psi915_i915_init(void)
@@ -465,6 +643,7 @@ psi915_i915_init(void)
 	psi915_cb_ops.cb_close = psi915_close;
 	psi915_cb_ops.cb_ioctl = psi915_ioctl;
 	psi915_cb_ops.cb_devmap = psi915_devmap;
+	psi915_cb_ops.cb_segmap = psi915_segmap;
 
 	i915_lkpi_dev_ops.devo_cb_ops = &psi915_cb_ops;
 	i915_lkpi_dev_ops.devo_getinfo = psi915_getinfo;

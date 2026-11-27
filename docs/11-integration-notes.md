@@ -35,7 +35,7 @@ so its direct calls resolve without relying on transitive loading.
 | Module | Type, path | Contents | Licence of the binary |
 |--------|------------|----------|-----------------------|
 | linuxkpi | misc, /usr/kernel/misc/amd64 | KPI core (`src/`, unchanged, built by `build/linuxkpi`) | BSD-2 |
-| linuxkpi_gpl_g1 | misc | gpl/ `dma-buf.c dma-fence.c dma-fence-array.c dma-fence-chain.c dma-fence-unwrap.c sync_file.c` (G1), drm/ `dma-buf/dma-resv.c` (MIT), drmglue/ (BSD, with the default `DRMGLUE_IN=g1`) | GPL-2.0 (combined) |
+| linuxkpi_gpl_g1 | misc | gpl/ `dma-buf.c dma-fence.c dma-fence-array.c dma-fence-chain.c dma-fence-unwrap.c sync_file.c` (G1), drm/ `dma-buf/dma-resv.c` (MIT), drmglue/ (BSD) only with `DRMGLUE_IN=g1` (default: in linuxkpi) | GPL-2.0 (combined) |
 | linuxkpi_drm | misc | drm/ sets core+link except dma-resv.c: DRM core, atomic/KMS helpers, display helpers (DP, MST, DSC, HDMI, SCDC, dual-mode), TTM, drm_buddy, mipi_dsi, panel/bridge/privacy-screen, drm/drivers/video (aperture, hdmi); drm_bsd/ DRM core and video (drm_managed, drm_sysfs, drm_lease, drm_writeback, cmdline, nomodeset); optionally the DRM scheduler (`WITH_DRM_SCHED=1`, set "extra", unused by i915) | MIT/HPND/dual + BSD-2 |
 | linuxkpi_gpl_g2 | misc | gpl/ `display/drm_hdcp_helper.c`, `drm_gem_framebuffer_helper.c` (G2) | GPL-2.0 (combined) |
 | i915 | drv, /usr/kernel/drv/amd64 + /usr/kernel/drv/i915.conf | i915/ sets core (184 files) + link (100 files), drm_bsd `intel_acpi.c`, drivers/i915_glue | MIT + BSD-2 |
@@ -46,15 +46,14 @@ Deviations from the brief, and why:
    get_singleton/...`; with dma-resv in drm, G1 would need drm and drm already needs G1
    (`dma_fence_*` from drm_syncobj, drm_prime, drm_gem, ...): a load-order cycle. docs/08 section 5.2
    already puts it in G1. It is MIT; linking it into the GPL module is allowed.
-2. **drmglue is in linuxkpi_gpl_g1 by default, not linuxkpi_drm.** G1 needs drmglue's file layer
-   (`fd_install`, `get_unused_fd_flags`, `fget/fput`, `anon_inode_getfile`, `alloc_file_pseudo`,
-   `alloc_anon_inode`, `kern_mount`, `init_pseudo`, poll-wait glue; docs/10 R9) and may depend on
-   linuxkpi only. drmglue cannot be split from outside drmglue/ (`anonfs_illumos.c` uses the host major
-   that `cdev_illumos.c` records). `DRMGLUE_IN` in `build/drm/Makefile.lkpi` selects the module:
-   `g1` (default, loadable), `drm` (as in the brief; then G1 needs `misc/linuxkpi_drm`, a cycle, not
-   loadable), `none` (for the target layout: drmglue linked into linuxkpi, request R-K2). BSD code in a
-   GPL combined module is licence-compatible, but it makes the BSD file layer unavailable without the
-   GPL module; R-K2 fixes that.
+2. **drmglue is not in linuxkpi_drm.** G1 needs drmglue's file layer (`fd_install`,
+   `get_unused_fd_flags`, `fget/fput`, `anon_inode_getfile`, `alloc_file_pseudo`, `alloc_anon_inode`,
+   `kern_mount`, `init_pseudo`, poll-wait glue; docs/10 R9) and may depend on linuxkpi only, and
+   drmglue cannot be split from outside drmglue/ (`anonfs_illumos.c` uses the host major that
+   `cdev_illumos.c` records). `DRMGLUE_IN` in `build/drm/Makefile.lkpi` selects the module: `none`
+   (default since R-K2 landed: drmglue is linked into linuxkpi, `DRMGLUE_OBJS` in
+   build/Makefile.files), `g1` (the earlier interim layout, loadable), `drm` (as in the brief; then G1
+   needs `misc/linuxkpi_drm`, a cycle, not loadable).
 3. **The scheduler** (drm/scheduler, set "extra") is not built by default: i915 does not use it.
    `gmake -C build/drm WITH_DRM_SCHED=1` adds it and its `module_init`.
 
@@ -63,8 +62,8 @@ depend on it, and `EXPORT_SYMBOL*` is a no-op in the KPI (`<linux/module.h>`). I
 
 | Module | Linux EXPORT_SYMBOL* in its sources | Other interfaces |
 |--------|----------------------------------|------------------|
-| linuxkpi | (KPI, not Linux exports) | the whole KPI: `lkpi_*`, Linux-named functions of src/, `lkpi_pci_attach/detach`, `lkpi_ddi_getinfo`, `lkpi_module_params_apply`, `linuxkpi_version` |
-| linuxkpi_gpl_g1 | 76 (58 in G1 proper per docs/08, plus dma-resv) | drmglue: `drmglue_cb_ops`, `drmglue_getinfo`, `drmglue_attach_node`, `drmglue_detach_node`, `drmglue_ioctl_abi`, `lkpi_node_*`, `lkpi_cdev_*`, `lkpi_vma_*`, the Linux file layer (`fget`, `fput`, `fd_install`, ...) |
+| linuxkpi | (KPI, not Linux exports) | the whole KPI: `lkpi_*`, Linux-named functions of src/, `lkpi_pci_attach/detach`, `lkpi_ddi_getinfo`, `lkpi_module_params_apply`, `linuxkpi_version`; with the default `DRMGLUE_IN=none` also drmglue: `drmglue_cb_ops`, `drmglue_getinfo`, `drmglue_attach_node`, `drmglue_detach_node`, `drmglue_ioctl_abi`, `lkpi_node_*`, `lkpi_cdev_*`, `lkpi_vma_*`, the Linux file layer (`fget`, `fput`, `fd_install`, ...) |
+| linuxkpi_gpl_g1 | 76 (58 in G1 proper per docs/08, plus dma-resv) | (drmglue only with `DRMGLUE_IN=g1`) |
 | linuxkpi_drm | 986 (drm, kms helper, display helper, ttm, buddy, mipi_dsi, video, drm_bsd) | `video_bsd_set_option`, `video_bsd_set_firmware_drivers_only`, `drm_bsd_set_uevent_hook` |
 | linuxkpi_gpl_g2 | 15 | - |
 | i915 | 5 (i915 exports for mei/gvt, unused) | the driver's dev_ops; tunables `psi915_*` |
@@ -80,9 +79,10 @@ v6.14). R-K4 asks for a module prefix in the descriptor name.
 Load order follows the DT_NEEDED chain: loading i915 makes krtld load linuxkpi, linuxkpi_gpl_g1,
 linuxkpi_drm, linuxkpi_gpl_g2 first, each `_init` in that order:
 
-1. linuxkpi `_init`: KPI service threads, RCU, workqueues.
-2. linuxkpi_gpl_g1 `_init`: `drmglue_init()` (poll taskq, segdev/anon backends, anonymous vfs),
-   then `dma_buf_init` (pseudo mount through drmglue).
+1. linuxkpi `_init`: KPI service threads, RCU, workqueues, `drmglue_init()` (poll taskq,
+   segdev/anon backends, anonymous vfs).
+2. linuxkpi_gpl_g1 `_init`: `dma_buf_init` (pseudo mount through drmglue). With `DRMGLUE_IN=g1`,
+   G1 calls `drmglue_init()` itself first.
 3. linuxkpi_drm `_init`: `mipi_dsi_bus_init` (postcore), `drm_core_init`,
    `drm_display_helper_module_init`, `drm_buddy_module_init` (and `drm_sched_fence_slab_init` with
    the scheduler). krtld walks no initcall section, so these are named explicitly; exits run in reverse
@@ -105,7 +105,10 @@ console is configured. Requirements and consequences:
 - /usr must be on the root pool (true for OpenIndiana and Tribblix default installs).
 - The console minor `text-0` must be created before card0/renderD128 (it is, section 4).
 - A probe failure must not leave the system without a console: the glue then stays attached in
-  console-only mode (vgatext cannot bind the device once the i915 alias exists).
+  console-only mode (vgatext cannot bind the device once the i915 alias exists). That keeps a
+  console device but not necessarily a visible picture: a probe that failed after GGTT or display
+  init can leave the aperture mapped to scratch or the plane off (docs/12 A1); the glue then logs a
+  warning naming the recovery, `psi915_nomodeset=1`.
 - A hang in probe hangs the boot. Bring-up therefore uses a new boot environment and a serial console
   (section 6), and `psi915_nomodeset=1` in /etc/system is the escape hatch (console-only attach).
 
@@ -155,6 +158,10 @@ Flags (`build/drm/Makefile.lkpi` on top of `build/Makefile.master`):
   collide with the module file `obj64/i915`).
 - CTF: `ctfconvert` per object and `ctfmerge` per module when the tools exist (as build/linuxkpi);
   failures on imported DWARF are warnings (`CTF_STRICT=1` makes them fatal), the kmod then has no CTF.
+  The label is passed with `-l $(CTF_LABEL)` (`psi915-<git describe>`), not Makefile.master's
+  `-L VERSION`, which reads the label from a `VERSION` environment variable that only the gate's
+  nightly sets (docs/13 B1). Same override in build/linuxkpi/Makefile; build/lkpi_ktest and
+  build/lkpi_toy still inherit `-L VERSION` (R-B2).
 
 Module size. One kmod per module is kept; no split. Reasons: `ld -r -ztype=kmod` has no practical size
 limit; krtld places module text in `heaptext_arena`, 128 MiB for all modules on amd64
@@ -167,16 +174,12 @@ loaded size). Splitting i915 would not help: display and GT reference each other
 kmods would need mutual DT_NEEDED entries, which krtld cannot load. If a size problem appears, first
 drop set "link" files by stub patches (100 i915 files, docs/08 3.4).
 
-Syntax-check snapshot (HOST_STUBS=1 against the KPI at merge 9cfcdba; stub headers, so this tracks
-KPI header coverage, not illumos compatibility). Report per module in
-`build/<mod>/obj64/syntax-report.tsv`, summary in `build/i915/obj64/gfx-syntax-summary.tsv`:
-
-| Module | TUs | pass | first errors of the failures (most frequent) |
-|--------|-----|------|--------------------------------------------|
-| linuxkpi_gpl_g1 | 18 | 17 | `uapi/linux/dma-buf.h` missing (dma-buf.c) |
-| linuxkpi_drm | 77 | 48 | `BUILD_BUG_ON` non-constant expression (10, R-K5), `video/cmdline.h`, `__read_mostly`, `video/mipi_display.h`, `video/of_videomode.h`, `drm/drm_format_helper.h` (R-G1) |
-| linuxkpi_gpl_g2 | 3 | 3 | - |
-| i915 | 287 | 16 | `BUILD_BUG_ON` non-constant in ttm_device.h (241, R-K5), `struct tasklet_struct` incomplete (16), `u32` |
+Syntax-check snapshot (HOST_STUBS=1, stub headers, so this tracks KPI header coverage, not illumos
+compatibility). Report per module in `build/<mod>/obj64/syntax-report.tsv`, summary in
+`build/i915/obj64/gfx-syntax-summary.tsv`. At merge 7dff85f (2026-11-27) every unit passes:
+linuxkpi_gpl_g1 8 (drmglue now in linuxkpi), linuxkpi_drm 78, linuxkpi_gpl_g2 3, i915 285 (374 in
+all, including the glue). At merge 9cfcdba (2026-11-26) it was 84 of 385; the requests R-K5, R-K6a
+and R-G1 below were the main blockers then and have since been addressed by the KPI side.
 
 All psi915 glue units pass (module linkage files, drmglue, `i915_ddi.c`, `i915_drm_glue.c`), against
 stubs. The KPI agent's `scripts/p3-compile-check.py` measures the same with slightly different include
@@ -190,8 +193,8 @@ cannot share a translation unit cleanly (platform.h ordering, `mutex_init` and f
 
 - `i915_ddi.c` (illumos headers first, then `<linuxkpi/ddi.h>` and drmglue's illumos header):
   `LKPI_PCI_DRIVER_MODULE(i915, ..., psi915_i915_init, psi915_i915_exit)`; `psi915_i915_init()` sets
-  `devo_cb_ops` (a copy of `drmglue_cb_ops` with open/close/ioctl/devmap wrapped for the console
-  minor), `devo_getinfo = psi915_getinfo` (drmglue's minor layout is `clone << 8 | node`, which
+  `devo_cb_ops` (a copy of `drmglue_cb_ops` with open/close/ioctl/devmap/segmap wrapped for the
+  console minor), `devo_getinfo = psi915_getinfo` (drmglue's minor layout is `clone << 8 | node`, which
   `lkpi_ddi_getinfo` would decode as an instance), `devo_attach/detach` (wrappers around
   `lkpi_pci_attach/detach`), before `mod_install`. The macro has no parameters for these, hence the
   assignment (R-K3).
@@ -203,16 +206,32 @@ attach(DDI_ATTACH):
 2. Console: `gfxp_fb_softc_alloc` + `gfxp_fb_attach` (bitmap framebuffer from the boot loader on UEFI,
    VGA text otherwise; sets `primary-controller`), then `ddi_create_minor_node("text-0", minor
    0xfe, DDI_NT_DISPLAY)`, the first minor of the dip (consconfig, section 2).
+   Then `gfxp_bm_register_fbops(&psi915_blt_ops)` (KDSETMODE hook).
 3. `lkpi_module_params_apply(dip, psi915_i915_params())`: i915.conf properties named like Linux
    parameters (23 of them, `i915_drm_glue.c`).
-4. `lkpi_pci_attach(dip, DDI_ATTACH)`: pci_dev wrapper, `i915_pci_probe` -> `drm_dev_register`.
-5. `psi915_drm_nodes()` reads `dev->primary` and `dev->render` of the drm_device stored as PCI
+4. Console quiesce: KDGETMODE is remembered, gfx_private is put in KD_GRAPHICS (output to its
+   shadow only) and the hook refuses KD_TEXT while the probe runs (section 5.2).
+5. `lkpi_pci_attach(dip, DDI_ATTACH)`: pci_dev wrapper, `i915_pci_probe` -> `drm_dev_register`.
+6. `psi915_drm_nodes()` reads `dev->primary` and `dev->render` of the drm_device stored as PCI
    drvdata (`pci_set_drvdata(pdev, &i915->drm)`) and calls `drmglue_attach_node(dip, index,
    "card0"/"renderD128", dev->driver->fops, psi915_drm_kcmd)` (DDI_NT_DISPLAY_DRM). The driver fops are
    used directly: drm_open finds the minor from `iminor()`, which drmglue sets, so `drm_stub_fops`
    (static) is not needed.
-6. `gfxp_bm_register_fbops(&psi915_blt_ops)` (KDSETMODE hook), `callb_add(CB_CL_PANIC)`.
-7. If 4 or 5 fail and the console attached: stay attached, console only (`psi915_console_fallback`).
+7. Console decision: if a primary plane scans out a framebuffer (`psi915_drm_initial_fb_present`,
+   which before any open can only be the firmware framebuffer i915 took over), KD_TEXT is restored
+   if it was set; otherwise the console framebuffer is marked lost (section 5.2).
+8. If 5 or 6 fail and the console attached: stay attached, console only (`psi915_console_fallback`),
+   KD_TEXT restored, with a warning that the picture may be blank if probe got past GGTT/display init
+   and that `psi915_nomodeset=1` keeps the firmware console untouched (docs/12 A1). Safe in either
+   case: with no DRM device, nothing else owns the aperture range.
+9. `callb_add(CB_CL_PANIC)`.
+
+Console minor mmap (docs/13 G2): `cb_segmap` of the console minor is `ddi_devmap_segmap` ->
+`psi915_devmap` -> `gfxp_fb_devmap`, as for vgatext, but only in console-only attach. With the DRM
+device attached the mapping (the raw aperture window at the firmware framebuffer address) is
+refused with ENODEV, because a mapping made while the range is still the console's would survive
+the first modeset and alias GPU objects; drmglue's segmap serves the DRM nodes. `cb_read` and
+`cb_chpoll` of the console minor still reach drmglue and fail with ENXIO (vgatext has none either).
 
 ioctl-size callback (`psi915_drm_kcmd`, docs/10 2.4): core numbers 0x00-0x3f and 0xa0-0xff from a
 table built from every `DRM_IOCTL_*` definition of uapi drm.h (`drm_ioctls[]` is static in
@@ -225,19 +244,23 @@ Device nodes and links: minors `text-0` (console, `ddi_display`), `card0`, `rend
 command.
 
 detach(DDI_DETACH): refused while the console minor or a DRM node has open files (the framework
-already refuses while any minor is open); then drmglue nodes, `lkpi_pci_detach` (remove, devres),
-panic callback, console minor, gfxp state. Untested and of limited value: tem keeps the console open,
-so a console GPU never detaches.
+already refuses while any minor is open); then the drmglue nodes are unregistered (so nothing can
+open the device during remove) and `lkpi_pci_detach` runs (remove, devres); if it fails the nodes
+are registered again and detach returns DDI_FAILURE with the driver fully attached (docs/13 A2);
+then panic callback, console minor, gfxp state. Untested and currently unreachable: tem keeps the
+console open, and the KPI's hold on its own dip blocks detach(9E) altogether (docs/13 P1).
 
 Power management: DDI_SUSPEND -> `lkpi_pci_detach(DDI_SUSPEND)` = dev_pm_ops prepare, suspend,
 suspend_late, suspend_noirq (i915_pm_ops), then `gfxp_fb_detach(DDI_SUSPEND)`; on gfxp failure the
 Linux side is resumed again. DDI_RESUME -> `lkpi_pci_attach(DDI_RESUME)` = resume_noirq,
-resume_early, resume, complete, then `gfxp_fb_attach(DDI_RESUME)` (console redraw). Suspend is P7
+resume_early, resume, complete, then `gfxp_fb_attach(DDI_RESUME)` (console redraw). Both gfxp calls
+are skipped once the console framebuffer is lost: `bitmap_resume()` copies the shadow into the
+aperture whatever the KD mode (docs/13 G1). Suspend is P7
 work; illumos S3 on this laptop class is itself unverified. quiesce(9E) is
 `ddi_quiesce_not_supported` (from the macro), so fast reboot is disabled while i915 is loaded.
 
 Tunables: `psi915_nomodeset`, `psi915_console_fallback`, `psi915_enable_console` (i915 module,
-/etc/system), `drmglue_ioctl_abi` (linuxkpi_gpl_g1), i915.conf properties; all listed in
+/etc/system), `drmglue_ioctl_abi` (linuxkpi with the default layout), i915.conf properties; all listed in
 `drivers/i915_glue/i915.conf`.
 
 ## 5. Console handoff design
@@ -262,6 +285,35 @@ wscons see no difference until KMS changes the display. i915's own initial-plane
 its original GGTT offset) keeps the boot framebuffer scanned out at the same aperture address, so tem
 keeps drawing through its existing mapping. No fbdev emulation is built (CONFIG_DRM_FBDEV_EMULATION
 off, set "fbdev" not imported), so no in-kernel DRM client competes with tem.
+
+Console safety without the handover patches (implemented, docs/13 G1). gfx_private maps the
+firmware framebuffer once by physical address in the aperture, so what it writes lands wherever the
+GGTT PTEs at that offset point. That is the console only while i915 keeps the initial framebuffer
+bound at its firmware offset; the first DRM master's modeset makes i915 release it and the range is
+reused for rings, contexts, status pages and buffers. Chosen behaviour (the "refuse text mode" option
+of the review, not the pinning patch, which needs R-P1 and an untested i915 change):
+- Every write gfx_private makes to the aperture is conditional on its mode being KD_TEXT
+  (`gfxp_bitmap.c`: display, copy and cursor, ioctl and polled paths) except the KD_TEXT switch itself
+  and `bitmap_resume()`. The glue therefore controls the mode, through KDGETMODE/KDSETMODE issued
+  with FKIOCTL, and refuses KD_TEXT in the setmode hook (a non-zero return makes
+  `bitmap_kdsetmode()` fail before its copy).
+- During probe: KD_GRAPHICS, KD_TEXT refused (probe reprograms the GGTT).
+- After probe: if a primary plane scans out a framebuffer, it is the firmware one (no process has
+  opened a node yet), so the console is restored. If none does (i915 did not take the firmware
+  framebuffer over, e.g. stolen memory reservation failed), the console framebuffer is lost at once.
+- Before the first open of any primary node (card0..63), whoever opens it, the console framebuffer is
+  marked lost: KD_GRAPHICS is forced, KD_TEXT is refused from then on, resume skips gfxp's redraw,
+  console mmap stays refused. A one-line note goes to the log. Render-node opens (no modeset rights)
+  do not trigger it.
+- Effect: the framebuffer console works from boot until the first DRM client opens card0; after that
+  tem keeps running but draws into gfx_private's shadow only, until reboot. Use the serial console
+  (or ssh) from then on. VT switches back to the console and Xorg exit show whatever the last DRM
+  master left on screen. Panic and kmdb output under that state also go to the shadow only (no
+  corruption, not visible).
+- For a VGA-text boot (legacy CSM), forcing KD_GRAPHICS reprograms the VGA as Xorg's own KDSETMODE
+  does today with vgatext; i915 has VGA decode off anyway, so nothing there can corrupt GPU memory.
+Lifting the restriction needs R-P1 (keep the range pinned) and R-P2 (restore scanout on KD_TEXT);
+then `psi915_console_lose()` is no longer called on node open and the hook calls the restore.
 
 5.3 The three problems and the design to fix them (not implemented; patch requests R-P1..R-P3):
 
@@ -362,6 +414,10 @@ KPI (include/, src/, build/linuxkpi):
   `i915_vtd_active()`) to apply the Gen9 VT-d scanout workarounds (256 KiB alignment, guard pages;
   docs/08 4.1). It must return true when the illumos immu translates the device's DMA (rootnex/immu
   state for the dip). Otherwise the GPU must stay outside immu translation.
+- R-K8 `EXPORT_SYMBOL_FOR_TESTS_ONLY(sym)` in include/linux/module.h and linux/export.h clashes
+  with drm/drm_util.h's own `#define EXPORT_SYMBOL_FOR_TESTS_ONLY(x)` (non-identical
+  redefinition; an error under -Werror). Drop the KPI definition (drm_util.h is its only user) or
+  spell it `(x)` with the same expansion. i915_drm_glue.c `#undef`s it for now.
 
 GPL policy / imports (third_party/):
 - R-G1 `allow-header include/drm/drm_gem_atomic_helper.h` includes `drm/drm_format_helper.h`, a GPL
@@ -370,12 +426,17 @@ GPL policy / imports (third_party/):
   drm_gem_atomic_helper.h with a BSD header in drm_bsd/.
   Done 2026-11-26: drm_gem_atomic_helper.h is replaced by a BSD header plus drm_gem_plane_helper_prepare_fb()
   in drm_bsd/, and the GPL pair is set "replaced" (docs/04).
-- R-P1..R-P3 i915 console patches (section 5.3).
+- R-P1..R-P3 i915 console patches (section 5.3). Until they exist, the glue's stop-gap of section
+  5.2 applies (console framebuffer stops at the first card0 open).
 
 Build (build/Makefile, top-level Makefile):
 - R-B1 Add `linuxkpi_gpl_g1 drm linuxkpi_gpl_g2 i915` to `SUBDIRS` in build/Makefile (in that order,
   after linuxkpi), and let `make install` call `scripts/install-all.sh`. Until then use
   `scripts/build-gfx.sh`. Also list docs/11 in the README docs table.
+- R-B2 In build/Makefile.master, replace `CTFCVTFLAGS = -i -L VERSION` / `CTFMRGFLAGS = -L VERSION`
+  with an explicit label (`-l psi915-<rev>`, as build/drm/Makefile.lkpi and build/linuxkpi/Makefile
+  now do), so lkpi_ktest and lkpi_toy also build with onbld installed and no VERSION in the
+  environment (docs/13 B1).
 
 Userland (userland/config):
 - R-U1 Add `i915:text-* 0600 root sys` to minor_perm.psi915 (the installer adds it to the printed
@@ -383,16 +444,17 @@ Userland (userland/config):
 
 ## 8. Known blockers
 
-1. Most imported translation units do not compile yet (section 3 snapshot); P3 KPI work is in
-   progress. No kmod has been linked, so link-time gaps (undefined symbols that the KPI does not
-   provide) are unknown; they appear only at modload on illumos, since kmods link with undefined
-   symbols. A host-side `nm -u` allowlist check like drmglue's is the next step once objects compile.
-2. R-K1 (initcall macros) is needed for linuxkpi_drm and linuxkpi_gpl_g1 to load at all.
+1. Every translation unit passes the stub-header syntax check and the host-side link check of
+   section 10 finds no unresolved symbol, but no kmod has been built with the illumos toolchain
+   and headers, so illumos-header incompatibilities and real link gaps are still unknown.
+2. R-K1 (initcall macros) has landed in include/linux/module.h; linuxkpi_drm and G1 load paths are
+   untested.
 3. Licence question docs/08 5.4 item 4 (CDDL kernel loading GPL-2.0 modules that exchange symbols with
    MIT/BSD modules) is open; the module split follows the owner's decision but is not legal advice.
-4. Console: R-P1 is needed before any userspace modeset is safe with the console active (tem writes
-   into GGTT-recycled memory otherwise). Until then bring-up should run with
-   `psi915_enable_console=0` and a serial console, or not start a DRM master.
+4. Console: without R-P1/R-P2 the framebuffer console stops for good at the first open of card0
+   (section 5.2; that is what keeps tem from writing into GGTT-recycled memory, docs/13 G1). The
+   console after that is the serial console. `psi915_enable_console=0` removes the console minor
+   altogether.
 5. gfx-drm conflict: both are called i915; only one can be installed.
 6. One device per system (drmglue host dip, single softc).
 
@@ -409,6 +471,10 @@ Userland (userland/config):
   for the rest; IPS/SVR4 output not consumed by pkg tooling. fetch-i915-firmware.sh: ran on Linux
   against gitlab.com; `digest -a sha256` path (illumos) not exercised.
 - Boot-time attach from /usr/kernel during consconfig, firmware reads at that point, suspend/resume.
+- The console safety latch (section 5.2): that FKIOCTL KDGETMODE/KDSETMODE through `gfxp_fb_ioctl`
+  behave as read in gfxp_fb.c/gfxp_bitmap.c, that a refused KD_TEXT leaves gfx_private in
+  KD_GRAPHICS, that tem copes with the refusal, and the assumption that before any DRM open a primary
+  plane fb can only be i915's initial-plane takeover.
 
 ## 10. Module-load risk review (KPI side, 2026-11-26)
 

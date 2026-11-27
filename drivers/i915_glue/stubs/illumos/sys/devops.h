@@ -37,4 +37,8 @@ extern int ddi_quiesce_not_supported(dev_info_t *);
 extern void ddi_set_driver_private(dev_info_t *, void *);
 extern void *ddi_get_driver_private(dev_info_t *);
 extern void ddi_report_dev(dev_info_t *);
+struct as;
+struct cred;
+extern int ddi_devmap_segmap(dev_t, off_t, struct as *, caddr_t *, off_t,
+    uint_t, uint_t, uint_t, struct cred *);
 #endif

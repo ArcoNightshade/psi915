@@ -79,6 +79,15 @@ void psi915_set_nomodeset(int on);
  * Design and status: docs/11-integration-notes.md section 5.
  */
 int psi915_drm_console_setmode(void *pdev, int kd_text);
+
+/*
+ * 1 if a primary plane of the device scans out a framebuffer right after
+ * probe. Before any process opened a DRM node, that can only be the
+ * firmware framebuffer i915 took over (intel_plane_initial.c), which stays
+ * bound at its firmware GGTT offset, so the aperture address gfx_private
+ * writes to is still the console. 0 otherwise (docs/11 section 5.2).
+ */
+int psi915_drm_initial_fb_present(void *pdev);
 void psi915_drm_console_panic(void *pdev);
 
 /* Linux module init/exit of i915 (module_init(i915_init) in i915_module.c). */

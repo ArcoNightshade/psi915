@@ -154,6 +154,15 @@ endif
 # (CTF_STRICT=1 makes it fatal).
 #
 CTF_STRICT	= 0
+#
+# CTF label (docs/13 B1): Makefile.master's "-L VERSION" reads the label
+# from the environment variable VERSION, which the gate's nightly sets and
+# a plain gmake does not. Give the label explicitly with -l instead.
+#
+PSI915_REV	:= $(shell git -C $(SRCBASE) describe --always --dirty 2>/dev/null)
+CTF_LABEL	= psi915$(if $(PSI915_REV),-$(PSI915_REV))
+CTFCVTFLAGS	= -i -l $(CTF_LABEL)
+CTFMRGFLAGS	= -l $(CTF_LABEL)
 CTF_FAIL	= $(if $(filter 1,$(CTF_STRICT)),exit 1,echo "warning: CTF step failed for $@ (CTF_STRICT=0)")
 
 #

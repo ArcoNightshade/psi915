@@ -22,11 +22,19 @@
 #include <linux/fs.h>
 #include <linux/moduleparam.h>
 #include <linux/sprintf.h>
+#include <linux/module.h>
+/*
+ * drm/drm_util.h defines EXPORT_SYMBOL_FOR_TESTS_ONLY(x) itself; the KPI's
+ * definition (parameter "sym") makes that a non-identical redefinition,
+ * an error under this file's -Werror (docs/11 R-K8).
+ */
+#undef EXPORT_SYMBOL_FOR_TESTS_ONLY
 #include <drm/drm.h>
 #include <drm/drm_device.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_file.h>
 #include <drm/drm_ioctl.h>
+#include <drm/drm_plane.h>
 
 /*
  * DRM minors. i915_driver_probe() stores the drm_device as the PCI driver
@@ -249,6 +257,28 @@ psi915_set_nomodeset(int on)
 }
 
 /*
+ * Called from attach right after probe, before any DRM node exists, so no
+ * userspace modeset can race; the plane states are read without the
+ * modeset locks.
+ */
+int
+psi915_drm_initial_fb_present(void *pdev_arg)
+{
+	struct pci_dev *pdev = pdev_arg;
+	struct drm_device *dev = pci_get_drvdata(pdev);
+	struct drm_plane *plane;
+
+	if (dev == NULL)
+		return (0);
+	drm_for_each_plane(plane, dev) {
+		if (plane->type == DRM_PLANE_TYPE_PRIMARY &&
+		    plane->state != NULL && plane->state->fb != NULL)
+			return (1);
+	}
+	return (0);
+}
+
+/*
  * Console hooks. NOT IMPLEMENTED YET: both need i915 changes that belong in
  * the patch series (docs/11 section 5, requests R-P1..R-P3):
  *
@@ -256,9 +286,10 @@ psi915_set_nomodeset(int on)
  *    console configuration (the firmware framebuffer object kept pinned at
  *    its original GGTT offset, on the pipe and connector it was found on)
  *    with the atomic helpers, as drm_fb_helper_restore_fbdev_mode_unlocked()
- *    does for fbdev. Until then, leaving KD_GRAPHICS shows whatever the last
- *    DRM master displayed, and tem draws into the firmware framebuffer
- *    without it being visible.
+ *    does for fbdev. Until then this hook is only reached while the
+ *    initial framebuffer is still scanned out (the illumos side refuses
+ *    KD_TEXT once a primary node has been opened, docs/13 G1), so there is
+ *    nothing to restore and 0 is correct.
  *  panic: lock-free MMIO rewrite of PLANE_SURF/PLANE_STRIDE/PLANE_CTL of the
  *    active pipe's primary plane, pointing it at the console framebuffer.
  */

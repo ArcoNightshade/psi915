@@ -5,4 +5,7 @@
 #define	KD_TEXT		0
 #define	KD_GRAPHICS	1
 #define	KD_RESETTEXT	2
+#define	KDIOC		('K' << 8)
+#define	KDGETMODE	(KDIOC|9)
+#define	KDSETMODE	(KDIOC|10)
 #endif
