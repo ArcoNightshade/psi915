@@ -384,6 +384,11 @@ kernel-internal callers.
   (rootnex.c:2743-2790, 2891-2992), using `b_addr` only for the first page's offset. Correct.
   Caveats, both documented by the author: a copy-buffer bounce (D2) would copy from `b_addr` as if
   contiguous (wrong data), and the immu (IOMMU) bind path was not checked for `v_priv` handling.
+  Further caveat: in `lkpi_sg_dma_map()` a page with no KPI `struct page` (`pfn_to_page() == NULL`)
+  ends the PFN walk with `contig = true`, so an entry that starts with KPI pages and continues into
+  memory the KPI does not know (an imported foreign buffer) would again be bound by VA range. All
+  pages of an order-N `alloc_pages()` block are registered in `lkpi_pages_by_pfn`, so i915's own
+  objects never hit this; failing the map (or treating it as non-contiguous) would be safer.
 - L2 fix: `thread_join(t_did)` after the creator waited for the id; detached threads no longer
   touch their descriptor after `fn`.
 - L1 fix: `lkpi_plat_signal_pending()` now reports exactly the `cv_wait_sig()` early-return set.
