@@ -12,10 +12,10 @@ all: $(REPROS:%=run-%)
 $(OUT):
 	mkdir -p $@
 
-$(OUT)/repro_dma_sg_kva: repro_dma_sg_kva.c | $(OUT)
+$(OUT)/repro_dma_sg_kva: repro_dma_sg_kva.c $(LIB) | $(OUT)
 	$(CC) $(CFLAGS) -o $@ $< $(LIB) -Wl,--wrap=lkpi_plat_virt_to_phys
 
-$(OUT)/%: %.c | $(OUT)
+$(OUT)/%: %.c $(LIB) | $(OUT)
 	$(CC) $(CFLAGS) -o $@ $< $(LIB)
 
 run-%: $(OUT)/%

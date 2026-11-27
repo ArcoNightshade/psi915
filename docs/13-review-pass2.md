@@ -340,7 +340,10 @@ that the cookie address equals the page's physical address when no IOMMU is acti
 
 ## Area 9: fixes for docs/12 that landed during this pass (ab8aa90, 9f90922, 646f1da)
 
-Reviewed after merging; 646f1da is marked WIP by its author.
+Reviewed after merging; 646f1da is marked WIP by its author. With these fixes
+`review/repro_dma_sg_kva` (M1) and `review/repro_gfp_huge_sleep` (M2) now pass;
+`review/repro_irq_no_intx` (P2) still fails. `review/Makefile` now rebuilds the reproducers when
+the KPI sources change (it previously kept stale binaries, which made a fixed bug look present).
 
 ### F1 (low) Interruptible mutex: missed wake-up, recovered only by the 20 ms poll
 
