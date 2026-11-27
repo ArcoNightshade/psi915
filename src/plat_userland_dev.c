@@ -95,11 +95,14 @@ lkpi_plat_pci_cfg_write(void *cfgh, int where, int size, u32 val)
 	memcpy(&f->cfg[where], &val, (size_t)size);
 }
 
+/* Fake devices are all siblings: the scope changes nothing here. */
 void
-lkpi_plat_pci_walk(int (*fn)(void *dip, void *arg), void *arg)
+lkpi_plat_pci_walk(void *scope_dip, int (*fn)(void *dip, void *arg),
+    void *arg)
 {
 	struct lkpi_fake_pci *f;
 
+	(void) scope_dip;
 	pthread_mutex_lock(&fake_lock);
 	for (f = fake_devs; f != NULL; f = f->next)
 		if (fn(f, arg) != 0)

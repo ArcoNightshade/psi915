@@ -499,3 +499,23 @@ Most likely failure or hang points on real KBL-R hardware, in probe order of imp
   traced call by call.
 - Not reviewed: drmglue `vmoff.c`, `xlate.c`, `segdev_illumos.c` beyond what docs/12 covered;
   `linux_shmem.c`/drmglue `shmem.c` (M1/M3 area); ACPI method evaluation details.
+
+## Fix status (KPI agent, 2026-11-27)
+
+Userland-tested where possible, compile-checked against stub illumos headers; nothing run on
+illumos.
+
+| ID | Status | What was done |
+|----|--------|---------------|
+| W1 | fixed | `lkpi_plat_pci_walk(scope_dip, ...)`: from attach/resume (`current->lkpi_attach_dip`, set by `lkpi_pci_attach` around probe and resume) only the siblings under the parent the framework already holds are scanned, without `ndi_devi_enter`; `ddi_walk_devs(root)` only outside autoconfiguration. Not covered: enumeration from work items the attach waits for (none in the i915 probe path) |
+| P1 | fixed | the wrapper of the attached dip holds no `ndi_hold_devi`; foreign dips found by enumeration are held (`lkpi_dip_held`), and an enumeration hold is dropped when the device attaches |
+| P2 | fixed | implicit INTx vector when a driver binds and after a failed `pci_enable_msi()`, replaced when MSI/MSI-X is allocated, released at unbind if unused. `review/repro_irq_no_intx` passes |
+| P3 | fixed | `kzalloc` checked, BAR mapping unmapped on failure |
+| C3 | fixed | the block count byte is ACKed only when valid, NAKed otherwise before STOP; `I2C_M_NO_RD_ACK` skips the acknowledge clock; test in test_hw (valid and invalid counts, bus released) |
+| F1 | fixed | `__atomic_thread_fence(SEQ_CST)` between the mutex release and the waiter-count load |
+| F2 | fixed | no over-allocation: power-of-two sizes of PAGE_SIZE or more are headerless page-aligned `kmem_alloc` blocks (size in an XArray keyed by page), smaller sizes keep the 16-byte header (16-byte alignment, documented deviation from Linux's natural alignment below PAGE_SIZE) |
+| R-K8 (docs/11) | fixed | the KPI no longer defines `EXPORT_SYMBOL_FOR_TESTS_ONLY`; `<drm/drm_util.h>` does |
+| R-B2 (docs/11) | fixed | `build/Makefile.master` gives ctfconvert/ctfmerge `-l psi915-<git describe>` for every module |
+
+Module set after these changes: syntax-check 374/374, `scripts/kpi-linkcheck.sh` 0 unresolved
+(`ddi_devmap_segmap` and `kcred`, used by the new console glue, added to the illumos allowlist).

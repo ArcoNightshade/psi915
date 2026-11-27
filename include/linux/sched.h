@@ -110,6 +110,7 @@ struct task_struct {
 	bool			lkpi_uaccess_kernel; /* see <linux/uaccess.h> */
 	bool			lkpi_static;	/* never freed (irq task) */
 	struct pid		*lkpi_tgid_ref;	/* task_tgid(): held for the task */
+	void			*lkpi_attach_dip; /* in attach/resume of this dip */
 	struct pid		*lkpi_pid_ref;	/* task_pid() */
 };
 

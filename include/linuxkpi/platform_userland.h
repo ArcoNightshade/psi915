@@ -509,6 +509,14 @@ lkpi_plat_alloc(size_t size, int flags)
 	return (malloc(size != 0 ? size : 1));
 }
 
+/* Page-aligned allocation of size (a multiple of the page size). */
+static inline void *
+lkpi_plat_alloc_pgaligned(size_t size, int flags)
+{
+	(void) flags;
+	return (aligned_alloc(4096, size));
+}
+
 static inline void *
 lkpi_plat_zalloc(size_t size, int flags)
 {

@@ -70,7 +70,13 @@ void lkpi_plat_pci_cfg_write(void *cfgh, int where, int size, u32 val);
  * Visit every PCI function in the device tree (any driver binding);
  * stop when fn returns non-zero. The dip is held during the callback.
  */
-void lkpi_plat_pci_walk(int (*fn)(void *dip, void *arg), void *arg);
+/*
+ * Visit PCI device nodes until fn returns non-zero. scope_dip non-NULL
+ * (called from that device's attach): only its siblings under the parent
+ * the framework already holds (docs/13 W1); NULL: the whole tree.
+ */
+void lkpi_plat_pci_walk(void *scope_dip, int (*fn)(void *dip, void *arg),
+    void *arg);
 void lkpi_plat_dev_hold(void *dip);
 void lkpi_plat_dev_rele(void *dip);
 void *lkpi_plat_dev_parent(void *dip);

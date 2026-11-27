@@ -353,8 +353,9 @@ lkpi_bit_outb(struct i2c_algo_bit_data *b, u8 c)
 	return (ack);
 }
 
+/* Eight data bits from the slave, without the acknowledge clock. */
 static int
-lkpi_bit_inb(struct i2c_algo_bit_data *b, bool ack)
+lkpi_bit_inb(struct i2c_algo_bit_data *b)
 {
 	int i, v = 0;
 
@@ -366,14 +367,20 @@ lkpi_bit_inb(struct i2c_algo_bit_data *b, bool ack)
 		b->setscl(b->data, 0);
 		lkpi_bit_halfdelay(b);
 	}
-	/* ACK: pull SDA low for one clock; NAK: leave it high. */
+	return (v);
+}
+
+/* Acknowledge clock: ACK pulls SDA low for one clock, NAK leaves it high. */
+static int
+lkpi_bit_ack(struct i2c_algo_bit_data *b, bool ack)
+{
 	if (ack)
 		lkpi_sdalo(b);
 	if (lkpi_sclhi(b) != 0)
 		return (-ETIMEDOUT);
 	lkpi_scllo(b);
 	lkpi_sdahi(b);
-	return (v);
+	return (0);
 }
 
 static int
@@ -422,22 +429,35 @@ lkpi_bit_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num)
 			u16 len = m->len;
 
 			for (j = 0; j < len; j++) {
-				bool last = j + 1 == len;
+				bool ack = j + 1 < len, bad = false;
 
-				v = lkpi_bit_inb(b, !last ||
-				    (m->flags & I2C_M_RECV_LEN && j == 0));
+				v = lkpi_bit_inb(b);
 				if (v < 0) {
 					r = v;
 					goto out;
 				}
 				m->buf[j] = (u8)v;
 				if (j == 0 && (m->flags & I2C_M_RECV_LEN)) {
-					if (v == 0 || v > I2C_SMBUS_BLOCK_MAX) {
-						r = -EPROTO;
-						goto out;
+					/*
+					 * Block count: ACK a valid one, NAK an
+					 * invalid one so the slave stops
+					 * driving SDA before the STOP (docs/13
+					 * C3).
+					 */
+					bad = v == 0 || v > I2C_SMBUS_BLOCK_MAX;
+					ack = !bad;
+					if (!bad) {
+						len = (u16)(len + v);
+						m->len = len;
 					}
-					len = (u16)(len + v);
-					m->len = len;
+				}
+				/* I2C_M_NO_RD_ACK: no acknowledge clock. */
+				if (!(m->flags & I2C_M_NO_RD_ACK) &&
+				    (r = lkpi_bit_ack(b, ack)) != 0)
+					goto out;
+				if (bad) {
+					r = -EPROTO;
+					goto out;
 				}
 			}
 		} else {

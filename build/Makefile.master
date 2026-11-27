@@ -48,8 +48,12 @@ KERNEL_INC	=
 ONBLD_TOOLS	= /opt/onbld
 CTFCONVERT	= $(firstword $(wildcard $(ONBLD_TOOLS)/bin/i386/ctfconvert /usr/bin/ctfconvert))
 CTFMERGE	= $(firstword $(wildcard $(ONBLD_TOOLS)/bin/i386/ctfmerge /usr/bin/ctfmerge))
-CTFCVTFLAGS	= -i -L VERSION
-CTFMRGFLAGS	= -L VERSION
+# Label: psi915-<git describe> (docs/11 R-B2; VERSION is unset outside an
+# illumos-gate build, so -L VERSION gave an empty label).
+PSI915_REV	:= $(shell git -C $(SRCBASE) describe --always --dirty 2>/dev/null)
+CTF_LABEL	= psi915$(if $(PSI915_REV),-$(PSI915_REV))
+CTFCVTFLAGS	= -i -l $(CTF_LABEL)
+CTFMRGFLAGS	= -l $(CTF_LABEL)
 
 #
 # Build type: obj64 (non-DEBUG) or debug64 (DEBUG, ASSERT() enabled).

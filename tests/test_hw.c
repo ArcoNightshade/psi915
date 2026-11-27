@@ -844,6 +844,23 @@ TEST(i2c_bitbang)
 	CHECK_EQ(i2c_transfer(&adap, msgs, 1), 1);
 	CHECK_EQ(memcmp(&si.mem[0x20], "EDID", 4), 0);
 
+	/* SMBus block read (I2C_M_RECV_LEN): valid and invalid counts. */
+	{
+		u8 blk[1 + I2C_SMBUS_BLOCK_MAX], boff = 0x40;
+
+		si.mem[0x40] = 3;
+		msgs[0] = (struct i2c_msg){ 0x50, 0, 1, &boff };
+		msgs[1] = (struct i2c_msg){ 0x50, I2C_M_RD | I2C_M_RECV_LEN,
+		    1, blk };
+		CHECK_EQ(i2c_transfer(&adap, msgs, 2), 2);
+		CHECK_EQ(msgs[1].len, 4);
+		CHECK(blk[0] == 3 && blk[1] == (0x41 ^ 0x5a));
+		si.mem[0x40] = 0;		/* invalid: NAK, then STOP */
+		msgs[1].len = 1;
+		CHECK_EQ(i2c_transfer(&adap, msgs, 2), -EPROTO);
+		CHECK_EQ(si.state, 0);
+	}
+
 	/* No device at 0x51: address NAK. */
 	msgs[0] = (struct i2c_msg){ 0x51, I2C_M_RD, 1, rd };
 	CHECK_EQ(i2c_transfer(&adap, msgs, 1), -ENXIO);

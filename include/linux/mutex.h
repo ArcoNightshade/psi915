@@ -93,7 +93,13 @@ mutex_unlock(struct mutex *m)
 	WARN_ON_ONCE(READ_ONCE(m->owner) != lkpi_plat_curthread());
 	WRITE_ONCE(m->owner, NULL);
 	lkpi_plat_mutex_exit(&m->m);
-	if (unlikely(__atomic_load_n(&m->lkpi_waiters, __ATOMIC_SEQ_CST) != 0))
+	/*
+	 * Full fence: the release store must be visible before the waiter
+	 * count is read (store-buffering pair with the waiter's increment
+	 * and tryenter; docs/13 F1).
+	 */
+	__atomic_thread_fence(__ATOMIC_SEQ_CST);
+	if (unlikely(__atomic_load_n(&m->lkpi_waiters, __ATOMIC_RELAXED) != 0))
 		lkpi_mutex_wake(m);
 }
 

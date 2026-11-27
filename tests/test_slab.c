@@ -179,15 +179,15 @@ TEST(dup_and_string)
 	CHECK_EQ(strscpy(buf, "abcdefghij", sizeof (buf)), -E2BIG);
 	CHECK(strcmp(buf, "abcdefg") == 0);
 	CHECK_EQ(strscpy(buf, "x", 0), -E2BIG);
-	/* docs/12 M4: natural alignment of power-of-two sizes. */
+	/* docs/12 M4, docs/13 F2: page alignment for large powers of two. */
 	{
 		static const size_t sz[] = { 32, 64, 256, 4096, 8192, 100 };
 		unsigned int k;
 
 		for (k = 0; k < ARRAY_SIZE(sz); k++) {
 			char *q = kmalloc(sz[k], GFP_KERNEL);
-			size_t a = sz[k] == 100 ? 16 :
-			    (sz[k] < PAGE_SIZE ? sz[k] : PAGE_SIZE);
+			/* page alignment from PAGE_SIZE up, 16 below */
+			size_t a = sz[k] >= PAGE_SIZE ? PAGE_SIZE : 16;
 
 			CHECK(q != NULL && ((uintptr_t)q & (a - 1)) == 0);
 			CHECK_EQ(ksize(q), sz[k]);

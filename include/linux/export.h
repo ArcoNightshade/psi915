@@ -16,9 +16,7 @@
 #define	EXPORT_SYMBOL_NS(sym, ns)
 #define	EXPORT_SYMBOL_NS_GPL(sym, ns)
 #endif
-#ifndef EXPORT_SYMBOL_FOR_TESTS_ONLY
-#define	EXPORT_SYMBOL_FOR_TESTS_ONLY(sym)
-#endif
+/* EXPORT_SYMBOL_FOR_TESTS_ONLY: defined by <drm/drm_util.h> (docs/11 R-K8). */
 #define	EXPORT_SYMBOL_IF_KUNIT(sym)
 #define	THIS_MODULE_EXPORT_NS
 

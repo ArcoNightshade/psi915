@@ -37,6 +37,8 @@ extern void pci_config_put32(ddi_acc_handle_t, off_t, uint32_t);
 extern void ddi_walk_devs(dev_info_t *, int (*)(dev_info_t *, void *), void *);
 extern dev_info_t *ddi_root_node(void);
 extern dev_info_t *ddi_get_parent(dev_info_t *);
+extern dev_info_t *ddi_get_child(dev_info_t *);
+extern dev_info_t *ddi_get_next_sibling(dev_info_t *);
 extern char *ddi_node_name(dev_info_t *);
 extern int ddi_regs_map_setup(dev_info_t *, uint_t, caddr_t *, offset_t,
     offset_t, ddi_device_acc_attr_t *, ddi_acc_handle_t *);

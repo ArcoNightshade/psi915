@@ -403,6 +403,18 @@ lkpi_plat_alloc(size_t size, int flags)
 	return (kmem_alloc(size, __lkpi_plat_kmflag(flags)));
 }
 
+/*
+ * Page-aligned allocation of size (a multiple of PAGESIZE): kmem_alloc
+ * caches for multiples of PAGESIZE are created page aligned
+ * (kmem_alloc_caches_create), and oversize allocations come from vmem in
+ * whole pages. The caller checks the alignment anyway.
+ */
+static inline void *
+lkpi_plat_alloc_pgaligned(size_t size, int flags)
+{
+	return (kmem_alloc(size, __lkpi_plat_kmflag(flags)));
+}
+
 static inline void *
 lkpi_plat_zalloc(size_t size, int flags)
 {

@@ -47,6 +47,7 @@ struct lkpi_pci_irqs {
 	struct lkpi_plat_intr	*ip;
 	unsigned int		type;
 	int			count;
+	bool			implicit;	/* default INTx (docs/13 P2) */
 	unsigned int		irq[];		/* KPI irq numbers */
 };
 
@@ -310,6 +311,8 @@ devm_free_irq(struct device *dev, unsigned int irq, void *dev_id)
 
 /* PCI vectors. */
 
+static bool lkpi_pci_irqs_requested(struct pci_dev *pdev);
+
 int
 pci_alloc_irq_vectors(struct pci_dev *pdev, unsigned int min_vecs,
     unsigned int max_vecs, unsigned int flags)
@@ -319,8 +322,12 @@ pci_alloc_irq_vectors(struct pci_dev *pdev, unsigned int min_vecs,
 	unsigned int types = 0, type;
 	int count, r;
 
-	if (pdev->lkpi_irqs != NULL)
-		return (-EINVAL);
+	if (pdev->lkpi_irqs != NULL) {
+		/* The implicit INTx default gives way to the driver's choice. */
+		if (!pdev->lkpi_irqs->implicit || lkpi_pci_irqs_requested(pdev))
+			return (-EINVAL);
+		pci_free_irq_vectors(pdev);
+	}
 	if (flags & PCI_IRQ_MSIX)
 		types |= LKPI_INTR_MSIX;
 	if (flags & PCI_IRQ_MSI)
@@ -390,19 +397,69 @@ pci_irq_vector(struct pci_dev *pdev, unsigned int nr)
 	return ((int)pi->irq[nr]);
 }
 
+/* Any handler requested on the device's vectors? */
+static bool
+lkpi_pci_irqs_requested(struct pci_dev *pdev)
+{
+	struct lkpi_pci_irqs *pi = pdev->lkpi_irqs;
+	bool busy = false;
+	int i;
+
+	mutex_lock(&lkpi_irq_lock);
+	for (i = 0; i < pi->count; i++) {
+		struct lkpi_irq_desc *d = &lkpi_irq_table[pi->irq[i]];
+
+		if (d->handler != NULL || d->thread_fn != NULL)
+			busy = true;
+	}
+	mutex_unlock(&lkpi_irq_lock);
+	return (busy);
+}
+
+/*
+ * Linux's pdev->irq always holds the legacy INTx line. Here a device
+ * gets an implicit INTx vector when a driver binds (lkpi_pci_probe) and
+ * after pci_enable_msi() fails, so request_irq(pdev->irq) works without
+ * MSI (docs/13 P2). Allocating MSI/MSI-X replaces it; failures are
+ * ignored (no INTx pin, no vector).
+ */
+void
+lkpi_pci_intx_default(struct pci_dev *pdev)
+{
+	if (pdev->lkpi_irqs != NULL)
+		return;
+	if (pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_INTX) > 0)
+		pdev->lkpi_irqs->implicit = true;
+}
+
+/* Driver unbind: release the implicit vector if still unused. */
+void
+lkpi_pci_intx_release(struct pci_dev *pdev)
+{
+	if (pdev->lkpi_irqs != NULL && pdev->lkpi_irqs->implicit &&
+	    !lkpi_pci_irqs_requested(pdev))
+		pci_free_irq_vectors(pdev);
+}
+
 int
 pci_enable_msi(struct pci_dev *pdev)
 {
 	int r = pci_alloc_irq_vectors(pdev, 1, 1, PCI_IRQ_MSI);
 
-	return (r < 0 ? r : 0);
+	if (r < 0) {
+		lkpi_pci_intx_default(pdev);	/* pdev->irq = INTx */
+		return (r);
+	}
+	return (0);
 }
 
 void
 pci_disable_msi(struct pci_dev *pdev)
 {
-	if (pdev->msi_enabled)
+	if (pdev->msi_enabled) {
 		pci_free_irq_vectors(pdev);
+		lkpi_pci_intx_default(pdev);
+	}
 }
 
 /* Tasklets over system_highpri_wq. */

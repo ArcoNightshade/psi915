@@ -203,6 +203,7 @@ struct pci_dev {
 	struct lkpi_pci_irqs	*lkpi_irqs;
 	int			lkpi_enable_cnt;
 	bool			lkpi_attached;	/* bound via attach(9E) */
+	bool			lkpi_dip_held;	/* foreign dip: ndi_hold_devi */
 	bool			lkpi_managed;	/* pcim_enable_device() */
 	struct pci_bus		lkpi_bus;	/* own bus record */
 };
@@ -456,6 +457,9 @@ void pci_unregister_driver(struct pci_driver *drv);
 
 /* KPI internals for the DDI glue (<linuxkpi/ddi.h>) and tests. */
 struct pci_dev *lkpi_pci_dev_alloc(void *dip);
+void lkpi_pci_unhold_dip(struct pci_dev *pdev);
+void lkpi_pci_intx_default(struct pci_dev *pdev);
+void lkpi_pci_intx_release(struct pci_dev *pdev);
 struct pci_driver *lkpi_pci_find_driver(struct pci_dev *pdev,
     const struct pci_device_id **idp);
 int lkpi_pci_probe(struct pci_dev *pdev);

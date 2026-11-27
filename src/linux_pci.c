@@ -57,7 +57,8 @@ lkpi_pci_release(struct device *dev)
 	WARN_ON(!list_empty(&pdev->lkpi_iomaps));
 	if (pdev->lkpi_cfg != NULL)
 		lkpi_plat_pci_cfg_close(pdev->lkpi_cfg);
-	lkpi_plat_dev_rele(pdev->dev.lkpi_dip);
+	if (pdev->lkpi_dip_held)
+		lkpi_plat_dev_rele(pdev->dev.lkpi_dip);
 	kfree(pdev);
 }
 
@@ -92,7 +93,11 @@ lkpi_pci_dev_create(void *dip)
 		kfree(pdev);
 		return (NULL);
 	}
-	lkpi_plat_dev_hold(dip);
+	/*
+	 * No hold here: the dip a driver is attached to must not be held
+	 * (detach_node() refuses while devi_ref != 0, docs/13 P1). Wrappers
+	 * of foreign dips found by enumeration take one (lkpi_pci_hold_dip).
+	 */
 	device_initialize(&pdev->dev);
 	pdev->dev.lkpi_dip = dip;
 	pdev->dev.bus = &pci_bus_type;
@@ -160,6 +165,30 @@ lkpi_pci_dev_create(void *dip)
 	pdev->cfg_size = pdev->pcie_cap != 0 ? PCI_CFG_SPACE_EXP_SIZE :
 	    PCI_CFG_SPACE_SIZE;
 	return (pdev);
+}
+
+/* Enumerated (foreign) device: keep its dip from going away. */
+static void
+lkpi_pci_hold_dip(struct pci_dev *pdev)
+{
+	mutex_lock(&lkpi_pci_lock);
+	if (!pdev->lkpi_attached && !pdev->lkpi_dip_held) {
+		lkpi_plat_dev_hold(pdev->dev.lkpi_dip);
+		pdev->lkpi_dip_held = true;
+	}
+	mutex_unlock(&lkpi_pci_lock);
+}
+
+/* Attached device: drop an enumeration hold (detach must be possible). */
+void
+lkpi_pci_unhold_dip(struct pci_dev *pdev)
+{
+	mutex_lock(&lkpi_pci_lock);
+	if (pdev->lkpi_dip_held) {
+		lkpi_plat_dev_rele(pdev->dev.lkpi_dip);
+		pdev->lkpi_dip_held = false;
+	}
+	mutex_unlock(&lkpi_pci_lock);
 }
 
 /*
@@ -559,6 +588,10 @@ lkpi_pci_iomap_common(struct pci_dev *pdev, int bar, unsigned long off,
 	if (addr == NULL)
 		return (NULL);
 	m = kzalloc(sizeof (*m), GFP_KERNEL);
+	if (m == NULL) {
+		lkpi_plat_unmap_regs(&handle);	/* docs/13 P3 */
+		return (NULL);
+	}
 	m->addr = addr;
 	m->handle = handle;
 	m->bar = bar;
@@ -792,9 +825,11 @@ lkpi_pci_search(struct lkpi_pci_match *m, struct pci_dev *from)
 	m->after = from != NULL ? from->dev.lkpi_dip : NULL;
 	m->passed = false;
 	m->found = NULL;
-	lkpi_plat_pci_walk(lkpi_pci_match_cb, m);
+	lkpi_plat_pci_walk(current->lkpi_attach_dip, lkpi_pci_match_cb, m);
 	if (m->found != NULL) {
 		pdev = lkpi_pci_dev_alloc(m->found);
+		if (pdev != NULL)
+			lkpi_pci_hold_dip(pdev);
 		lkpi_plat_dev_rele(m->found);
 	}
 	pci_dev_put(from);
@@ -1028,9 +1063,11 @@ lkpi_pci_probe(struct pci_dev *pdev)
 	pdev->driver = drv;
 	pdev->dev.driver = &drv->driver;
 	lkpi_intel_gfx_quirk(pdev);	/* early-quirk equivalent */
+	lkpi_pci_intx_default(pdev);
 	r = drv->probe(pdev, id);
 	if (r != 0) {
 		(void) lkpi_devres_release_all(&pdev->dev);
+		lkpi_pci_intx_release(pdev);
 		pdev->driver = NULL;
 		pdev->dev.driver = NULL;
 		pci_set_drvdata(pdev, NULL);
@@ -1044,6 +1081,7 @@ lkpi_pci_remove(struct pci_dev *pdev)
 	if (pdev->driver != NULL && pdev->driver->remove != NULL)
 		pdev->driver->remove(pdev);
 	(void) lkpi_devres_release_all(&pdev->dev);
+	lkpi_pci_intx_release(pdev);
 	pdev->driver = NULL;
 	pdev->dev.driver = NULL;
 	pci_set_drvdata(pdev, NULL);

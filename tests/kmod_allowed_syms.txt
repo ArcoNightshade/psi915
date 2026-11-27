@@ -228,3 +228,7 @@ cpuset_all
 hat_getattr
 lkpi_stub_kpreempt_disable
 lkpi_stub_kpreempt_enable
+ddi_get_child
+ddi_get_next_sibling
+ddi_devmap_segmap
+kcred

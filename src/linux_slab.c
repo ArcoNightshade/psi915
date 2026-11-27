@@ -17,38 +17,46 @@
 #include <linux/bug.h>
 #include <linux/rcupdate.h>
 #include <linux/pgtable.h>
+#include <linux/xarray.h>
 
 #define	LKPI_KMALLOC_MAGIC	0x6b6d6c63U	/* "kmlc" */
 #define	LKPI_KMALLOC_FREED	0x66726565U	/* "free" */
 
 /*
- * 16 bytes, so the payload keeps at least 16-byte alignment. Power-of-two
- * sizes above 16 bytes are naturally aligned (up to PAGE_SIZE), as Linux
- * guarantees since 5.4 (docs/12 M4): such allocations get alignment bytes
- * of slack and the header sits right before the aligned payload; offset is
- * the distance from the raw allocation to the payload.
+ * 16 bytes, so the payload keeps 16-byte alignment (ARCH_KMALLOC_MINALIGN).
+ *
+ * Power-of-two sizes of PAGE_SIZE or more are page aligned, as on Linux
+ * (docs/12 M4), without an in-band header and without over-allocation
+ * (docs/13 F2): they come straight from lkpi_plat_alloc_pgaligned() (on
+ * illumos kmem_alloc, whose caches for multiples of PAGESIZE are page
+ * aligned) and their size is kept in an XArray keyed by page number.
+ * Smaller power-of-two sizes get 16-byte alignment only (no consumer in
+ * the imported DRM/i915 needs more).
  */
 struct lkpi_kmalloc_hdr {
 	size_t		size;
 	uint32_t	magic;
-	uint32_t	offset;
+	uint32_t	pad;
 };
 
-static size_t
-lkpi_kmalloc_align(size_t size)
+static DEFINE_XARRAY(lkpi_kmalloc_big);
+
+static bool
+lkpi_kmalloc_is_big(size_t size)
 {
-	if (size <= 16 || (size & (size - 1)) != 0)
-		return (0);
-	return (size < PAGE_SIZE ? size : PAGE_SIZE);
+	return (size >= PAGE_SIZE && (size & (size - 1)) == 0);
 }
 
-/* Bytes allocated from the platform for a payload of size bytes. */
+/* Size of a headerless page-aligned allocation, or 0. */
 static size_t
-lkpi_kmalloc_total(size_t size)
+lkpi_kmalloc_big_size(const void *p)
 {
-	size_t a = lkpi_kmalloc_align(size);
+	void *e;
 
-	return (size + (a != 0 ? a : sizeof (struct lkpi_kmalloc_hdr)));
+	if (((uintptr_t)p & (PAGE_SIZE - 1)) != 0)
+		return (0);
+	e = xa_load(&lkpi_kmalloc_big, (uintptr_t)p >> PAGE_SHIFT);
+	return (e != NULL ? xa_to_value(e) << PAGE_SHIFT : 0);
 }
 
 atomic_long_t lkpi_kmalloc_live;
@@ -66,8 +74,9 @@ static void *
 lkpi_alloc_hdr(size_t size, gfp_t gfp, size_t limit)
 {
 	struct lkpi_kmalloc_hdr *h;
-	size_t total, align;
-	char *raw, *payload;
+	size_t total;
+	char *raw;
+	int pf;
 
 	if (size == 0)
 		return (ZERO_SIZE_PTR);
@@ -78,25 +87,37 @@ lkpi_alloc_hdr(size_t size, gfp_t gfp, size_t limit)
 			    "(limit %zu)\n", size, limit);
 		return (NULL);
 	}
-	total = lkpi_kmalloc_total(size);
-	align = lkpi_kmalloc_align(size);
+	if (lkpi_kmalloc_is_big(size)) {
+		pf = lkpi_gfp_to_plat_size(gfp, size);
+		raw = lkpi_plat_alloc_pgaligned(size, pf);
+		if (raw == NULL)
+			return (NULL);
+		if (((uintptr_t)raw & (PAGE_SIZE - 1)) != 0 ||
+		    xa_err(xa_store(&lkpi_kmalloc_big, (uintptr_t)raw >>
+		    PAGE_SHIFT, xa_mk_value(size >> PAGE_SHIFT), gfp)) != 0) {
+			WARN_ON_ONCE(((uintptr_t)raw & (PAGE_SIZE - 1)) != 0);
+			lkpi_plat_free(raw, size);
+			return (NULL);
+		}
+		if (gfp & __GFP_ZERO)
+			memset(raw, 0, size);
+		atomic_long_inc(&lkpi_kmalloc_live);
+		return (raw);
+	}
+	total = size + sizeof (*h);
+	pf = lkpi_gfp_to_plat_size(gfp, total);
 	if (gfp & __GFP_ZERO)
-		raw = lkpi_plat_zalloc(total, lkpi_gfp_to_plat_size(gfp, total));
+		raw = lkpi_plat_zalloc(total, pf);
 	else
-		raw = lkpi_plat_alloc(total, lkpi_gfp_to_plat_size(gfp, total));
+		raw = lkpi_plat_alloc(total, pf);
 	if (raw == NULL)
 		return (NULL);
-	if (align != 0)
-		payload = (char *)(((uintptr_t)raw + sizeof (*h) + align - 1) &
-		    ~(uintptr_t)(align - 1));
-	else
-		payload = raw + sizeof (*h);
-	h = (struct lkpi_kmalloc_hdr *)(void *)payload - 1;
+	h = (struct lkpi_kmalloc_hdr *)(void *)raw;
 	h->size = size;
 	h->magic = LKPI_KMALLOC_MAGIC;
-	h->offset = (uint32_t)(payload - raw);
+	h->pad = 0;
 	atomic_long_inc(&lkpi_kmalloc_live);
-	return (payload);
+	return (h + 1);
 }
 
 static struct lkpi_kmalloc_hdr *
@@ -132,15 +153,23 @@ kfree(const void *p)
 {
 	struct lkpi_kmalloc_hdr *h;
 
+	size_t big;
+
 	if (ZERO_OR_NULL_PTR(p))
 		return;
+	big = lkpi_kmalloc_big_size(p);
+	if (big != 0) {
+		(void) xa_erase(&lkpi_kmalloc_big, (uintptr_t)p >> PAGE_SHIFT);
+		atomic_long_dec(&lkpi_kmalloc_live);
+		lkpi_plat_free((void *)(uintptr_t)p, big);
+		return;
+	}
 	h = lkpi_hdr(p);
 	if (h == NULL)
 		return;		/* leak rather than corrupt the allocator */
 	h->magic = LKPI_KMALLOC_FREED;
 	atomic_long_dec(&lkpi_kmalloc_live);
-	lkpi_plat_free((char *)(uintptr_t)p - h->offset,
-	    lkpi_kmalloc_total(h->size));
+	lkpi_plat_free(h, h->size + sizeof (*h));
 }
 
 void
@@ -152,13 +181,9 @@ kvfree(const void *p)
 void
 kfree_sensitive(const void *p)
 {
-	struct lkpi_kmalloc_hdr *h;
-
 	if (ZERO_OR_NULL_PTR(p))
 		return;
-	h = lkpi_hdr(p);
-	if (h != NULL)
-		memzero_explicit((void *)(uintptr_t)p, h->size);
+	memzero_explicit((void *)(uintptr_t)p, ksize(p));
 	kfree(p);
 }
 
@@ -167,8 +192,13 @@ ksize(const void *p)
 {
 	struct lkpi_kmalloc_hdr *h;
 
+	size_t big;
+
 	if (ZERO_OR_NULL_PTR(p))
 		return (0);
+	big = lkpi_kmalloc_big_size(p);
+	if (big != 0)
+		return (big);
 	h = lkpi_hdr(p);
 	return (h != NULL ? h->size : 0);
 }

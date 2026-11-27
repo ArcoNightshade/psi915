@@ -16,6 +16,7 @@
 #include <linuxkpi/ddi.h>
 #include <linux/kernel.h>
 #include <linux/pci.h>
+#include <linux/sched.h>
 #include <linux/errno.h>
 
 struct cb_ops lkpi_ddi_null_cb_ops = {
@@ -60,8 +61,11 @@ lkpi_pci_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
 		if (pdev == NULL)
 			return (DDI_FAILURE);
 		pdev->lkpi_attached = true;
+		lkpi_pci_unhold_dip(pdev);	/* docs/13 P1 */
 		ddi_set_driver_private(dip, pdev);
+		current->lkpi_attach_dip = dip;		/* docs/13 W1 */
 		r = lkpi_pci_probe(pdev);
+		current->lkpi_attach_dip = NULL;
 		if (r != 0) {
 			dev_err(&pdev->dev, "probe failed: %d\n", r);
 			ddi_set_driver_private(dip, NULL);
@@ -75,8 +79,10 @@ lkpi_pci_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
 		pdev = ddi_get_driver_private(dip);
 		if (pdev == NULL)
 			return (DDI_FAILURE);
-		return (lkpi_pci_resume(pdev) == 0 ? DDI_SUCCESS :
-		    DDI_FAILURE);
+		current->lkpi_attach_dip = dip;
+		r = lkpi_pci_resume(pdev);
+		current->lkpi_attach_dip = NULL;
+		return (r == 0 ? DDI_SUCCESS : DDI_FAILURE);
 	default:
 		return (DDI_FAILURE);
 	}

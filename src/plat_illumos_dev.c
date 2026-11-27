@@ -225,15 +225,31 @@ lkpi_walk_cb(dev_info_t *dip, void *a)
 }
 
 /*
- * VERIFY: ddi_walk_devs(9F) from a leaf driver's attach(9E) on the root
- * node; the manual allows it when no locks are held.
+ * ddi_walk_devs() must not be called from attach(9E): it enters nodes
+ * top-down from the root while the framework holds the attaching node's
+ * parent busy, which inverts the devinfo lock order against libdevinfo
+ * snapshots (devcfg.c walk_devs comment; docs/13 W1). From attach the
+ * KPI passes the attaching dip as scope and only its siblings under the
+ * already held parent are scanned (the devices i915 looks up, host bridge
+ * 0:0.0 and LPC bridge 0:1f.0, are siblings of the GPU at 0:2.0). The
+ * full walk is used only outside autoconfiguration.
  */
 void
-lkpi_plat_pci_walk(int (*fn)(void *dip, void *arg), void *arg)
+lkpi_plat_pci_walk(void *scope_dip, int (*fn)(void *dip, void *arg),
+    void *arg)
 {
 	struct lkpi_walk_arg wa = { fn, arg };
+	dev_info_t *c;
 
-	ddi_walk_devs(ddi_root_node(), lkpi_walk_cb, &wa);
+	if (scope_dip == NULL) {
+		ddi_walk_devs(ddi_root_node(), lkpi_walk_cb, &wa);
+		return;
+	}
+	for (c = ddi_get_child(ddi_get_parent((dev_info_t *)scope_dip));
+	    c != NULL; c = ddi_get_next_sibling(c)) {
+		if (lkpi_walk_cb(c, &wa) == DDI_WALK_TERMINATE)
+			break;
+	}
 }
 
 void
