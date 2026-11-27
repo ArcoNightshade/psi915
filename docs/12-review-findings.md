@@ -358,3 +358,27 @@ link yet); the same comparison should be rerun on `build/*/obj64/objs` once they
   specific userland program.
 - `segdev_faultpage` behaviour for a window page that is not loaded (PFN_INVALID) was not read; the
   code avoids that state under `lv->lock`, which the reviewer did verify.
+
+## Fix status (KPI agent, 2026-11-27)
+
+All fixes are userland-tested where possible and compile-checked against stub illumos headers;
+none has been run on illumos.
+
+| ID | Status | What was done |
+|----|--------|---------------|
+| M1 | fixed | `dma_map_sg_attrs` walks each entry by PFN; VA-contiguous entries are bound by VA, entries of separately allocated pages through `lkpi_plat_dma_map_pages()` (illumos: `B_SHADOW` buf with a `page_t` list from `page_numtopp_nolock`, one handle and one bus segment per entry). `review/repro_dma_sg_kva` passes. Residual: rootnex bounce copies (address above the DMA mask) would use `b_addr` as a contiguous VA; the 39-bit i915 mask covers all RAM of the target |
+| M2 | fixed | `lkpi_gfp_to_plat_size()`: GFP_KERNEL above 1 MiB is `KM_NOSLEEP|KM_NORMALPRI`, only `__GFP_NOFAIL` sleeps at any size; kvmalloc/vmalloc refuse more than min(16 GiB, physmem/4). `review/repro_gfp_huge_sleep` passes on this host; it evaluates the size-independent `lkpi_gfp_to_plat()`, which is no longer what kmalloc/kvmalloc use, so on hosts with more than 32 GiB it still prints FAIL although the allocation path is fixed (unit tests in test_slab check the real path) |
+| M3 | fixed (partly) | single pages come from a page-aligned `linuxkpi_page` kmem cache (no DMA handle or contig_alloc per page); sg mappings are kept in the sg entries, so the DMA hash (now 4096 buckets) holds only map_single/map_page records. Not done: per-bucket locks |
+| L1 | fixed | `lkpi_plat_signal_pending()` = `ISSIG(JUSTLOOKING) || MUSTRETURN || lwp_sysabort || schedctl_cancel_pending()` |
+| L2 | fixed | joinable threads record `t_did` before running and are joined with `thread_join()` |
+| L3 | fixed | worker cap per queue is `WQ_DFL_ACTIVE` (256), created on demand |
+| L4 | fixed | the task holds the `struct pid` returned by `task_tgid()`/`task_pid()` for its lifetime |
+| L5 | fixed | `mutex_lock_interruptible/_killable` sleep on hashed condition variables (waiter count, woken by `mutex_unlock`) and return -EINTR; test `mutex_interruptible` |
+| D1 | fixed | drmglue refuses `F_SOFTLOCK` on `VM_PFNMAP|VM_IO` mappings (EFAULT); test in test_vma |
+| C1 | fixed | `wbinvd_on_all_cpus()` cross-calls all CPUs (`xc_call`, preemption disabled) |
+| C2 | fixed | `kmem_override_cache_attrs()` is static in ddi_impl.c, so its sequence is reimplemented with public HAT calls (`hat_getattr`, `hat_unload`, `hat_devload` with the new order) after a clflush of the range |
+| M4 | fixed | power-of-two kmalloc sizes above 16 bytes are naturally aligned (up to PAGE_SIZE) |
+| I1 | open (documented) | the residual window (handler dispatched but not yet in the KPI) can only be closed with `ddi_intr_disable/enable`, which can drop an edge-triggered MSI; left as is, the practical effect is a spurious IRQ_NONE |
+| S1 | fixed | the KPI function is `lkpi_free_pages` (macro `free_pages`); `scripts/kpi-modcheck.py` now also reads `extern` declarations in .c files, which is where genunix's `free_pages` tunable is declared, and reports 0 collisions over all 374 module objects plus linuxkpi |
+| fd_install vnode handover | verified | `vn_alloc` gives v_count 1, consumed by `falloc` on the first install; each further install of the same file takes a `VN_HOLD` and drops the extra lkpi file reference, so every fd owns exactly one vnode hold |
+| A1 | not KPI | i915 glue (module-build agent) |

@@ -132,9 +132,10 @@ def illumos_syms(root):
                     depth = 0
                 if line.strip():
                     prev = line
-    # Kernel interfaces declared extern in kernel headers.
+    # Kernel interfaces declared extern in kernel headers and sources
+    # (tunables are often declared extern only in the .c files using them).
     for d in ['uts/common', 'uts/intel', 'uts/i86pc']:
-        for path in glob.glob(os.path.join(root, 'usr/src', d, '**/*.h'),
+        for path in glob.glob(os.path.join(root, 'usr/src', d, '**/*.[ch]'),
                               recursive=True):
             try:
                 with open(path, errors='replace') as f:

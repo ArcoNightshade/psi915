@@ -676,6 +676,39 @@ lkpi_plat_dma_sync(struct lkpi_plat_dma *h, size_t off, size_t len,
 	    for_device ? DDI_DMA_SYNC_FORDEV : DDI_DMA_SYNC_FORCPU);
 }
 
+static kmem_cache_t *lkpi_page_cache;
+
+/* Created on first use; a racing loser destroys its copy. */
+static kmem_cache_t *
+lkpi_page_cache_get(void)
+{
+	kmem_cache_t *kc = lkpi_page_cache, *n;
+
+	if (kc != NULL)
+		return (kc);
+	n = kmem_cache_create("linuxkpi_page", PAGESIZE, PAGESIZE, NULL,
+	    NULL, NULL, NULL, NULL, 0);
+	if (n == NULL)
+		return (NULL);
+	kc = NULL;
+	if (!__atomic_compare_exchange_n(&lkpi_page_cache, &kc, n, false,
+	    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
+		kmem_cache_destroy(n);
+		return (kc);
+	}
+	return (n);
+}
+
+/* Called at linuxkpi _fini, after every KPI page was freed. */
+void
+lkpi_plat_page_cache_fini(void)
+{
+	if (lkpi_page_cache != NULL) {
+		kmem_cache_destroy(lkpi_page_cache);
+		lkpi_page_cache = NULL;
+	}
+}
+
 /*
  * Physically contiguous memory: DMA memory allocated against the root
  * node (no IOMMU there) with one segment and page alignment.
@@ -684,6 +717,27 @@ void *
 lkpi_plat_contig_alloc(size_t size, bool zero, bool cansleep, void **cookie)
 {
 	struct lkpi_plat_dma *h;
+
+	/*
+	 * Single pages (alloc_page(), the bulk of GEM backing store) come
+	 * from a page-sized, page-aligned kmem cache: no DMA handle and no
+	 * contig_alloc() search per page (docs/12 M3). Kernel heap memory is
+	 * locked and has page_t (page_numtopp_nolock works for DMA binds).
+	 * cookie NULL marks this path. Callers that changed the cache
+	 * attribute must restore write-back before freeing (as on Linux).
+	 */
+	if (size == PAGESIZE) {
+		kmem_cache_t *kc = lkpi_page_cache_get();
+		void *p;
+
+		if (kc == NULL)
+			return (NULL);
+		p = kmem_cache_alloc(kc, cansleep ? KM_SLEEP : KM_NOSLEEP);
+		if (p != NULL && zero)
+			bzero(p, PAGESIZE);
+		*cookie = NULL;
+		return (p);
+	}
 	ddi_device_acc_attr_t acc;
 	ddi_dma_attr_t attr;
 	int (*wait)(caddr_t) = cansleep ? DDI_DMA_SLEEP : DDI_DMA_DONTWAIT;
@@ -715,7 +769,10 @@ lkpi_plat_contig_free(void *kva, size_t size, void *cookie)
 {
 	struct lkpi_plat_dma *h = cookie;
 
-	(void) kva;
+	if (h == NULL) {
+		kmem_cache_free(lkpi_page_cache, kva);
+		return;
+	}
 	(void) size;
 	ddi_dma_mem_free(&h->acch);
 	ddi_dma_free_handle(&h->dmah);

@@ -26,6 +26,7 @@
 
 #include <linuxkpi/version.h>
 #include <linuxkpi/subsys.h>
+#include <linuxkpi/plat_dev.h>
 
 /* drmglue/include/drmglue/illumos.h; linked into this module. */
 int drmglue_init(void);
@@ -125,6 +126,7 @@ _fini(void)
 	error = mod_remove(&linuxkpi_modlinkage);
 	if (error == 0) {
 		lkpi_subsys_fini();
+		lkpi_plat_page_cache_fini();
 		cmn_err(CE_CONT, "linuxkpi %s unloaded\n", LINUXKPI_RELEASE);
 	}
 	return (error);

@@ -52,7 +52,12 @@
 struct page *alloc_pages(gfp_t gfp, unsigned int order);
 void __free_pages(struct page *page, unsigned int order);
 unsigned long __get_free_pages(gfp_t gfp, unsigned int order);
-void free_pages(unsigned long addr, unsigned int order);
+/*
+ * genunix has a global variable named free_pages (vm/seg_vn.c tunable):
+ * the KPI function is lkpi_free_pages (docs/12 S1).
+ */
+void lkpi_free_pages(unsigned long addr, unsigned int order);
+#define	free_pages(addr, order)		lkpi_free_pages((addr), (order))
 struct page *lkpi_virt_to_page(const void *kva);
 struct page *lkpi_pfn_to_page(unsigned long pfn);
 void lkpi_page_release(struct page *head);
