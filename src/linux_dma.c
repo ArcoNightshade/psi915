@@ -32,7 +32,8 @@ struct lkpi_dma_rec {
 	bool			coherent;
 };
 
-static DEFINE_HASHTABLE(lkpi_dma_hash, 8);
+/* map_single/map_page records (sg mappings live in the sg entries). */
+static DEFINE_HASHTABLE(lkpi_dma_hash, 12);
 static DEFINE_SPINLOCK(lkpi_dma_lock);
 
 static void

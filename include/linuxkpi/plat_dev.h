@@ -146,6 +146,8 @@ extern int linuxkpi_iommu_mapped;
 void *lkpi_plat_contig_alloc(size_t size, bool zero, bool cansleep,
     void **cookie);
 void lkpi_plat_contig_free(void *kva, size_t size, void *cookie);
+/* illumos: destroy the single-page cache at module unload. */
+void lkpi_plat_page_cache_fini(void);
 u64 lkpi_plat_virt_to_phys(const void *kva);
 /* Map pages (by physical address) into one virtually contiguous range. */
 void *lkpi_plat_vmap(const u64 *phys, size_t npages, int cache);

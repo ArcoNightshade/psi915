@@ -649,3 +649,8 @@ lkpi_plat_dev_iommu_mapped(void *dip)
 		return (linuxkpi_iommu_mapped != 0);
 	return (true);
 }
+
+void
+lkpi_plat_page_cache_fini(void)
+{
+}

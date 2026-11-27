@@ -115,7 +115,7 @@ __get_free_pages(gfp_t gfp, unsigned int order)
 }
 
 void
-free_pages(unsigned long addr, unsigned int order)
+lkpi_free_pages(unsigned long addr, unsigned int order)
 {
 	if (addr != 0)
 		__free_pages(lkpi_virt_to_page((void *)addr), order);
