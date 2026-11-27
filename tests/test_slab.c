@@ -178,6 +178,31 @@ TEST(dup_and_string)
 	CHECK_EQ(strscpy(buf, "abcdefghij", sizeof (buf)), -E2BIG);
 	CHECK(strcmp(buf, "abcdefg") == 0);
 	CHECK_EQ(strscpy(buf, "x", 0), -E2BIG);
+	/* docs/12 M4: natural alignment of power-of-two sizes. */
+	{
+		static const size_t sz[] = { 32, 64, 256, 4096, 8192, 100 };
+		unsigned int k;
+
+		for (k = 0; k < ARRAY_SIZE(sz); k++) {
+			char *q = kmalloc(sz[k], GFP_KERNEL);
+			size_t a = sz[k] == 100 ? 16 :
+			    (sz[k] < PAGE_SIZE ? sz[k] : PAGE_SIZE);
+
+			CHECK(q != NULL && ((uintptr_t)q & (a - 1)) == 0);
+			CHECK_EQ(ksize(q), sz[k]);
+			memset(q, 0xa5, sz[k]);
+			kfree(q);
+		}
+	}
+	/* docs/12 M2: large GFP_KERNEL requests may fail; huge ones do. */
+	CHECK_EQ(lkpi_gfp_to_plat_size(GFP_KERNEL, 4096), LKPI_PLAT_SLEEP);
+	CHECK_EQ(lkpi_gfp_to_plat_size(GFP_KERNEL, 2 << 20),
+	    LKPI_PLAT_NOSLEEP_LAZY);
+	CHECK_EQ(lkpi_gfp_to_plat_size(GFP_KERNEL | __GFP_NOFAIL, 2 << 20),
+	    LKPI_PLAT_SLEEP);
+	CHECK(lkpi_kvmalloc_max() <= ((size_t)1 << 34));
+	CHECK(kvmalloc(lkpi_kvmalloc_max() + 1, GFP_KERNEL | __GFP_NOWARN) ==
+	    NULL);
 	CHECK_EQ(strscpy(buf, "two-arg"), 7);		/* sizeof (buf) == 8 */
 	CHECK_EQ(strscpy(buf, "two-args"), -E2BIG);
 	CHECK(strcmp(buf, "two-arg") == 0);

@@ -372,6 +372,13 @@ long lkpi_plat_copyinstr(const char *uaddr, char *kbuf, size_t len,
 void lkpi_plat_sleep_ns(uint64_t ns);
 bool lkpi_plat_privileged(void);
 
+/* Installed physical memory in pages (sizing limits). */
+static inline unsigned long
+lkpi_plat_physpages(void)
+{
+	return ((unsigned long)physmem);
+}
+
 static inline int
 __lkpi_plat_kmflag(int flags)
 {

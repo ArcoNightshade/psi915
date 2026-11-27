@@ -12,6 +12,9 @@ typedef struct proc {
 	user_t		p_user;
 } proc_t;
 #define	SKILLED		0x00000100
+#define	SHOLDFORK	0x00000010
+#define	ISHOLD(p)	((p)->p_flag & SHOLDFORK)
+#define	MUSTRETURN(p, t)	(ISHOLD(p) | (t)->t_activefd.a_stale)
 #define	PTOU(p)		(&(p)->p_user)
 extern proc_t p0;
 extern kthread_t *thread_create(caddr_t, size_t, void (*)(), void *, size_t,

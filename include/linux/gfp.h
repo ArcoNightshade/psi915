@@ -82,4 +82,25 @@ lkpi_gfp_to_plat(gfp_t gfp)
 	return (LKPI_PLAT_SLEEP);
 }
 
+/*
+ * Size-aware mapping used by kmalloc/kvmalloc (docs/12 M2). illumos
+ * KM_SLEEP never fails: it waits (and reaps system-wide) until memory
+ * appears, while Linux fails an unsatisfiable GFP_KERNEL request. Large
+ * requests are often user-sized (execbuffer arrays, property blobs), so
+ * above LKPI_GFP_SLEEP_MAX they become KM_NOSLEEP | KM_NORMALPRI and can
+ * fail; only __GFP_NOFAIL keeps KM_SLEEP at any size.
+ */
+#define	LKPI_GFP_SLEEP_MAX	(1UL << 20)
+
+static inline int
+lkpi_gfp_to_plat_size(gfp_t gfp, size_t size)
+{
+	int f = lkpi_gfp_to_plat(gfp);
+
+	if (f == LKPI_PLAT_SLEEP && size > LKPI_GFP_SLEEP_MAX &&
+	    !(gfp & __GFP_NOFAIL))
+		return (LKPI_PLAT_NOSLEEP_LAZY);
+	return (f);
+}
+
 #endif /* _LINUXKPI_LINUX_GFP_H_ */

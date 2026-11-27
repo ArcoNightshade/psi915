@@ -43,6 +43,11 @@
 #include <vm/as.h>
 #include <vm/seg_kmem.h>
 #include <sys/vmem.h>
+#include <sys/buf.h>
+#include <sys/x_call.h>
+#include <sys/cpuvar.h>
+#include <sys/disp.h>
+#include <vm/page.h>
 
 #include <linuxkpi/platform.h>
 
@@ -475,6 +480,10 @@ struct lkpi_plat_dma {
 	ddi_acc_handle_t	acch;	/* coherent allocations only */
 	caddr_t			kva;
 	size_t			real_len;
+	/* lkpi_plat_dma_map_pages: buf and page_t list kept while bound */
+	struct buf		*bp;
+	page_t			**pplist;
+	size_t			npages;
 };
 
 static void
@@ -582,11 +591,80 @@ lkpi_plat_dma_map(void *dip, u64 mask, void *kva, size_t size, int dir,
 	return (0);
 }
 
+/*
+ * Separately allocated pages as one DMA object: a B_SHADOW buf whose
+ * b_shadow page_t list gives rootnex each page's PFN
+ * (ddi_dma_buf_bind_handle -> DMA_OTYP_BUFVADDR with v_priv = pplist;
+ * rootnex_get_sgl walks pplist instead of hat_getpfnum(v_addr)). b_addr
+ * only supplies the in-page offset of the first page. The page_t of a
+ * KPI page is page_numtopp_nolock(pfn): KPI pages are locked kernel
+ * memory from contig_alloc. If rootnex had to bounce (an address above
+ * the DMA mask), its copy would use b_addr as a contiguous VA, which it
+ * is not: the 39-bit i915 mask covers all RAM of the target machines.
+ * UNTESTED ON ILLUMOS.
+ */
+int
+lkpi_plat_dma_map_pages(void *dip, u64 mask, void *const *kvas,
+    const u64 *phys, size_t npages, unsigned int off, size_t size, int dir,
+    u64 *bus, struct lkpi_plat_dma **hp)
+{
+	ddi_dma_attr_t attr;
+	ddi_dma_cookie_t cookie;
+	struct lkpi_plat_dma *h;
+	uint_t ccount, flags;
+	size_t i;
+
+	h = kmem_zalloc(sizeof (*h), KM_SLEEP);
+	h->npages = npages;
+	h->pplist = kmem_zalloc(npages * sizeof (page_t *), KM_SLEEP);
+	for (i = 0; i < npages; i++) {
+		h->pplist[i] = page_numtopp_nolock(
+		    (pfn_t)(phys[i] >> PAGESHIFT));
+		if (h->pplist[i] == NULL)
+			goto fail_list;
+	}
+	h->bp = getrbuf(KM_SLEEP);
+	h->bp->b_flags = B_BUSY | B_SHADOW |
+	    (dir == LKPI_DMA_FROM_DEVICE ? B_READ : B_WRITE);
+	h->bp->b_bcount = size;
+	h->bp->b_un.b_addr = (caddr_t)kvas[0] + off;
+	h->bp->b_shadow = h->pplist;
+	h->bp->b_proc = NULL;
+	lkpi_dma_attr(&attr, mask, 1);
+	if (ddi_dma_alloc_handle(dip, &attr, DDI_DMA_SLEEP, NULL,
+	    &h->dmah) != DDI_SUCCESS)
+		goto fail_buf;
+	flags = DDI_DMA_STREAMING | (dir == LKPI_DMA_TO_DEVICE ? DDI_DMA_WRITE :
+	    (dir == LKPI_DMA_FROM_DEVICE ? DDI_DMA_READ : DDI_DMA_RDWR));
+	if (ddi_dma_buf_bind_handle(h->dmah, h->bp, flags, DDI_DMA_SLEEP,
+	    NULL, &cookie, &ccount) != DDI_DMA_MAPPED)
+		goto fail_handle;
+	if (ccount != 1) {
+		(void) ddi_dma_unbind_handle(h->dmah);
+		goto fail_handle;
+	}
+	*bus = cookie.dmac_laddress;
+	*hp = h;
+	return (0);
+fail_handle:
+	ddi_dma_free_handle(&h->dmah);
+fail_buf:
+	freerbuf(h->bp);
+fail_list:
+	kmem_free(h->pplist, npages * sizeof (page_t *));
+	kmem_free(h, sizeof (*h));
+	return (-EINVAL);
+}
+
 void
 lkpi_plat_dma_unmap(struct lkpi_plat_dma *h)
 {
 	(void) ddi_dma_unbind_handle(h->dmah);
 	ddi_dma_free_handle(&h->dmah);
+	if (h->bp != NULL) {
+		freerbuf(h->bp);
+		kmem_free(h->pplist, h->npages * sizeof (page_t *));
+	}
 	kmem_free(h, sizeof (*h));
 }
 
@@ -688,19 +766,41 @@ lkpi_plat_vunmap(void *va, size_t npages)
 }
 
 /*
- * The illumos HAT has no interface to change the cache attribute of an
- * existing kernel mapping (hat_chgattr() only updates protections, and
- * gfxp_fix_mem_cache_attrs() is empty on i86pc). Report success; memory
- * stays write-back. i915 on LLC parts (Gen9) handles display coherency
- * with clflush, so this is a performance, not a correctness, concern for
- * the target; recorded in docs/03.
+ * Change the cache attribute of a kernel mapping (set_memory_*,
+ * set_pages_*; docs/12 C2). illumos has kmem_override_cache_attrs() in
+ * i86pc ddi_impl.c, but it is static, so the same sequence is done here
+ * with the public HAT interface: for each page, keep protections, unload
+ * the locked translation and reload it with the new HAT order. Dirty
+ * lines are written back first (WB -> UC/WC must not leave stale data
+ * behind the new attribute). Only for KPI memory (contig_alloc pages and
+ * vmap ranges), which is mapped locked in kas.
+ * UNTESTED ON ILLUMOS.
  */
 int
 lkpi_plat_set_cache(void *kva, size_t len, int cache)
 {
-	(void) kva;
-	(void) len;
-	(void) cache;
+	caddr_t va = (caddr_t)((uintptr_t)kva & (uintptr_t)PAGEMASK);
+	caddr_t end = (caddr_t)(((uintptr_t)kva + len + PAGEOFFSET) &
+	    (uintptr_t)PAGEMASK);
+	uint_t attr;
+	pfn_t pfn;
+	caddr_t p;
+
+	for (p = va; p < end; p += PAGESIZE) {
+		if (hat_getattr(kas.a_hat, p, &attr) == (uint_t)-1)
+			return (-EINVAL);
+	}
+	for (p = va; p < end; p += 64)
+		__asm__ __volatile__("clflush %0" : "+m" (*(volatile char *)p));
+	__asm__ __volatile__("mfence" : : : "memory");
+	for (p = va; p < end; p += PAGESIZE) {
+		(void) hat_getattr(kas.a_hat, p, &attr);
+		pfn = hat_getpfnum(kas.a_hat, p);
+		hat_unload(kas.a_hat, p, PAGESIZE, HAT_UNLOAD_UNLOCK);
+		hat_devload(kas.a_hat, p, PAGESIZE, pfn,
+		    (attr & HAT_PROT_MASK) | HAT_NOSYNC | lkpi_hat_attr(cache),
+		    HAT_LOAD_LOCK);
+	}
 	return (0);
 }
 
@@ -903,11 +1003,57 @@ lkpi_plat_wrmsr(u32 msr, u64 val)
 	wrmsr(msr, val);
 }
 
-/* Write back and invalidate this CPU's caches. */
+/* Write back and invalidate this CPU's caches (cross-call handler). */
+static int
+lkpi_wbinvd_xc(xc_arg_t a1, xc_arg_t a2, xc_arg_t a3)
+{
+	(void) a1;
+	(void) a2;
+	(void) a3;
+	__asm__ __volatile__("wbinvd" : : : "memory");
+	return (0);
+}
+
+/*
+ * WBINVD on every CPU (docs/12 C1): a cross call to all CPUs, which
+ * also runs the handler on the calling CPU, and returns once all have
+ * finished. Preemption is disabled so the caller cannot migrate halfway.
+ */
 void
 lkpi_plat_wbinvd(void)
 {
-	__asm__ __volatile__("wbinvd" : : : "memory");
+	cpuset_t set;
+
+	kpreempt_disable();
+	CPUSET_ALL(set);
+	xc_call(0, 0, 0, CPUSET2BV(set), lkpi_wbinvd_xc);
+	kpreempt_enable();
 }
 
 #endif /* LINUXKPI_ILLUMOS_KERNEL */
+
+/*
+ * IOMMU (illumos immu, part of drv/rootnex: MODDEPS drv/rootnex). Display
+ * devices always get a unity (1:1) DVMA domain, so DMA addresses equal
+ * physical ones, but the DMAR unit still translates through page tables;
+ * Gen9 i915 needs its VT-d workarounds then (intel_vtd_active()).
+ * Translation is on when immu runs with DVMA enabled and graphics DVMA
+ * not excluded ("immu-gfxdvma-enable", "immu-dvma-enable", "immu-enable"
+ * boot properties or /etc/system). A graphics-only DMAR unit is not
+ * started when immu_gfxdvma_enable is false; a GPU behind a shared unit
+ * would still be translated then (not detected: use the override).
+ */
+extern boolean_t immu_running;
+extern boolean_t immu_dvma_enable;
+extern boolean_t immu_gfxdvma_enable;
+
+int linuxkpi_iommu_mapped = -1;
+
+bool
+lkpi_plat_dev_iommu_mapped(void *dip)
+{
+	(void) dip;
+	if (linuxkpi_iommu_mapped >= 0)
+		return (linuxkpi_iommu_mapped != 0);
+	return (immu_running && immu_dvma_enable && immu_gfxdvma_enable);
+}

@@ -38,6 +38,9 @@ extern int ddi_dma_mem_alloc(ddi_dma_handle_t, size_t, ddi_device_acc_attr_t *,
 extern void ddi_dma_mem_free(ddi_acc_handle_t *);
 extern int ddi_dma_addr_bind_handle(ddi_dma_handle_t, struct as *, caddr_t,
     size_t, uint_t, int (*)(caddr_t), caddr_t, ddi_dma_cookie_t *, uint_t *);
+struct buf;
+extern int ddi_dma_buf_bind_handle(ddi_dma_handle_t, struct buf *, uint_t,
+    int (*)(caddr_t), caddr_t, ddi_dma_cookie_t *, uint_t *);
 extern int ddi_dma_unbind_handle(ddi_dma_handle_t);
 extern int ddi_dma_sync(ddi_dma_handle_t, off_t, size_t, uint_t);
 #endif

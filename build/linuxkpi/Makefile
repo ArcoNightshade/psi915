@@ -10,7 +10,7 @@
 BUILDBASE	= ..
 
 MODULE		= linuxkpi
-MODDEPS		= misc/acpica misc/gfx_private
+MODDEPS		= misc/acpica misc/gfx_private drv/rootnex
 
 include $(BUILDBASE)/Makefile.master
 include $(BUILDBASE)/Makefile.files

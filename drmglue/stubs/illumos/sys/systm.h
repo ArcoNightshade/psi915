@@ -3,6 +3,7 @@
 #ifndef _STUB_SYS_SYSTM_H
 #define	_STUB_SYS_SYSTM_H
 #include <sys/types.h>
+extern unsigned long physmem;
 extern int hz;
 extern void delay(clock_t);
 extern int ffs(uintmax_t);

@@ -304,6 +304,9 @@ struct lkpi_plat_dma {
 	size_t			len;
 	bool			coherent;
 	size_t			alloc_len;
+	void			**pkva;	/* page list binding: kva per page */
+	size_t			npg;
+	unsigned int		pgoff;
 };
 
 static struct lkpi_plat_dma *fake_dma_list;
@@ -367,7 +370,16 @@ lkpi_fake_dma_kva(u64 bus, size_t len)
 	pthread_mutex_lock(&fake_lock);
 	for (h = fake_dma_list; h != NULL; h = h->next) {
 		if (bus >= h->bus && bus + len <= h->bus + h->len) {
-			va = (char *)h->kva + (bus - h->bus);
+			if (h->pkva != NULL) {
+				u64 o = bus - h->bus + h->pgoff;
+
+				/* Within one page of a page-list binding. */
+				if ((o & (FAKE_PAGE - 1)) + len <= FAKE_PAGE)
+					va = (char *)h->pkva[o / FAKE_PAGE] +
+					    (o & (FAKE_PAGE - 1));
+			} else {
+				va = (char *)h->kva + (bus - h->bus);
+			}
 			break;
 		}
 	}
@@ -419,10 +431,38 @@ lkpi_plat_dma_map(void *dip, u64 mask, void *kva, size_t size, int dir,
 	return (fake_dma_bind(mask, kva, size, false, 0, bus, h));
 }
 
+int
+lkpi_plat_dma_map_pages(void *dip, u64 mask, void *const *kvas,
+    const u64 *phys, size_t npages, unsigned int off, size_t size, int dir,
+    u64 *bus, struct lkpi_plat_dma **hp)
+{
+	void **pk;
+	int r;
+
+	(void) dip;
+	(void) phys;
+	(void) dir;
+	pk = malloc(npages * sizeof (*pk));
+	if (pk == NULL)
+		return (-ENOMEM);
+	memcpy(pk, kvas, npages * sizeof (*pk));
+	/* The bus range is fresh; kva only gives the in-page offset. */
+	r = fake_dma_bind(mask, (char *)kvas[0] + off, size, false, 0, bus, hp);
+	if (r != 0) {
+		free(pk);
+		return (r);
+	}
+	(*hp)->pkva = pk;
+	(*hp)->npg = npages;
+	(*hp)->pgoff = off;
+	return (0);
+}
+
 void
 lkpi_plat_dma_unmap(struct lkpi_plat_dma *h)
 {
 	fake_dma_unbind(h);
+	free(h->pkva);
 	free(h);
 }
 
@@ -594,3 +634,18 @@ void lkpi_plat_wrmsr(u32 msr, u64 val) { (void) msr; (void) val; }
 void lkpi_plat_wbinvd(void) { __atomic_thread_fence(__ATOMIC_SEQ_CST); }
 
 #endif /* LINUXKPI_USERLAND */
+
+/*
+ * The fake DMA backend always translates (fake IOMMU), so devices are
+ * IOMMU-mapped unless a test sets the override to 0.
+ */
+int linuxkpi_iommu_mapped = -1;
+
+bool
+lkpi_plat_dev_iommu_mapped(void *dip)
+{
+	(void) dip;
+	if (linuxkpi_iommu_mapped >= 0)
+		return (linuxkpi_iommu_mapped != 0);
+	return (true);
+}

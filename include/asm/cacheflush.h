@@ -10,10 +10,10 @@
  *                          range, fenced with MFENCE on both sides; the
  *                          instructions are broadcast coherently, so this
  *                          is correct on every CPU
- *   wbinvd_on_all_cpus()   WBINVD on the calling CPU only (illumos has no
- *                          cheap all-CPU cross call for leaf drivers);
- *                          i915 uses it only as a fallback when CLFLUSH
- *                          is missing, which never applies to Gen9 CPUs
+ *   wbinvd_on_all_cpus()   WBINVD on every CPU through an illumos cross
+ *                          call (xc_call to all CPUs, preemption off);
+ *                          i915 uses it around suspend/resume and for
+ *                          some dma-buf imports
  */
 #ifndef _LINUXKPI_ASM_CACHEFLUSH_H_
 #define	_LINUXKPI_ASM_CACHEFLUSH_H_

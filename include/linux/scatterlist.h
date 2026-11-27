@@ -32,8 +32,10 @@ struct scatterlist {
 	unsigned int		length;
 	dma_addr_t		dma_address;
 	unsigned int		dma_length;
-	struct lkpi_plat_dma	*lkpi_dma;
+	struct lkpi_sg_dma	*lkpi_dma;	/* dma_map_sg bindings */
 };
+
+struct lkpi_sg_dma;
 
 struct sg_table {
 	struct scatterlist	*sgl;

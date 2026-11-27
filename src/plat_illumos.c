@@ -9,14 +9,12 @@
  * Out-of-line illumos kernel platform primitives (see <linuxkpi/platform.h>):
  * service threads over thread_create(9F-like, uts/common/disp/thread.c).
  *
- * A joinable thread is emulated with a done flag under a mutex: the thread
- * runs fn, sets done, broadcasts and calls thread_exit(); the joiner waits
- * for done and then frees the descriptor. illumos mutexes may be destroyed
- * as soon as the last holder has dropped them, so the joiner may free the
- * descriptor while the exiting thread is still in thread_exit().
+ * A joinable thread records its kernel thread id (t_did) before running
+ * fn; the joiner calls thread_join(did), which returns once the thread
+ * has left module text (docs/12 L2).
  *
  * Detached threads (lkpi_plat_thread_create_detached) free the descriptor
- * themselves before thread_exit().
+ * themselves before running fn.
  *
  * Also: signal checks, process identity, copyinstr and sub-tick sleeps,
  * which need process internals (<sys/proc.h>, <sys/user.h>).
@@ -31,15 +29,26 @@
 #include <sys/disp.h>
 #include <sys/systm.h>
 #include <sys/cred.h>
+#include <sys/klwp.h>
+#include <sys/schedctl.h>
 
 #include <linuxkpi/platform.h>
 
 #ifdef LINUXKPI_ILLUMOS_KERNEL
 
+/*
+ * Joinable threads are joined with thread_join(t_did), which returns only
+ * once the thread is off CPU in thread_exit(): after that no module text
+ * runs on its behalf, so _fini may let the module be unloaded (docs/12
+ * L2). The thread itself must not touch the descriptor after fn returns.
+ * Detached threads (whose code may still run until thread_exit) are
+ * only used by subsystems whose fini waits for them otherwise.
+ */
 struct lkpi_plat_thread {
 	lkpi_plat_mutex_t	lock;
 	lkpi_plat_cv_t		cv;
-	bool			done;
+	kt_did_t		did;
+	bool			started;
 	bool			detached;
 	void			(*fn)(void *);
 	void			*arg;
@@ -49,18 +58,21 @@ static void
 lkpi_plat_thread_start(void *arg)
 {
 	struct lkpi_plat_thread *t = arg;
+	bool detached = t->detached;
+	void (*fn)(void *) = t->fn;
+	void *fa = t->arg;
 
-	t->fn(t->arg);
-	if (t->detached) {
-		lkpi_plat_cv_destroy(&t->cv);
-		lkpi_plat_mutex_destroy(&t->lock);
+	if (!detached) {
+		/* The creator waits for the id before returning t. */
+		lkpi_plat_mutex_enter(&t->lock);
+		t->did = curthread->t_did;
+		t->started = true;
+		lkpi_plat_cv_broadcast(&t->cv);
+		lkpi_plat_mutex_exit(&t->lock);
+	} else {
 		lkpi_plat_free(t, sizeof (*t));
-		thread_exit();
 	}
-	lkpi_plat_mutex_enter(&t->lock);
-	t->done = true;
-	lkpi_plat_cv_broadcast(&t->cv);
-	lkpi_plat_mutex_exit(&t->lock);
+	fn(fa);
 	thread_exit();
 }
 
@@ -70,13 +82,21 @@ lkpi_plat_thread_spawn(void (*fn)(void *), void *arg, bool detached)
 	struct lkpi_plat_thread *t;
 
 	t = lkpi_plat_zalloc(sizeof (*t), LKPI_PLAT_SLEEP);
-	lkpi_plat_mutex_init(&t->lock, NULL);
-	lkpi_plat_cv_init(&t->cv);
 	t->fn = fn;
 	t->arg = arg;
 	t->detached = detached;
+	if (!detached) {
+		lkpi_plat_mutex_init(&t->lock, NULL);
+		lkpi_plat_cv_init(&t->cv);
+	}
 	(void) thread_create(NULL, 0, lkpi_plat_thread_start, t, 0, &p0,
 	    TS_RUN, minclsyspri);
+	if (detached)
+		return (NULL);		/* t belongs to the thread now */
+	lkpi_plat_mutex_enter(&t->lock);
+	while (!t->started)
+		lkpi_plat_cv_wait(&t->cv, &t->lock);
+	lkpi_plat_mutex_exit(&t->lock);
 	return (t);
 }
 
@@ -99,10 +119,7 @@ lkpi_plat_thread_create_detached(void (*fn)(void *), void *arg,
 void
 lkpi_plat_thread_join(struct lkpi_plat_thread *t)
 {
-	lkpi_plat_mutex_enter(&t->lock);
-	while (!t->done)
-		lkpi_plat_cv_wait(&t->cv, &t->lock);
-	lkpi_plat_mutex_exit(&t->lock);
+	thread_join(t->did);
 	lkpi_plat_cv_destroy(&t->cv);
 	lkpi_plat_mutex_destroy(&t->lock);
 	lkpi_plat_free(t, sizeof (*t));
@@ -110,17 +127,24 @@ lkpi_plat_thread_join(struct lkpi_plat_thread *t)
 
 /*
  * Signals can only be pending for threads with an lwp (user threads in a
- * system call, e.g. an ioctl); kernel threads have none. ISSIG(JUSTLOOKING)
- * is the check cv_wait_sig() uses, without side effects.
+ * system call, e.g. an ioctl); kernel threads have none. The test is the
+ * set of conditions under which cv_wait_sig() returns 0 without sleeping
+ * (uts/common/os/condvar.c): a pending signal (ISSIG JUSTLOOKING), a hold
+ * for fork/exec//proc (MUSTRETURN), lwp_sysabort, or schedctl
+ * cancellation. Reporting all of them makes Linux wait loops return
+ * -ERESTARTSYS (EINTR to user space) instead of spinning on a sleep that
+ * returns at once, and lets the lwp reach the user boundary (docs/12 L1).
  */
 bool
 lkpi_plat_signal_pending(void)
 {
 	kthread_t *t = curthread;
+	klwp_t *lwp;
 
-	if (servicing_interrupt() || ttolwp(t) == NULL)
+	if (servicing_interrupt() || (lwp = ttolwp(t)) == NULL)
 		return (false);
-	return (ISSIG(t, JUSTLOOKING) != 0);
+	return (ISSIG(t, JUSTLOOKING) != 0 || MUSTRETURN(ttoproc(t), t) != 0 ||
+	    lwp->lwp_sysabort != 0 || schedctl_cancel_pending() != 0);
 }
 
 bool

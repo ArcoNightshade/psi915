@@ -393,6 +393,16 @@ lkpi_vma_fault(struct lkpi_vma *lv, uint64_t off, size_t len, int type,
 
 	if (lkpi_vma_range(lv, off, len, &first, &n) != 0)
 		return (EFAULT);
+	/*
+	 * Kernel I/O (F_SOFTLOCK, as_pagelock) on a PFN/IO mapping: refused,
+	 * as Linux refuses get_user_pages on VM_PFNMAP|VM_IO. A zap of a
+	 * softlocked range would leave the I/O holding PFNs that i915 rebinds
+	 * (GTT aperture) and leak HAT lock counts (docs/12 D1); callers fall
+	 * back to copying or fail with EFAULT.
+	 */
+	if (type == LKPI_FAULT_SOFTLOCK &&
+	    (lv->vma.vm_flags & (VM_PFNMAP | VM_IO)) != 0)
+		return (EFAULT);
 	end = first + n;
 
 	for (tries = 0; ; tries++) {

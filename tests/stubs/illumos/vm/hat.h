@@ -13,6 +13,8 @@ struct hat;
 #define	HAT_PLAT_NOCACHE	0x100000
 #define	HAT_LOAD_LOCK		0x01
 #define	HAT_UNLOAD_UNLOCK	0x04
+#define	HAT_PROT_MASK		0x0F
+extern uint_t hat_getattr(struct hat *, caddr_t, uint_t *);
 extern pfn_t hat_getpfnum(struct hat *, caddr_t);
 extern void hat_devload(struct hat *, caddr_t, size_t, pfn_t, uint_t, int);
 extern void hat_unload(struct hat *, caddr_t, size_t, uint_t);

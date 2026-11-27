@@ -191,6 +191,17 @@ TEST(toy_probe_remove)
 	CHECK(toy_last_result.irqs >= 5);
 	CHECK(pdev->msi_enabled);
 	CHECK(pdev->irq > 0);
+	/*
+	 * The fake backend counts a claimed interrupt after the handler
+	 * returns, which can lag the driver's own count on a loaded host.
+	 */
+	{
+		int waited;
+
+		for (waited = 0; READ_ONCE(edu.claimed) < 5 && waited < 2000;
+		    waited++)
+			msleep(1);
+	}
 	CHECK(edu.claimed >= 5);
 	CHECK_EQ(pci_read_config_word(pdev, PCI_COMMAND, &cmd), 0);
 	CHECK(cmd & PCI_COMMAND_MASTER);

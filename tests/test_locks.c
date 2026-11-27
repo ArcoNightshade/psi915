@@ -101,6 +101,45 @@ TEST(mutex)
 	mutex_unlock(&static_mutex);
 }
 
+/* docs/12 L5: interruptible/killable acquisition. */
+static struct mutex sig_m;
+static volatile int sig_held, sig_release;
+
+static void
+sig_holder(void *arg)
+{
+	(void) arg;
+	mutex_lock(&sig_m);
+	__atomic_store_n(&sig_held, 1, __ATOMIC_SEQ_CST);
+	while (!__atomic_load_n(&sig_release, __ATOMIC_SEQ_CST))
+		lkpi_plat_sleep_ns(1000000);
+	mutex_unlock(&sig_m);
+}
+
+TEST(mutex_interruptible)
+{
+	struct lkpi_plat_thread *t;
+
+	mutex_init(&sig_m);
+	sig_held = sig_release = 0;
+	t = lkpi_plat_thread_create(sig_holder, NULL, "holder");
+	while (!__atomic_load_n(&sig_held, __ATOMIC_SEQ_CST))
+		lkpi_plat_sleep_ns(1000000);
+#ifndef LKPI_KTEST
+	lkpi_plat_fake_signal = 1;
+	CHECK_EQ(mutex_lock_interruptible(&sig_m), -EINTR);
+	lkpi_plat_fake_signal = 2;		/* fatal */
+	CHECK_EQ(mutex_lock_killable(&sig_m), -EINTR);
+	lkpi_plat_fake_signal = 0;
+#endif
+	CHECK_EQ(sig_m.lkpi_waiters, 0);
+	__atomic_store_n(&sig_release, 1, __ATOMIC_SEQ_CST);
+	CHECK_EQ(mutex_lock_interruptible(&sig_m), 0);	/* after release */
+	mutex_unlock(&sig_m);
+	lkpi_plat_thread_join(t);
+	mutex_destroy(&sig_m);
+}
+
 TEST(rwsem)
 {
 	struct rw_semaphore s;
@@ -527,6 +566,7 @@ LKPI_SUITE(locks)
 {
 	RUN(spinlock);
 	RUN(mutex);
+	RUN(mutex_interruptible);
 	RUN(rwsem);
 	RUN(rwlock);
 	RUN(lockdep_lite);
