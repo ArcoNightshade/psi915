@@ -111,4 +111,7 @@ COMPILE.c	= $(CC) $(CFLAGS) $(CPPFLAGS) -c
 #
 LD_KMOD_TYPE	= -ztype=kmod
 # Module dependencies (e.g. misc/linuxkpi), set per module in MODDEPS.
-LDFLAGS		= $(if $(MODDEPS),-dy $(MODDEPS:%=-N%)) $(EXTRA_LDFLAGS)
+# -ztype=kmod rejects -d options (ld: -z type=kmod and -d are incompatible);
+# -dy is only wanted with the older '-r' relocatable link.
+LD_DY		= $(if $(filter -r,$(LD_KMOD_TYPE)),-dy)
+LDFLAGS		= $(if $(MODDEPS),$(LD_DY) $(MODDEPS:%=-N%)) $(EXTRA_LDFLAGS)
