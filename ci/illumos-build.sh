@@ -1,16 +1,28 @@
 #!/bin/sh
 # SPDX-License-Identifier: BSD-2-Clause
 # Build the kernel module set inside an illumos VM (CI). Runs under sh.
-# Prints the environment first so failures can be diagnosed from the log.
+# Full output goes to ci-build.log; the console gets the environment, a
+# condensed list of errors (so CI logs stay readable) and the result.
 set -u
-echo "== environment"; uname -a; cat /etc/release 2>/dev/null | head -3
+log=ci-build.log
+: > "$log"
+{
+echo "== environment"; uname -a; head -3 /etc/release 2>/dev/null
 command -v gcc gmake ld ctfconvert ctfmerge 2>&1
 gcc --version 2>&1 | head -1
 ls /usr/include/sys/ddi.h /usr/include/sys/sunddi.h 2>&1
+} 2>&1 | tee -a "$log"
 rc=0
+{
 echo "== gmake kmod (linuxkpi, lkpi_ktest, lkpi_toy)"
-gmake kmod || rc=1
+gmake -k kmod || rc=1
 echo "== gfx modules (g1, drm, g2, i915)"
-sh scripts/build-gfx.sh all || rc=1
+sh scripts/build-gfx.sh all -k -j4 || rc=1
+} >> "$log" 2>&1
+echo "== errors (first 150 distinct; full log in ci-build.log)"
+grep -E "error:|undefined reference|Error [0-9]|\*\*\*|fatal" "$log" | sed 's/^[0-9T:.Z-]* //' | sort | uniq -c | sort -rn | head -150
+echo "== error count: $(grep -c 'error:' "$log")  warning count: $(grep -c 'warning:' "$log")"
+echo "== built objects: $(find build -name '*.o' 2>/dev/null | wc -l)  modules:"
+find build -type f \( -path '*/obj64/*' -o -path '*/debug64/*' \) ! -name '*.o' ! -name '*.d' 2>/dev/null | head -20
 echo "== result rc=$rc"
 exit $rc

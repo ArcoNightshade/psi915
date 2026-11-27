@@ -264,7 +264,7 @@ TEST(bug_survivable)
 TEST(err_ptr)
 {
 	void *p = ERR_PTR(-ENOMEM);
-	int x;
+	int x = 0;
 
 	CHECK(IS_ERR(p));
 	CHECK(IS_ERR_OR_NULL(p));
