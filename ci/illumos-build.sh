@@ -25,6 +25,10 @@ echo "== files with most errors"
 grep -E "error:" "$log" | sed -e 's/^[0-9T:.Z-]* //' | grep -o '^[^: ]*\.[ch]' | sort | uniq -c | sort -rn | head -25
 echo "== first 30 raw error lines"
 grep -E "error:" "$log" | sed -e 's/^[0-9T:.Z-]* //' | head -30
+echo "== link / make / ctf problems (non-compile)"
+grep -n -E "(^|[^a-z])ld: |fatal:|Undefined|undefined symbol|ctfconvert|ctfmerge|CTF|\*\*\* |Error [0-9]+|No rule|cannot|not found" "$log" | grep -v "error:" | sed 's/^[0-9]*://' | sort | uniq -c | sort -rn | head -40
+echo "== last 40 lines of log"
+tail -40 "$log"
 echo "== error count: $(grep -c 'error:' "$log")  warning count: $(grep -c 'warning:' "$log")"
 echo "== built objects: $(find build -name '*.o' 2>/dev/null | wc -l)  modules:"
 find build -type f \( -path '*/obj64/*' -o -path '*/debug64/*' \) ! -name '*.o' ! -name '*.d' 2>/dev/null | head -20
