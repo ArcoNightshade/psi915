@@ -20,6 +20,8 @@
 	DEFINE_EVENT(template, name, PARAMS(proto), PARAMS(args))
 #define	TRACE_EVENT_CONDITION(name, proto, args, cond, struct, assign, print) \
 	TRACE_EVENT(name, PARAMS(proto), PARAMS(args), struct, assign, print)
+#define	EXPORT_TRACEPOINT_SYMBOL(name)
+#define	EXPORT_TRACEPOINT_SYMBOL_GPL(name)
 #define	PARAMS(args...)		args
 #define	TP_PROTO(args...)	args
 #define	TP_ARGS(args...)	args

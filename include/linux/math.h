@@ -44,6 +44,7 @@
 })
 
 /* Round x up/down to a multiple of y (any y > 0). */
+#undef	roundup		/* illumos <sys/sysmacros.h>: same result */
 #define	roundup(x, y)	({						\
 	typeof(y) __lkpi_y = (y);					\
 	(((x) + (__lkpi_y - 1)) / __lkpi_y) * __lkpi_y;			\

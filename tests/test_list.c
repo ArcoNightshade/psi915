@@ -19,6 +19,15 @@ struct item {
 };
 
 #define	NITEMS	8
+/*
+ * Tests link the global items into list heads on the stack; gcc 12+
+ * (-Wdangling-pointer, part of -Wall in the kernel build of lkpi_ktest)
+ * flags that although every list is emptied before the head goes away.
+ */
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 12
+#pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
+
 static struct item items[NITEMS];
 
 static void

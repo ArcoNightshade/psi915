@@ -17,6 +17,7 @@
 #define	INTERNODE_CACHE_SHIFT	L1_CACHE_SHIFT
 #define	____cacheline_aligned	__attribute__((__aligned__(SMP_CACHE_BYTES)))
 #define	____cacheline_aligned_in_smp	____cacheline_aligned
+#undef	__cacheline_aligned	/* illumos <sys/ccompile.h> */
 #define	__cacheline_aligned	____cacheline_aligned
 #define	__cacheline_aligned_in_smp	____cacheline_aligned
 #define	____cacheline_internodealigned_in_smp	____cacheline_aligned

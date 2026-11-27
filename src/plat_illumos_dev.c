@@ -37,14 +37,11 @@
 #include <sys/smbios.h>
 #include <sys/gfx_private.h>
 #include <sys/x86_archext.h>
-#include <sys/acpi/acpi.h>
-#include <sys/acpica.h>
 #include <vm/hat.h>
 #include <vm/as.h>
 #include <vm/seg_kmem.h>
 #include <sys/vmem.h>
 #include <sys/buf.h>
-#include <sys/x_call.h>
 #include <sys/cpuvar.h>
 #include <sys/disp.h>
 #include <vm/page.h>
@@ -803,6 +800,11 @@ lkpi_plat_virt_to_phys(const void *kva)
 	return (((u64)pfn << PAGESHIFT) | ((uintptr_t)kva & PAGEOFFSET));
 }
 
+/* uts/i86pc/vm/hat_i86.h (platform header, not installed). */
+#ifndef HAT_PLAT_NOCACHE
+#define	HAT_PLAT_NOCACHE	0x100000
+#endif
+
 static uint_t
 lkpi_hat_attr(int cache)
 {
@@ -976,13 +978,36 @@ lkpi_plat_dmi_string(int field)
 	return (lkpi_dmi_have[field] ? lkpi_dmi_buf[field] : NULL);
 }
 
-/* ACPI through ACPICA (the illumos acpica module). */
+/*
+ * ACPI through ACPICA (the illumos acpica module, misc/acpica). The ACPICA
+ * headers (<sys/acpi/acpi.h>, and <sys/acpica.h> which includes it) are
+ * not installed by illumos distributions (OmniOS), so the few entry points
+ * and types used here are declared from the ACPICA interface (64-bit
+ * build: ACPI_SIZE is 64 bits; AE_NOT_FOUND is EXCEP_ENV(5)).
+ */
+typedef uint32_t lkpi_acpi_status_t;
+typedef struct {
+	uint32_t	Count;
+	void		*Pointer;	/* ACPI_OBJECT * */
+} lkpi_acpi_object_list_t;
+typedef struct {
+	uint64_t	Length;
+	void		*Pointer;
+} lkpi_acpi_buffer_t;
+#define	LKPI_AE_OK			0x0000
+#define	LKPI_AE_NOT_FOUND		0x0005
+#define	LKPI_ACPI_ALLOCATE_BUFFER	((uint64_t)-1)
+extern lkpi_acpi_status_t AcpiGetHandle(void *, char *, void **);
+extern lkpi_acpi_status_t AcpiEvaluateObject(void *, char *,
+    lkpi_acpi_object_list_t *, lkpi_acpi_buffer_t *);
+extern void AcpiOsFree(void *);
+extern lkpi_acpi_status_t acpica_get_handle(dev_info_t *, void **);
 int
 lkpi_plat_acpi_get_handle(void *parent, const char *path, void **h)
 {
-	ACPI_HANDLE ah;
+	void *ah;
 
-	if (AcpiGetHandle(parent, (ACPI_STRING)(uintptr_t)path, &ah) != AE_OK)
+	if (AcpiGetHandle(parent, (char *)(uintptr_t)path, &ah) != LKPI_AE_OK)
 		return (-ENODEV);
 	*h = ah;
 	return (0);
@@ -992,19 +1017,19 @@ int
 lkpi_plat_acpi_evaluate(void *h, const char *method, void *args, int nargs,
     void **result)
 {
-	ACPI_OBJECT_LIST list;
-	ACPI_BUFFER buf;
-	ACPI_STATUS st;
+	lkpi_acpi_object_list_t list;
+	lkpi_acpi_buffer_t buf;
+	lkpi_acpi_status_t st;
 
-	list.Count = (UINT32)nargs;
+	list.Count = (uint32_t)nargs;
 	list.Pointer = args;
-	buf.Length = ACPI_ALLOCATE_BUFFER;
+	buf.Length = LKPI_ACPI_ALLOCATE_BUFFER;
 	buf.Pointer = NULL;
-	st = AcpiEvaluateObject(h, (ACPI_STRING)(uintptr_t)method,
+	st = AcpiEvaluateObject(h, (char *)(uintptr_t)method,
 	    nargs > 0 ? &list : NULL, &buf);
-	if (st == AE_NOT_FOUND)
+	if (st == LKPI_AE_NOT_FOUND)
 		return (-ENOENT);
-	if (st != AE_OK)
+	if (st != LKPI_AE_OK)
 		return (-EIO);
 	*result = buf.Pointer;
 	return (0);
@@ -1020,9 +1045,9 @@ lkpi_plat_acpi_free(void *obj)
 void *
 lkpi_plat_acpi_dev_handle(void *dip)
 {
-	ACPI_HANDLE h;
+	void *h;
 
-	if (acpica_get_handle(dip, &h) != AE_OK)
+	if (acpica_get_handle(dip, &h) != LKPI_AE_OK)
 		return (NULL);
 	return (h);
 }
@@ -1076,9 +1101,24 @@ lkpi_plat_wrmsr(u32 msr, u64 val)
 	wrmsr(msr, val);
 }
 
+/*
+ * Cross calls (uts/i86pc/sys/x_call.h, a platform header that is not on
+ * the include path of an add-on module: /usr/platform/i86pc/include).
+ */
+typedef uintptr_t lkpi_xc_arg_t;
+typedef int (*lkpi_xc_func_t)(lkpi_xc_arg_t, lkpi_xc_arg_t, lkpi_xc_arg_t);
+extern void xc_call(lkpi_xc_arg_t, lkpi_xc_arg_t, lkpi_xc_arg_t, ulong_t *,
+    lkpi_xc_func_t);
+/*
+ * cpuset_t is only visible with _MACHDEP; xc_call() reads it as a bitmap
+ * of ncpus bits and skips CPUs that do not exist or are not ready, so an
+ * all-ones bitmap larger than any NCPU means "all CPUs".
+ */
+#define	LKPI_XC_SETWORDS	64		/* 4096 CPUs */
+
 /* Write back and invalidate this CPU's caches (cross-call handler). */
 static int
-lkpi_wbinvd_xc(xc_arg_t a1, xc_arg_t a2, xc_arg_t a3)
+lkpi_wbinvd_xc(lkpi_xc_arg_t a1, lkpi_xc_arg_t a2, lkpi_xc_arg_t a3)
 {
 	(void) a1;
 	(void) a2;
@@ -1095,11 +1135,11 @@ lkpi_wbinvd_xc(xc_arg_t a1, xc_arg_t a2, xc_arg_t a3)
 void
 lkpi_plat_wbinvd(void)
 {
-	cpuset_t set;
+	ulong_t set[LKPI_XC_SETWORDS];
 
+	(void) memset(set, 0xff, sizeof (set));
 	kpreempt_disable();
-	CPUSET_ALL(set);
-	xc_call(0, 0, 0, CPUSET2BV(set), lkpi_wbinvd_xc);
+	xc_call(0, 0, 0, set, lkpi_wbinvd_xc);
 	kpreempt_enable();
 }
 

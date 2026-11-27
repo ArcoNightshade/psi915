@@ -8,9 +8,13 @@
 
 BINARY		= $(OBJS_DIR)/$(MODULE)
 
-.PHONY: all install clean clobber
+.PHONY: all install clean clobber objects
 
 all: $(BINARY)
+
+# Objects only (scripts/illumos-hdr-check.sh: real illumos headers on a
+# Linux host, no kmod link).
+objects: $(OBJECTS)
 
 $(OBJS_DIR):
 	mkdir -p $@

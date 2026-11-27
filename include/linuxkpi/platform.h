@@ -109,6 +109,25 @@
 #define	cred	lkpi_cred
 #define	pid	lkpi_pid
 
+/*
+ * Function and tag names Linux and illumos both use with different
+ * signatures or meanings (found by building against the real illumos
+ * headers, scripts/illumos-hdr-check.sh), renamed the same way:
+ *
+ *   list_move_tail  <sys/list.h> list_move_tail(list_t *, list_t *)
+ *   struct sysinfo  <sys/sysinfo.h> CPU statistics (also a variable)
+ *   sema_init       <sys/semaphore.h> ksema_t initialisation
+ *   resume          <sys/disp.h> the context-switch routine (i915 has a
+ *                   static resume() in gt/intel_reset.c; dev_pm_ops
+ *                   members of that name are renamed consistently)
+ *   timer_setup     clashes on some illumos distributions' headers
+ */
+#define	list_move_tail	lkpi_list_move_tail
+#define	sysinfo		lkpi_sysinfo
+#define	sema_init	lkpi_sema_init
+#define	resume		lkpi_resume
+#define	timer_setup	lkpi_timer_setup
+
 /* Service threads (src/plat_*.c). */
 struct lkpi_plat_thread;
 struct lkpi_plat_thread *lkpi_plat_thread_create(void (*fn)(void *),

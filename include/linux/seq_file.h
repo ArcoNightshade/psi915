@@ -68,6 +68,20 @@ static const struct file_operations name##_fops = {			\
 	.llseek = seq_lseek,						\
 	.release = single_release,					\
 }
+/* As DEFINE_SHOW_ATTRIBUTE, plus name##_write as the write method. */
+#define	DEFINE_SHOW_STORE_ATTRIBUTE(name)				\
+static int								\
+name##_open(struct inode *inode, struct lkpi_file *file)		\
+{									\
+	return (single_open(file, name##_show, inode->i_private));	\
+}									\
+static const struct file_operations name##_fops = {			\
+	.open = name##_open,						\
+	.read = seq_read,						\
+	.write = name##_write,						\
+	.llseek = seq_lseek,						\
+	.release = single_release,					\
+}
 #define	DEFINE_SEQ_ATTRIBUTE(name)					\
 	static inline void *__maybe_unused name##_lkpi_ops_ref(void)	\
 	{ return ((void *)&name##_sops); }

@@ -38,6 +38,12 @@
 #include <sys/ddidevmap.h>
 #include <vm/as.h>
 
+/*
+ * genunix's generic "not supported" vnode operation; declared in
+ * <fs/fs_subr.h>, which is not part of the installed headers.
+ */
+extern int fs_nosys();
+
 #include <linuxkpi/platform.h>
 #include <linux/kernel.h>
 #include <drmglue/lkpi_fs.h>

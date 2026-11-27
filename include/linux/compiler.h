@@ -66,7 +66,9 @@
 #define	__bitwise
 #define	__counted_by(m)
 #define	fallthrough		__attribute__((__fallthrough__))
+#ifndef __nonstring	/* illumos <sys/ccompile.h> has the same */
 #define	__nonstring
+#endif
 #define	__randomize_layout
 #define	__no_randomize_layout
 #define	__must_hold(x)

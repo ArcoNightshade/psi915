@@ -30,6 +30,7 @@
 #include <sys/mman.h>
 #include <sys/model.h>
 #include <sys/taskq.h>
+#include <sys/taskq_impl.h>	/* taskq_ent_t, taskq_dispatch_ent */
 #include <sys/atomic.h>
 #include <sys/ddi.h>
 #include <sys/sunddi.h>

@@ -33,6 +33,17 @@
 	(((dir) << _IOC_DIRSHIFT) | ((type) << _IOC_TYPESHIFT) |	\
 	    ((nr) << _IOC_NRSHIFT) | ((size) << _IOC_SIZESHIFT))
 #define	_IOC_TYPECHECK(t)	(sizeof (t))
+/*
+ * illumos <sys/ioccom.h> defines these with its own encoding; the KPI
+ * uses Linux's (drmglue translates illumos ioctl numbers).
+ */
+#undef	_IO
+#undef	_IOR
+#undef	_IOW
+#undef	_IOWR
+#undef	IOC_IN
+#undef	IOC_OUT
+#undef	IOC_INOUT
 #define	_IO(type, nr)		_IOC(_IOC_NONE, (type), (nr), 0)
 #define	_IOR(type, nr, t)	_IOC(_IOC_READ, (type), (nr), _IOC_TYPECHECK(t))
 #define	_IOW(type, nr, t)	_IOC(_IOC_WRITE, (type), (nr), _IOC_TYPECHECK(t))

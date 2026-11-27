@@ -224,7 +224,6 @@ thread_join
 schedctl_cancel_pending
 # docs/12 C1/C2
 xc_call
-cpuset_all
 hat_getattr
 lkpi_stub_kpreempt_disable
 lkpi_stub_kpreempt_enable
