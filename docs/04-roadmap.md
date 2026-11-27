@@ -296,6 +296,12 @@ The 11 syntax-check failures that were outside the KPI are fixed (import/drm_bsd
 - [x] Test robustness: rcu_list_stress readers always look up once; toy_probe_remove waits for the
   fake backend's claimed-interrupt count (both failed only under heavy host load).
 
+- [x] Independent review findings fixed (status tables at the end of docs/12 and docs/13): DMA by
+  page for merged sg entries, size-aware GFP, signal holds, thread_join, interruptible mutexes,
+  all-CPU wbinvd, cache attributes, no devinfo walk from attach, no self-hold of the attached dip,
+  INTx fallback, kmalloc alignment without over-allocation, I2C block reads. Syntax-check 374/374,
+  link check 0 unresolved.
+
 KPI work still open (behaviour, not syntax):
 - [ ] User address-space features refused for now: i915 userptr (no VMAs visible), legacy
   I915_GEM_MMAP (vm_mmap), kernel SSE (SSE4.1 hidden), relay (GuC log), sysctl publishing.
