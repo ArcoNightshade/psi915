@@ -1,6 +1,6 @@
 # Independent review, second pass
 
-Status 2026-11-26. Reviewer: second independent agent. Read-only on include/, src/, drmglue/,
+Status 2026-11-27 (merged up to 646f1da). Reviewer: second independent agent. Read-only on include/, src/, drmglue/,
 drm_bsd/, build/, drivers/; this file and `review/` are the only things written.
 Method: the psi915 sources at the merge of `origin/psl/epic-gates-dx5xvk` (after the first pass,
 docs/12) were read against the illumos-gate sources in `ref/illumos/usr/src/uts` (f71cb08e8c53)
@@ -20,11 +20,13 @@ the normal i915 path), **high** (same, in a plausible but less common path), **m
 | G1 | high | console | after the initial framebuffer is released, gfx_private writes the console shadow into whatever GGTT now maps the old fb range (every resume, every return to KD_TEXT) | medium-high |
 | P1 | medium | PCI/DDI | the attach-time `pci_dev` holds `ndi_hold_devi()` on its own dip: `detach_node()` refuses before detach(9E) is called; modunload/rem_drv can never detach i915 | high |
 | P2 | medium | IRQ | no INTx fallback: without MSI `pdev->irq` is 0, `request_irq(0)` fails, i915 probe fails | high (reproduced) |
-| G2 | medium | console | `text-0` devmap exposes the physical aperture window to user mappings after the initial fb is gone | medium |
+| G2 | low | console | `text-0` mmap goes to `drmglue_segmap` (ENXIO); routed like vgatext it would expose the aperture window (G1) | high |
 | B1 | low-medium | build | `ctfconvert/ctfmerge -L VERSION` with VERSION unset in the environment | low (tool behaviour not verified) |
 | D2 | low | DMA | rootnex silently bounces streaming maps through a copy buffer when a page is above the DMA mask; nothing detects it | high (fact), low (i915 sets 39-bit mask first) |
 | P3 | low | PCI | `lkpi_pci_iomap_common()` dereferences an unchecked `kzalloc()` | high |
 | C3 | low | I2C | bit-banging: `I2C_M_RECV_LEN` error path leaves the slave mid-byte (no NAK); `I2C_M_NO_RD_ACK` ignored | high (fact), low (impact) |
+| F1 | low | locking | interruptible-mutex wake-up can be missed (store-buffer reordering after `mutex_exit`); 20 ms fallback | high |
+| F2 | low-medium | memory | natural-alignment fix doubles the size of every power-of-two kmalloc | high |
 | A2 | low | attach | `psi915_detach()` removes the DRM minors before a `lkpi_pci_detach()` that may fail | high (fact), low (unreachable today, see P1) |
 
 The "first 10 places probe would fail or hang on real hardware" list is in section "Probe path".
@@ -188,12 +190,16 @@ the initial fb is gone (gfx_private then keeps writing only to the shadow) and s
 whether i915 frees the initial fb on the first master modeset follows from 6.14
 `intel_plane_initial.c`, not traced line by line).
 
-### G2 (medium) `text-0` mmap exposes the aperture window
+### G2 (low) Console minor mmap
 
-File: `drivers/i915_glue/i915_ddi.c:179-191`. `gfxp_fb_devmap()` on the console minor maps the
-same physical aperture range into the caller. After the initial fb is released (G1), a process with
-access to `/dev/fb` (the console owner) reads and writes arbitrary GPU objects through it. Fix:
-refuse devmap on the console minor once DRM owns the display (or map the shadow).
+File: `drivers/i915_glue/i915_ddi.c:461-467`. `psi915_cb_ops` overrides open/close/ioctl/devmap but
+keeps drmglue's `cb_segmap`, `cb_read` and `cb_chpoll`. mmap(2) goes through `cb_segmap`, so on the
+console minor it reaches `drmglue_segmap()` -> `lkpi_cdev_file(0xfe, 0)` = NULL -> ENXIO;
+`psi915_devmap()`'s console branch is never called (vgatext uses `ddi_devmap_segmap` as
+`cb_segmap`). Today that only breaks programs that mmap `/dev/fb`. If it is fixed by routing the
+console minor to `ddi_devmap_segmap`/`gfxp_fb_devmap`, the mapping is the physical aperture window
+and, once the initial fb is released (G1), lets the console owner read and write arbitrary GPU
+objects; fix G1 first or refuse the console mmap while DRM owns the display.
 
 ### A2 (low) DDI_DETACH removes minors before a detach step that can fail
 
@@ -331,6 +337,65 @@ before any mapping and the KPI allocates below it, so it does not happen on KBL-
 device that keeps the default 32-bit mask on a machine with RAM above 4 GiB. Fix: after bind, verify
 that the cookie address equals the page's physical address when no IOMMU is active (or check
 `hat_getpfnum` against the mask beforehand) and fail the map otherwise.
+
+## Area 9: fixes for docs/12 that landed during this pass (ab8aa90, 9f90922, 646f1da)
+
+Reviewed after merging; 646f1da is marked WIP by its author.
+
+### F1 (low) Interruptible mutex: missed wake-up, recovered only by the 20 ms poll
+
+Files: `include/linux/mutex.h:91-98` (`mutex_unlock`), `src/linux_lock.c:186-231`.
+`mutex_unlock()` does `lkpi_plat_mutex_exit()` and then loads `lkpi_waiters`. illumos' adaptive
+`mutex_exit()` on amd64 is a plain store (lock_prim.s), and a seq-cst `__atomic_load_n` is a plain
+`mov` on x86, so the load may be satisfied before the releasing store is visible (store-buffer
+reordering). The waiter does `waiters++` (locked) then `tryenter` (locked): the classic
+store-buffering pair, in which both sides can read the old values. The waiter then sleeps until its
+timed fallback (`1 + hz/100` ticks, 20 ms at hz=100) instead of being woken. Not a hang, but every
+contended `mutex_lock_interruptible()` (i915 uses it on hot paths such as `ggtt->vm.mutex`) can
+take 20 ms extra. Fix: `__atomic_thread_fence(__ATOMIC_SEQ_CST)` (i.e. `smp_mb()`) between the
+exit and the waiter-count load. Confidence: high (memory-model argument), impact low.
+
+### F2 (low-medium, performance) Power-of-two kmalloc now costs twice its size
+
+File: `src/linux_slab.c:36-53`. To give natural alignment (docs/12 M4), a power-of-two request of
+size S > 16 allocates S + S bytes (`lkpi_kmalloc_total`), e.g. `kmalloc(4096)` -> `kmem_alloc(8192)`,
+`kmalloc(64)` -> 128. `sg_alloc_table()` chunks, page arrays and many i915/DRM objects are powers of
+two, so kernel memory use for them doubles. illumos' `kmem_alloc` caches already align power-of-two
+cache sizes (64-byte alignment for multiples of 64, page alignment for multiples of PAGESIZE, in
+kmem.c's `kmem_alloc_caches_create`); what costs the slack is the in-band header. Fix: keep the
+size out of band for these sizes (or rely on M4's "no consumer found" and drop the guarantee) instead
+of over-allocating.
+
+### F3 (note) Size-aware GFP threshold
+
+`lkpi_gfp_to_plat_size()` makes every `GFP_KERNEL` request above 1 MiB `KM_NOSLEEP|KM_NORMALPRI`.
+That fixes M2, but legitimate large kernel allocations (page-pointer arrays of big GEM objects,
+2 MiB for a 1 GiB object) can now fail transiently when memory is merely fragmented or caches have
+not been reaped, where Linux would have reclaimed. Acceptable; consider one retry with
+`KM_SLEEP` for requests below a fraction of free memory, or `__GFP_NOFAIL`-like treatment for
+kernel-internal callers.
+
+### Verified OK
+
+- M1 fix (`src/linux_dma.c:277-372`, `src/plat_illumos_dev.c:594-660`): entries whose pages are not
+  VA-contiguous are bound as a `B_SHADOW` buf with a `page_t` list. `ddi_dma_buf_bind_handle`
+  (sunddi.c:7036-7066) turns that into `DMA_OTYP_BUFVADDR` with `v_priv = b_shadow`, `v_as = kas`
+  for `b_proc == NULL`, and rootnex's `rootnex_get_sgl` takes each page's PFN from `pplist[pcnt]`
+  (rootnex.c:2743-2790, 2891-2992), using `b_addr` only for the first page's offset. Correct.
+  Caveats, both documented by the author: a copy-buffer bounce (D2) would copy from `b_addr` as if
+  contiguous (wrong data), and the immu (IOMMU) bind path was not checked for `v_priv` handling.
+- L2 fix: `thread_join(t_did)` after the creator waited for the id; detached threads no longer
+  touch their descriptor after `fn`.
+- L1 fix: `lkpi_plat_signal_pending()` now reports exactly the `cv_wait_sig()` early-return set.
+- L3 fix: per-queue cap 256, workers created on demand by the manager thread.
+- C1 fix: `xc_call()` to all CPUs with preemption disabled, handler runs `wbinvd` on each.
+- C2 fix: per-page `hat_unload(HAT_UNLOAD_UNLOCK)` + `hat_devload(HAT_LOAD_LOCK)` with the new
+  attribute keeps the lock count balanced. As with illumos' own non-WB DMA memory
+  (`kmem_override_cache_attrs`), the segkpm alias of the page stays write-back, i.e. a PAT alias
+  that Intel documents as undefined; illumos tolerates it, so not raised as a finding.
+- IOMMU detection: `immu_running`, `immu_dvma_enable`, `immu_gfxdvma_enable` are globals of
+  drv/rootnex (immu.c:73-105; Makefile.files ROOTNEX_OBJS), so the extern references resolve with
+  `MODDEPS drv/rootnex`.
 
 ## MMIO / forcewake / uncore path (task b)
 
