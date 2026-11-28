@@ -93,15 +93,19 @@ diag() {
 }
 
 # stage NAME R|I FUNCTION
+# Output streams straight to the console (no capture) so everything printed
+# before a kernel hang or panic reaches the CI log.
 stage() {
 	name=$1 kind=$2 fn=$3
 	echo "== [$kind] $name"
-	if $fn > "$work/$name.out" 2>&1; then
+	rm -f "$work/$name.rc"
+	# Unbuffered indent (a read/echo loop, not sed: sed would hold lines back).
+	{ $fn; echo $? > "$work/$name.rc"; } 2>&1 | while IFS= read -r l; do echo "   $l"; done
+	if [ -f "$work/$name.rc" ] && [ "$(cat "$work/$name.rc")" = 0 ]; then
 		res=PASS
 	else
 		res=FAIL
 	fi
-	sed 's/^/   /' "$work/$name.out"
 	if [ $res = FAIL ]; then
 		diag
 		[ "$kind" = R ] && req_fail=1

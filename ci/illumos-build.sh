@@ -40,9 +40,10 @@ echo "== build result rc=$rc"
 # Kernel load tests (ci/illumos-load-test.sh): disposable CI VM only, as
 # root, when linuxkpi was built. Only stages marked required fail the job.
 if [ "$(id -u)" = 0 ] && [ -f build/linuxkpi/obj64/linuxkpi ]; then
-	CI_VM=1 sh ci/illumos-load-test.sh > ci-load-test.log 2>&1
-	lrc=$?
-	cat ci-load-test.log
+	# Stream (tee) so that lines printed before a kernel hang/panic reach
+	# the job log; the exit status goes through a file (plain sh, no PIPESTATUS).
+	{ CI_VM=1 sh ci/illumos-load-test.sh 2>&1; echo $? > ci-load-test.rc; } | tee ci-load-test.log
+	lrc=$(cat ci-load-test.rc 2>/dev/null || echo 1)
 	echo "== load test result rc=$lrc"
 	[ $lrc = 0 ] || rc=1
 else
