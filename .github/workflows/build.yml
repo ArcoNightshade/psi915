@@ -60,6 +60,17 @@ jobs:
             pkg install build-essential || pkg install developer/gcc-13 developer/build/gnu-make system/header
           run: |
             sh ci/illumos-build.sh
+      - name: VM console / qemu logs (panic messages)
+        if: always()
+        run: |
+          set +e
+          for d in /home/runner/work/_actions/vmactions/*/*/output /home/runner/work/_actions/_vmcache; do
+            [ -d "$d" ] || continue
+            echo "== files in $d"; find "$d" -maxdepth 3 -type f \( -iname '*.log' -o -iname '*serial*' -o -iname '*console*' -o -iname '*.txt' \) -size -50M 2>/dev/null | head -20
+          done
+          for f in $(find /home/runner/work/_actions -type f \( -iname '*serial*' -o -iname '*console*' -o -iname 'qemu*.log' -o -iname '*vm*.log' \) -size -50M 2>/dev/null | head -5); do
+            echo "== tail of $f"; tail -n 120 "$f"
+          done
       - name: Collect modules
         if: always()
         run: |
